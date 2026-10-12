@@ -1,5 +1,8 @@
-[gd_resource type="StandardMaterial3D" format=3 uid="uid://crrj816isxxsa"]
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/cactus.gdshader" id="shader"]
+[ext_resource type="Texture2D" path="res://textures/terrain_noise.png" id="1"]
 
 [resource]
-albedo_color = Color(0.27, 0.42, 0.2, 1)
-roughness = 0.85
+shader = ExtResource("shader")
+shader_parameter/grain_tex = ExtResource("1")

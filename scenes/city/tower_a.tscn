@@ -5,6 +5,12 @@
 [ext_resource type="Material" path="res://materials/facade_glass.tres" id="3"]
 [ext_resource type="Material" path="res://materials/roof_flat.tres" id="4"]
 [ext_resource type="Material" path="res://materials/rubble.tres" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/city/door.tscn" id="x1"]
+[ext_resource type="PackedScene" path="res://scenes/city/ac_unit.tscn" id="x2"]
+[ext_resource type="PackedScene" path="res://scenes/city/sat_dish.tscn" id="x3"]
+[ext_resource type="PackedScene" path="res://scenes/city/roof_vent.tscn" id="x4"]
+[ext_resource type="PackedScene" path="res://scenes/city/roof_tank.tscn" id="x5"]
+[ext_resource type="PackedScene" path="res://scenes/city/roof_mast.tscn" id="x6"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_1"]
 size = Vector3(28, 80, 28)
@@ -32,6 +38,14 @@ Cells = Vector3i(7, 20, 7)
 CellSize = 4
 CellHp = 16
 ChunkFx = ExtResource("2")
+DoorScene = ExtResource("x1")
+Doors = 3
+WallFittings = Array[PackedScene]([ExtResource("x2"), ExtResource("x2"), ExtResource("x3")])
+WallShare = 0.03
+DressedStoreys = 2
+RoofFittings = Array[PackedScene]([ExtResource("x4"), ExtResource("x4"), ExtResource("x5"), ExtResource("x6")])
+RoofCount = 5
+DebrisMaterial = ExtResource("5")
 
 [node name="Chunks" type="MultiMeshInstance3D" parent="."]
 material_override = ExtResource("3")

@@ -80,6 +80,11 @@ public partial class Mech : CharacterBody3D, IDrivable
     [Export] public PackedScene WreckFireScene;
 
     [ExportGroup("Paint")]
+    /// <summary>
+    /// Outline of the sole, lying on the ground with the toes to -Z: the shape of the mark each step
+    /// leaves. Without it the map's stock footprint is used as it is.
+    /// </summary>
+    [Export] public Mesh FootprintMesh;
     /// <summary>The material the repaintable armour uses in this scene; replaced by the chosen camouflage.</summary>
     [Export] public Material ArmorMaterial;
     /// <summary>The material of the stripe; recoloured.</summary>
@@ -250,6 +255,13 @@ public partial class Mech : CharacterBody3D, IDrivable
         {
             var copy = (StandardMaterial3D)std.Duplicate();
             copy.AlbedoColor = stripe;
+            accent = copy;
+        }
+        else if (AccentMaterial is ShaderMaterial painted)
+        {
+            // The armour shader keeps its colour in a parameter.
+            var copy = (ShaderMaterial)painted.Duplicate();
+            copy.SetShaderParameter("paint_color", stripe);
             accent = copy;
         }
         foreach (var mesh in Geo.Collect<MeshInstance3D>(this))
@@ -574,6 +586,26 @@ public partial class Mech : CharacterBody3D, IDrivable
             return;
         }
         var print = scene.Instantiate<Node3D>();
+        if (FootprintMesh != null)
+        {
+            // The map decides what a print is made of (packed sand, snow, cracked asphalt); the mech, its shape.
+            MeshInstance3D mark = null;
+            foreach (Node child in print.GetChildren())
+            {
+                if (child is not MeshInstance3D mesh) continue;
+                if (mark == null) mark = mesh;
+                else
+                {
+                    print.RemoveChild(mesh);
+                    mesh.QueueFree();
+                }
+            }
+            if (mark != null)
+            {
+                mark.Mesh = FootprintMesh;
+                mark.Transform = Transform3D.Identity;
+            }
+        }
         GetParent().AddChild(print);
         Basis basis = Geo.BasisFromUpForward(leg.Normal, -GlobalTransform.Basis.Z);
         print.GlobalTransform = new Transform3D(basis, leg.Contact);

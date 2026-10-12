@@ -4,7 +4,8 @@ namespace MechSim;
 
 /// <summary>
 /// One loose piece of wreckage (see <see cref="Debris"/>): a rigid block that tumbles, lies about for a
-/// while, then shrinks away. The scene holds a unit box mesh and shape; Setup sizes and colours them.
+/// while, then shrinks away. The scene holds a unit mesh and shape; Setup sizes and colours them and
+/// swaps the mesh for one of a few irregular lumps, so no two pieces look like the same brick.
 /// </summary>
 public partial class DebrisChunk : RigidBody3D
 {
@@ -15,6 +16,7 @@ public partial class DebrisChunk : RigidBody3D
     public void Setup(Vector3 size, Material material)
     {
         var mesh = GetNode<MeshInstance3D>("Mesh");
+        mesh.Mesh = Debris.Lump();
         mesh.Scale = size;
         mesh.MaterialOverride = material;
         GetNode<CollisionShape3D>("Shape").Shape = new BoxShape3D { Size = size };

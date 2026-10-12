@@ -20,6 +20,9 @@ public partial class Hud : Control
     public float Time { get; private set; }
 
     Label _kills, _view, _timer, _unit;
+    // Instruments that a cockpit shows on its own screens; hidden here while it does.
+    static readonly string[] PanelInstruments = { "Minimap", "HeatGauge", "ThrottleGauge", "JumpGauge", "WeaponList", "PlayerDoll", "ArmorLabel" };
+    readonly System.Collections.Generic.List<Control> _panel = new();
     Control _help, _helpHint;
 
     public override void _Ready()
@@ -31,6 +34,8 @@ public partial class Hud : Control
         _help = GetNode<Control>("HelpPanel");
         _helpHint = GetNode<Control>("HelpHint");
         _helpHint.Visible = !_help.Visible;
+        foreach (string name in PanelInstruments)
+            if (GetNodeOrNull<Control>(name) is { } widget) _panel.Add(widget);
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -52,6 +57,9 @@ public partial class Hud : Control
             int left = Mathf.CeilToInt(game.TimeLeft);
             _timer.Text = $"{left / 60}:{left % 60:00}";
         }
+
+        bool overlay = !CockpitDisplays.Active;
+        foreach (Control widget in _panel) widget.Visible = overlay;
 
         var seat = Seat;
         if (seat == null) return;

@@ -10,7 +10,10 @@ namespace MechSim;
 /// Scene layout: optional "Hull" (visual; tilts with the ground or banks in flight);
 /// optional "Turret" (turns) with "Gun" under it (elevates) and "CockpitCam" under that — without a
 /// turret, "CockpitCam" sits on the hull and the weapons point where the nose does;
-/// Weapon nodes anywhere; nodes named "Rotor…" spin; optional "Sounds/Engine" loop.
+/// Weapon nodes anywhere; nodes named "Rotor…" spin; nodes under "Hull" named "Wheel…" roll with the
+/// speed (their axle is their local X) and, on a vehicle without tracks, the front ones steer;
+/// "TreadTop" / "TreadBottom" under "TrackL" / "TrackR" are the links of a track, which run round;
+/// optional "Sounds/Engine" loop.
 /// </summary>
 public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 {
@@ -123,6 +126,14 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 
     Node3D _hull, _turret, _gun;
     readonly List<Node3D> _rotors = new();
+    // Wheels: the node, its radius, and how far forward it sits (1 = front axle, 0 = middle and back).
+    readonly List<(Node3D node, float radius, float front)> _wheels = new();
+    float _rollAngle, _steer;
+    // Track links: the strip, and which way it runs (+1 = towards the nose) as the vehicle goes forward.
+    readonly List<(Node3D strip, float way)> _treads = new();
+    /// <summary>Length of one track link, metres: the links slide this far and jump back.</summary>
+    const float TrackLink = 0.3f;
+    bool _steers;
     readonly List<MeshInstance3D> _meshes = new();
     readonly List<Material> _original = new();
     readonly Godot.Collections.Array<Rid> _exclude = new();
@@ -137,6 +148,50 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     float _yaw, _pitch, _climb, _roll, _tilt;
     bool _falling;
     int _tick, _wake;
+
+    void FindWheels()
+    {
+        if (_hull == null) return;
+        float reach = 0.1f;
+        var found = new List<Node3D>();
+        foreach (Node child in _hull.GetChildren())
+        {
+            if (child is not Node3D wheel || !child.Name.ToString().StartsWith("Wheel")) continue;
+            found.Add(wheel);
+            reach = Mathf.Max(reach, Mathf.Abs(wheel.Position.Z));
+        }
+        foreach (string side in new[] { "TrackL", "TrackR" })
+        {
+            // Seen from the vehicle, the run on the ground goes backwards and the upper run forwards.
+            if (_hull.GetNodeOrNull<Node3D>(side + "/TreadTop") is { } top) _treads.Add((top, 1f));
+            if (_hull.GetNodeOrNull<Node3D>(side + "/TreadBottom") is { } bottom) _treads.Add((bottom, -1f));
+        }
+        // Tracked vehicles turn by their tracks; the wheels inside only roll.
+        _steers = _hull.GetNodeOrNull("TrackL") == null;
+        foreach (Node3D wheel in found)
+        {
+            Aabb box = wheel is MeshInstance3D { Mesh: not null } mesh ? mesh.Mesh.GetAabb() : new Aabb(Vector3.One * -0.5f, Vector3.One);
+            float radius = Mathf.Max(box.Size.Y, box.Size.Z) * 0.5f;
+            _wheels.Add((wheel, Mathf.Max(radius, 0.05f), Mathf.Clamp(-wheel.Position.Z / reach, 0f, 1f)));
+        }
+    }
+
+    void TurnWheels(float dt)
+    {
+        if (_wheels.Count == 0 && _treads.Count == 0) return;
+        _rollAngle -= Speed * dt;
+        // _rollAngle is minus the distance covered. Forward is -Z.
+        float slide = Mathf.PosMod(-_rollAngle, TrackLink);
+        foreach (var (strip, way) in _treads)
+            if (IsInstanceValid(strip)) strip.Position = new Vector3(0f, 0f, -way * slide);
+        _steer = Mathf.MoveToward(_steer, _steers ? Mathf.Clamp(TurnInput, -1f, 1f) * 0.5f : 0f, 2.5f * dt);
+        foreach (var (wheel, radius, front) in _wheels)
+        {
+            // One that has been shot off lies where it fell.
+            if (!IsInstanceValid(wheel) || wheel.GetParent() != _hull) continue;
+            wheel.Basis = new Basis(Vector3.Up, _steer * front) * new Basis(Vector3.Right, _rollAngle / radius);
+        }
+    }
 
     public override void _EnterTree() => Units.All.Add(this);
 
@@ -157,6 +212,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             if (node.Name.ToString().StartsWith("Rotor")) _rotors.Add(node);
         Geo.Collect(this, _meshes);
         foreach (var mesh in _meshes) _original.Add(mesh.MaterialOverride);
+        FindWheels();
         // Everything bolted to the hull except the main body can be shot off.
         if (_hull != null)
             foreach (Node child in _hull.GetChildren())
@@ -244,6 +300,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 
         UpdateTurret(dt);
         foreach (var rotor in _rotors) rotor.RotateY(28f * dt);
+        TurnWheels(dt);
         Pilot?.UpdateView(dt);
         UpdateAim(space);
 

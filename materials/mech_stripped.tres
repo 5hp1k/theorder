@@ -1,6 +1,21 @@
-[gd_resource type="StandardMaterial3D" format=3]
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/armor.gdshader" id="shader"]
+[ext_resource type="Texture2D" path="res://textures/rusty_metal_02/rusty_metal_02_nor.jpg" id="nor"]
+[ext_resource type="Texture2D" path="res://textures/rusty_metal_02/rusty_metal_02_arm.jpg" id="arm"]
+[ext_resource type="Texture2D" path="res://textures/terrain_noise.png" id="noise"]
 
 [resource]
-albedo_color = Color(0.12, 0.11, 0.1, 1)
-metallic = 0.8
-roughness = 0.55
+shader = ExtResource("shader")
+shader_parameter/surface_normal = ExtResource("nor")
+shader_parameter/surface_arm = ExtResource("arm")
+shader_parameter/noise_tex = ExtResource("noise")
+shader_parameter/paint_color = Color(0.2, 0.14, 0.1, 1)
+shader_parameter/paint_roughness = 0.6
+shader_parameter/paint_metallic = 0.7
+shader_parameter/wear = 1.0
+shader_parameter/dirt = 0.85
+shader_parameter/surface_bump = 1.2
+shader_parameter/surface_scale = 0.45
+shader_parameter/metal_color = Color(0.33, 0.3, 0.28, 1)
+shader_parameter/dirt_color = Color(0.2, 0.1, 0.05, 1)

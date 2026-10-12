@@ -3,18 +3,7 @@
 [ext_resource type="Script" path="res://scripts/Combat/Bomb.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/fx/explosion_medium.tscn" id="2"]
 [ext_resource type="Material" path="res://materials/mech_joint.tres" id="3"]
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
-top_radius = 0.28
-bottom_radius = 0.28
-height = 1.8
-radial_segments = 8
-
-[sub_resource type="BoxMesh" id="BoxMesh_2"]
-size = Vector3(0.9, 0.06, 0.5)
-
-[sub_resource type="BoxMesh" id="BoxMesh_3"]
-size = Vector3(0.06, 0.9, 0.5)
+[ext_resource type="ArrayMesh" path="res://models/small/bomb/Body.res" id="x3"]
 
 [node name="Bomb" type="Node3D"]
 script = ExtResource("1")
@@ -23,19 +12,6 @@ BlastRadius = 14
 ImpactScene = ExtResource("2")
 
 [node name="Body" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
-mesh = SubResource("CylinderMesh_1")
-material_override = ExtResource("3")
-cast_shadow = 0
-
-[node name="FinA" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.9)
-mesh = SubResource("BoxMesh_2")
-material_override = ExtResource("3")
-cast_shadow = 0
-
-[node name="FinB" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.9)
-mesh = SubResource("BoxMesh_3")
+mesh = ExtResource("x3")
 material_override = ExtResource("3")
 cast_shadow = 0

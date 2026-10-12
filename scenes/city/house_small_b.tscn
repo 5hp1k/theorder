@@ -5,6 +5,9 @@
 [ext_resource type="Material" path="res://materials/facade_brick.tres" id="3"]
 [ext_resource type="Material" path="res://materials/roof_tiles.tres" id="4"]
 [ext_resource type="Material" path="res://materials/rubble.tres" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/city/door.tscn" id="x1"]
+[ext_resource type="PackedScene" path="res://scenes/city/ac_unit.tscn" id="x2"]
+[ext_resource type="PackedScene" path="res://scenes/city/sat_dish.tscn" id="x3"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_1"]
 size = Vector3(8, 8, 8)
@@ -32,6 +35,12 @@ Cells = Vector3i(4, 4, 4)
 CellSize = 2
 CellHp = 6
 ChunkFx = ExtResource("2")
+DoorScene = ExtResource("x1")
+Doors = 1
+WallFittings = Array[PackedScene]([ExtResource("x2"), ExtResource("x2"), ExtResource("x3")])
+WallShare = 0.12
+DressedStoreys = 4
+DebrisMaterial = ExtResource("5")
 
 [node name="Chunks" type="MultiMeshInstance3D" parent="."]
 material_override = ExtResource("3")

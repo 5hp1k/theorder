@@ -1,0 +1,45 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/terrain.gdshader" id="shader"]
+[ext_resource type="Texture2D" path="res://textures/terrain_noise.png" id="noise"]
+[ext_resource type="Texture2D" path="res://textures/snow_02/snow_02_diff.jpg" id="snow_02_diff"]
+[ext_resource type="Texture2D" path="res://textures/snow_02/snow_02_nor.jpg" id="snow_02_nor"]
+[ext_resource type="Texture2D" path="res://textures/snow_02/snow_02_arm.jpg" id="snow_02_arm"]
+[ext_resource type="Texture2D" path="res://textures/dark_rock/dark_rock_diff.jpg" id="dark_rock_diff"]
+[ext_resource type="Texture2D" path="res://textures/dark_rock/dark_rock_nor.jpg" id="dark_rock_nor"]
+[ext_resource type="Texture2D" path="res://textures/dark_rock/dark_rock_arm.jpg" id="dark_rock_arm"]
+[ext_resource type="Texture2D" path="res://textures/snow_field_aerial/snow_field_aerial_diff.jpg" id="snow_field_aerial_diff"]
+[ext_resource type="Texture2D" path="res://textures/snow_field_aerial/snow_field_aerial_nor.jpg" id="snow_field_aerial_nor"]
+[ext_resource type="Texture2D" path="res://textures/snow_field_aerial/snow_field_aerial_arm.jpg" id="snow_field_aerial_arm"]
+
+[resource]
+shader = ExtResource("shader")
+shader_parameter/noise_tex = ExtResource("noise")
+shader_parameter/base_albedo = ExtResource("snow_02_diff")
+shader_parameter/base_normal = ExtResource("snow_02_nor")
+shader_parameter/base_arm = ExtResource("snow_02_arm")
+shader_parameter/base_size = 6.0
+shader_parameter/base_tint = Color(1, 1, 1.02, 1)
+shader_parameter/patch_albedo = ExtResource("snow_02_diff")
+shader_parameter/patch_normal = ExtResource("snow_02_nor")
+shader_parameter/patch_arm = ExtResource("snow_02_arm")
+shader_parameter/patch_size = 11.0
+shader_parameter/patch_tint = Color(0.93, 0.95, 1, 1)
+shader_parameter/cliff_albedo = ExtResource("dark_rock_diff")
+shader_parameter/cliff_normal = ExtResource("dark_rock_nor")
+shader_parameter/cliff_arm = ExtResource("dark_rock_arm")
+shader_parameter/cliff_size = 14.0
+shader_parameter/cliff_tint = Color(1.5, 1.5, 1.55, 1)
+shader_parameter/shore_albedo = ExtResource("snow_field_aerial_diff")
+shader_parameter/shore_normal = ExtResource("snow_field_aerial_nor")
+shader_parameter/shore_arm = ExtResource("snow_field_aerial_arm")
+shader_parameter/shore_size = 9.0
+shader_parameter/shore_tint = Color(1, 1, 1, 1)
+shader_parameter/patch_amount = 0.45
+shader_parameter/patch_spread = 80.0
+shader_parameter/slope_start = 0.14
+shader_parameter/slope_end = 0.3
+shader_parameter/wetness = 0.25
+shader_parameter/macro_strength = 0.1
+shader_parameter/scorch_color = Color(0.1, 0.09, 0.08, 1)
+shader_parameter/plain = 0.85

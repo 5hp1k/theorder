@@ -13,33 +13,55 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/explosion.tscn" id="11"]
 [ext_resource type="PackedScene" path="res://scenes/fx/wreck_fire.tscn" id="12"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/medium_laser.tscn" id="13"]
-[ext_resource type="PackedScene" path="res://scenes/weapons/autocannon.tscn" id="14"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/lrm.tscn" id="15"]
 [ext_resource type="Material" path="res://materials/cockpit_panel.tres" id="16"]
-[ext_resource type="Material" path="res://materials/cockpit_screen.tres" id="17"]
-[ext_resource type="Material" path="res://materials/cockpit_warn.tres" id="18"]
 [ext_resource type="Script" path="res://scripts/Mech/MechLeg.cs" id="19"]
 [ext_resource type="Script" path="res://scripts/Mech/MechRagdoll.cs" id="20"]
 [ext_resource type="AudioStream" path="res://audio/footstep.wav" id="21"]
 [ext_resource type="AudioStream" path="res://audio/reactor_loop.wav" id="22"]
 [ext_resource type="AudioStream" path="res://audio/hit.wav" id="23"]
 [ext_resource type="AudioStream" path="res://audio/alarm.wav" id="24"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/CenterTorso_Armor.res" id="x3"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/CenterTorso_Frame.res" id="x4"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/Head_Armor.res" id="x5"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/Head_Glass.res" id="x6"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/LeftTorso_Armor.res" id="x7"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/RightTorso_Armor.res" id="x8"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/Stripe.res" id="x9"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/Antenna.res" id="x10"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ArmL_Armor.res" id="x11"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ArmL_Frame.res" id="x12"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ArmR_Armor.res" id="x13"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ArmR_Frame.res" id="x14"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/Pelvis.res" id="x15"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/PelvisArmor.res" id="x16"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ThighL_Armor.res" id="x17"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ThighL_Frame.res" id="x18"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ThighR_Armor.res" id="x19"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ThighR_Frame.res" id="x20"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ShinL_Armor.res" id="x21"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ShinL_Frame.res" id="x22"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ShinR_Armor.res" id="x23"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/ShinR_Frame.res" id="x24"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/MetaL.res" id="x25"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/MetaR.res" id="x26"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/FootL_Plate.res" id="x27"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/FootL_Toes.res" id="x28"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/FootL_Spur.res" id="x29"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/FootR_Plate.res" id="x30"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/FootR_Toes.res" id="x31"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/FootR_Spur.res" id="x32"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/HipJoint.res" id="x33"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/KneeJoint.res" id="x34"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/HeelJoint.res" id="x35"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/Footprint.res" id="x2"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/CockpitFrame.res" id="x36"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/ballista/CockpitDash.res" id="x37"]
+[ext_resource type="Script" path="res://scripts/UI/CockpitDisplays.cs" id="x38"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 2.128
 height = 9.464
-
-[sub_resource type="BoxMesh" id="BoxMesh_2"]
-size = Vector3(2.912, 1.12, 2.016)
-
-[sub_resource type="BoxMesh" id="BoxMesh_3"]
-size = Vector3(1.568, 2.24, 4.032)
-
-[sub_resource type="BoxMesh" id="BoxMesh_4"]
-size = Vector3(2.24, 1.344, 1.68)
-
-[sub_resource type="BoxMesh" id="BoxMesh_5"]
-size = Vector3(2.688, 1.568, 1.344)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_6"]
 size = Vector3(1.568, 2.24, 4.032)
@@ -47,38 +69,14 @@ size = Vector3(1.568, 2.24, 4.032)
 [sub_resource type="BoxShape3D" id="BoxShape3D_7"]
 size = Vector3(2.24, 1.344, 1.68)
 
-[sub_resource type="BoxMesh" id="BoxMesh_8"]
-size = Vector3(1.68, 0.504, 0.56)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_9"]
 size = Vector3(1.68, 0.672, 1.008)
-
-[sub_resource type="BoxMesh" id="BoxMesh_10"]
-size = Vector3(1.232, 2.24, 4.032)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_11"]
 size = Vector3(1.232, 2.24, 4.032)
 
-[sub_resource type="BoxMesh" id="BoxMesh_12"]
-size = Vector3(1.232, 2.24, 4.032)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_13"]
 size = Vector3(1.232, 2.24, 4.032)
-
-[sub_resource type="BoxMesh" id="BoxMesh_14"]
-size = Vector3(4.088, 0.28, 0.672)
-
-[sub_resource type="BoxMesh" id="BoxMesh_15"]
-size = Vector3(0.168, 1.568, 0.168)
-
-[sub_resource type="BoxMesh" id="BoxMesh_16"]
-size = Vector3(1.904, 1.68, 3.36)
-
-[sub_resource type="BoxMesh" id="BoxMesh_17"]
-size = Vector3(1.624, 1.4, 0.1344)
-
-[sub_resource type="BoxMesh" id="BoxMesh_18"]
-size = Vector3(1.008, 0.56, 1.008)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_19"]
 size = Vector3(1.904, 1.68, 3.36)
@@ -86,82 +84,13 @@ size = Vector3(1.904, 1.68, 3.36)
 [sub_resource type="QuadMesh" id="QuadMesh_20"]
 size = Vector2(1.12, 1.12)
 
-[sub_resource type="BoxMesh" id="BoxMesh_21"]
-size = Vector3(1.904, 1.68, 3.36)
-
-[sub_resource type="BoxMesh" id="BoxMesh_22"]
-size = Vector3(1.624, 1.4, 0.1344)
-
-[sub_resource type="BoxMesh" id="BoxMesh_23"]
-size = Vector3(1.008, 0.56, 1.008)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_24"]
 size = Vector3(1.904, 1.68, 3.36)
 
 [sub_resource type="QuadMesh" id="QuadMesh_25"]
 size = Vector2(1.12, 1.12)
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_26"]
-top_radius = 0.168
-bottom_radius = 0.168
-height = 1.008
-radial_segments = 12
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_27"]
-top_radius = 0.168
-bottom_radius = 0.168
-height = 1.008
-radial_segments = 12
-
-[sub_resource type="BoxMesh" id="BoxMesh_28"]
-size = Vector3(3.6, 0.3, 0.9)
-
-[sub_resource type="BoxMesh" id="BoxMesh_29"]
-size = Vector3(3.6, 0.06, 0.06)
-
-[sub_resource type="BoxMesh" id="BoxMesh_30"]
-size = Vector3(0.55, 0.02, 0.4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_31"]
-size = Vector3(0.55, 0.02, 0.4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_32"]
-size = Vector3(0.5, 0.02, 0.12)
-
-[sub_resource type="BoxMesh" id="BoxMesh_33"]
-size = Vector3(3.8, 0.12, 2.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_34"]
-size = Vector3(3.8, 0.1, 2.6)
-
-[sub_resource type="BoxMesh" id="BoxMesh_35"]
-size = Vector3(3.8, 2.6, 0.1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_36"]
-size = Vector3(3.4, 0.25, 0.3)
-
-[sub_resource type="BoxMesh" id="BoxMesh_37"]
-size = Vector3(0.12, 1.86615, 0.14)
-
-[sub_resource type="BoxMesh" id="BoxMesh_38"]
-size = Vector3(0.5, 0.5, 2.4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_39"]
-size = Vector3(0.2, 1.9, 0.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_40"]
-size = Vector3(0.12, 1.86615, 0.14)
-
-[sub_resource type="BoxMesh" id="BoxMesh_41"]
-size = Vector3(0.5, 0.5, 2.4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_42"]
-size = Vector3(0.2, 1.9, 0.2)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_43"]
-size = Vector3(1.064, 2.835, 1.288)
-
-[sub_resource type="BoxMesh" id="BoxMesh_44"]
 size = Vector3(1.064, 2.835, 1.288)
 
 [sub_resource type="QuadMesh" id="QuadMesh_45"]
@@ -170,43 +99,7 @@ size = Vector2(0.84, 0.84)
 [sub_resource type="BoxShape3D" id="BoxShape3D_46"]
 size = Vector3(0.84, 3.045, 0.952)
 
-[sub_resource type="BoxMesh" id="BoxMesh_47"]
-size = Vector3(0.84, 3.045, 0.952)
-
-[sub_resource type="BoxMesh" id="BoxMesh_48"]
-size = Vector3(0.616, 1.68, 0.672)
-
-[sub_resource type="BoxMesh" id="BoxMesh_49"]
-size = Vector3(1.456, 0.392, 2.576)
-
-[sub_resource type="BoxMesh" id="BoxMesh_50"]
-size = Vector3(0.448, 0.28, 1.12)
-
-[sub_resource type="BoxMesh" id="BoxMesh_51"]
-size = Vector3(1.68, 0.224, 0.56)
-
-[sub_resource type="SphereMesh" id="SphereMesh_52"]
-radius = 0.784
-height = 1.568
-radial_segments = 16
-rings = 8
-
-[sub_resource type="SphereMesh" id="SphereMesh_53"]
-radius = 0.672
-height = 1.344
-radial_segments = 16
-rings = 8
-
-[sub_resource type="SphereMesh" id="SphereMesh_54"]
-radius = 0.56
-height = 1.12
-radial_segments = 16
-rings = 8
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_55"]
-size = Vector3(1.064, 2.835, 1.288)
-
-[sub_resource type="BoxMesh" id="BoxMesh_56"]
 size = Vector3(1.064, 2.835, 1.288)
 
 [sub_resource type="QuadMesh" id="QuadMesh_57"]
@@ -214,39 +107,6 @@ size = Vector2(0.84, 0.84)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_58"]
 size = Vector3(0.84, 3.045, 0.952)
-
-[sub_resource type="BoxMesh" id="BoxMesh_59"]
-size = Vector3(0.84, 3.045, 0.952)
-
-[sub_resource type="BoxMesh" id="BoxMesh_60"]
-size = Vector3(0.616, 1.68, 0.672)
-
-[sub_resource type="BoxMesh" id="BoxMesh_61"]
-size = Vector3(1.456, 0.392, 2.576)
-
-[sub_resource type="BoxMesh" id="BoxMesh_62"]
-size = Vector3(0.448, 0.28, 1.12)
-
-[sub_resource type="BoxMesh" id="BoxMesh_63"]
-size = Vector3(1.68, 0.224, 0.56)
-
-[sub_resource type="SphereMesh" id="SphereMesh_64"]
-radius = 0.784
-height = 1.568
-radial_segments = 16
-rings = 8
-
-[sub_resource type="SphereMesh" id="SphereMesh_65"]
-radius = 0.672
-height = 1.344
-radial_segments = 16
-rings = 8
-
-[sub_resource type="SphereMesh" id="SphereMesh_66"]
-radius = 0.56
-height = 1.12
-radial_segments = 16
-rings = 8
 
 [node name="Ballista" type="CharacterBody3D"]
 floor_max_angle = 0.69813
@@ -275,6 +135,7 @@ TwistRate = 1.4
 MaxTwist = 1.4
 ArmorScale = 1.7
 HeatDissipation = 0.1
+FootprintMesh = ExtResource("x2")
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.732, 0)
@@ -284,9 +145,12 @@ shape = SubResource("CapsuleShape3D_1")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.88, 0)
 
 [node name="Pelvis" type="MeshInstance3D" parent="Hips"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_2")
+mesh = ExtResource("x15")
 material_override = ExtResource("2")
+
+[node name="PelvisArmor" type="MeshInstance3D" parent="Hips"]
+mesh = ExtResource("x16")
+material_override = ExtResource("1")
 
 [node name="HipL" type="Marker3D" parent="Hips"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.512, -0.224, 0)
@@ -303,19 +167,12 @@ collision_mask = 0
 script = ExtResource("5")
 Section = 1
 
-[node name="Hull" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.232, 0.112)
-mesh = SubResource("BoxMesh_3")
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
+mesh = ExtResource("x3")
 material_override = ExtResource("1")
 
-[node name="Nose" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.456, -2.576)
-mesh = SubResource("BoxMesh_4")
-material_override = ExtResource("1")
-
-[node name="Reactor" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.568, 2.576)
-mesh = SubResource("BoxMesh_5")
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
+mesh = ExtResource("x4")
 material_override = ExtResource("2")
 
 [node name="ShapeHull" type="CollisionShape3D" parent="Hips/Torso/CenterTorso"]
@@ -332,9 +189,12 @@ collision_mask = 0
 script = ExtResource("5")
 Section = 0
 
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/Head"]
+mesh = ExtResource("x5")
+material_override = ExtResource("1")
+
 [node name="Canopy" type="MeshInstance3D" parent="Hips/Torso/Head"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.96, -3.192)
-mesh = SubResource("BoxMesh_8")
+mesh = ExtResource("x6")
 material_override = ExtResource("4")
 
 [node name="Shape" type="CollisionShape3D" parent="Hips/Torso/Head"]
@@ -347,9 +207,8 @@ collision_mask = 0
 script = ExtResource("5")
 Section = 2
 
-[node name="Hull" type="MeshInstance3D" parent="Hips/Torso/LeftTorso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.4, 1.232, 0.112)
-mesh = SubResource("BoxMesh_10")
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/LeftTorso"]
+mesh = ExtResource("x7")
 material_override = ExtResource("1")
 
 [node name="Shape" type="CollisionShape3D" parent="Hips/Torso/LeftTorso"]
@@ -362,9 +221,8 @@ collision_mask = 0
 script = ExtResource("5")
 Section = 3
 
-[node name="Hull" type="MeshInstance3D" parent="Hips/Torso/RightTorso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 1.232, 0.112)
-mesh = SubResource("BoxMesh_12")
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/RightTorso"]
+mesh = ExtResource("x8")
 material_override = ExtResource("1")
 
 [node name="Shape" type="CollisionShape3D" parent="Hips/Torso/RightTorso"]
@@ -372,13 +230,11 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.4, 1.232, 0.112)
 shape = SubResource("BoxShape3D_13")
 
 [node name="Stripe" type="MeshInstance3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.24, -1.344)
-mesh = SubResource("BoxMesh_14")
+mesh = ExtResource("x9")
 material_override = ExtResource("3")
 
 [node name="Antenna" type="MeshInstance3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.344, 3.136, 1.68)
-mesh = SubResource("BoxMesh_15")
+mesh = ExtResource("x10")
 material_override = ExtResource("2")
 
 [node name="ArmL" type="Node3D" parent="Hips/Torso"]
@@ -390,19 +246,12 @@ collision_mask = 0
 script = ExtResource("5")
 Section = 4
 
-[node name="Rack" type="MeshInstance3D" parent="Hips/Torso/ArmL/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.448)
-mesh = SubResource("BoxMesh_16")
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/ArmL/Hit"]
+mesh = ExtResource("x11")
 material_override = ExtResource("1")
 
-[node name="Tubes" type="MeshInstance3D" parent="Hips/Torso/ArmL/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.1504)
-mesh = SubResource("BoxMesh_17")
-material_override = ExtResource("2")
-
-[node name="Yoke" type="MeshInstance3D" parent="Hips/Torso/ArmL/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.064, -0.616, 0.336)
-mesh = SubResource("BoxMesh_18")
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/ArmL/Hit"]
+mesh = ExtResource("x12")
 material_override = ExtResource("2")
 
 [node name="Shape" type="CollisionShape3D" parent="Hips/Torso/ArmL/Hit"]
@@ -414,7 +263,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.296)
 Mount = 4
 
 [node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmL"]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.9744, 0, -0.448)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.975, 0, 0.45)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_20")
@@ -429,19 +278,12 @@ collision_mask = 0
 script = ExtResource("5")
 Section = 5
 
-[node name="Rack" type="MeshInstance3D" parent="Hips/Torso/ArmR/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.448)
-mesh = SubResource("BoxMesh_21")
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/ArmR/Hit"]
+mesh = ExtResource("x13")
 material_override = ExtResource("1")
 
-[node name="Tubes" type="MeshInstance3D" parent="Hips/Torso/ArmR/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.1504)
-mesh = SubResource("BoxMesh_22")
-material_override = ExtResource("2")
-
-[node name="Yoke" type="MeshInstance3D" parent="Hips/Torso/ArmR/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.064, -0.616, 0.336)
-mesh = SubResource("BoxMesh_23")
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/ArmR/Hit"]
+mesh = ExtResource("x14")
 material_override = ExtResource("2")
 
 [node name="Shape" type="CollisionShape3D" parent="Hips/Torso/ArmR/Hit"]
@@ -453,25 +295,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.296)
 Mount = 5
 
 [node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmR"]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.9744, 0, -0.448)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.975, 0, 0.45)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_25")
 material_override = ExtResource("6")
 
-[node name="NoseBarrelL" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -0.728, 1.008, -3.696)
-mesh = SubResource("CylinderMesh_26")
-material_override = ExtResource("2")
-
 [node name="NoseLaserL" parent="Hips/Torso" instance=ExtResource("13")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.728, 1.008, -4.256)
 Mount = 1
-
-[node name="NoseBarrelR" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0.728, 1.008, -3.696)
-mesh = SubResource("CylinderMesh_27")
-material_override = ExtResource("2")
 
 [node name="NoseLaserR" parent="Hips/Torso" instance=ExtResource("13")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.728, 1.008, -4.256)
@@ -482,98 +314,18 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.96, -4.316)
 
 [node name="Cockpit" type="Node3D" parent="Hips/Torso/CockpitCam"]
 visible = false
+script = ExtResource("x38")
+
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+mesh = ExtResource("x36")
+material_override = ExtResource("16")
 
 [node name="Dash" type="Node3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(1, 0, 0, 0, 0.90045, -0.43497, 0, 0.43497, 0.90045, 0, -1.1, -1.15)
+transform = Transform3D(1, 0, 0, 0, 0.882948, 0.469472, 0, -0.469472, 0.882948, 0, -0.43, -0.98)
 
 [node name="Console" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_28")
+mesh = ExtResource("x37")
 material_override = ExtResource("16")
-cast_shadow = 0
-
-[node name="Coaming" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.17, -0.43)
-mesh = SubResource("BoxMesh_29")
-material_override = ExtResource("2")
-cast_shadow = 0
-
-[node name="ScreenL" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.75, 0.16, -0.1)
-mesh = SubResource("BoxMesh_30")
-material_override = ExtResource("17")
-cast_shadow = 0
-
-[node name="ScreenR" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.16, -0.1)
-mesh = SubResource("BoxMesh_31")
-material_override = ExtResource("17")
-cast_shadow = 0
-
-[node name="Annunciator" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, -0.25)
-mesh = SubResource("BoxMesh_32")
-material_override = ExtResource("18")
-cast_shadow = 0
-
-[node name="Roof" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.15, -0.25)
-mesh = SubResource("BoxMesh_33")
-material_override = ExtResource("16")
-cast_shadow = 0
-
-[node name="Floor" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.3, -0.4)
-mesh = SubResource("BoxMesh_34")
-material_override = ExtResource("16")
-cast_shadow = 0
-
-[node name="BackWall" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0.8)
-mesh = SubResource("BoxMesh_35")
-material_override = ExtResource("16")
-cast_shadow = 0
-
-[node name="TopBeam" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.97, -1.2)
-mesh = SubResource("BoxMesh_36")
-material_override = ExtResource("2")
-cast_shadow = 0
-
-[node name="PillarL" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(0.97049, 0.24114, 0, -0.23966, 0.96455, -0.11043, -0.02663, 0.10717, 0.99388, -1.275, 0.05, -1.3)
-mesh = SubResource("BoxMesh_37")
-material_override = ExtResource("2")
-cast_shadow = 0
-
-[node name="SillL" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.75, -0.95, -0.4)
-mesh = SubResource("BoxMesh_38")
-material_override = ExtResource("16")
-cast_shadow = 0
-
-[node name="RearPillarL" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.8, 0.2, 0.7)
-mesh = SubResource("BoxMesh_39")
-material_override = ExtResource("2")
-cast_shadow = 0
-
-[node name="PillarR" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(0.97049, -0.24114, 0, 0.23966, 0.96455, -0.11043, 0.02663, 0.10717, 0.99388, 1.275, 0.05, -1.3)
-mesh = SubResource("BoxMesh_40")
-material_override = ExtResource("2")
-cast_shadow = 0
-
-[node name="SillR" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.75, -0.95, -0.4)
-mesh = SubResource("BoxMesh_41")
-material_override = ExtResource("16")
-cast_shadow = 0
-
-[node name="RearPillarR" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.8, 0.2, 0.7)
-mesh = SubResource("BoxMesh_42")
-material_override = ExtResource("2")
 cast_shadow = 0
 
 [node name="HomeL" type="Marker3D" parent="."]
@@ -605,12 +357,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("BoxShape3D_43")
 
 [node name="Mesh" type="MeshInstance3D" parent="LegL/Thigh/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_44")
+mesh = ExtResource("x17")
 material_override = ExtResource("1")
 
+[node name="Frame" type="MeshInstance3D" parent="LegL/Thigh/Hit"]
+mesh = ExtResource("x18")
+material_override = ExtResource("2")
+
 [node name="Insignia" type="MeshInstance3D" parent="LegL/Thigh"]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.552, 0, 0)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.6042, -0.3675, 0)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_45")
@@ -630,49 +385,48 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("BoxShape3D_46")
 
 [node name="Mesh" type="MeshInstance3D" parent="LegL/Shin/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_47")
+mesh = ExtResource("x21")
 material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegL/Shin/Hit"]
+mesh = ExtResource("x22")
+material_override = ExtResource("2")
 
 [node name="Meta" type="Node3D" parent="LegL"]
 transform = Transform3D(1, 0, 0, 0, -0.81388, 0.58104, 0, -0.58104, -0.81388, -1.792, 1.07566, -0.14193)
 
 [node name="Mesh" type="MeshInstance3D" parent="LegL/Meta"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_48")
+mesh = ExtResource("x25")
 material_override = ExtResource("2")
 
 [node name="Foot" type="Node3D" parent="LegL"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.792, 0.196, -0.63)
 
 [node name="Plate" type="MeshInstance3D" parent="LegL/Foot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_49")
+mesh = ExtResource("x27")
 material_override = ExtResource("1")
 
 [node name="Spur" type="MeshInstance3D" parent="LegL/Foot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.056, 1.512)
-mesh = SubResource("BoxMesh_50")
+mesh = ExtResource("x29")
 material_override = ExtResource("2")
 
 [node name="Toes" type="MeshInstance3D" parent="LegL/Foot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0784, -1.344)
-mesh = SubResource("BoxMesh_51")
+mesh = ExtResource("x28")
 material_override = ExtResource("2")
 
 [node name="HipJoint" type="MeshInstance3D" parent="LegL"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.512, 5.656, 0)
-mesh = SubResource("SphereMesh_52")
+mesh = ExtResource("x33")
 material_override = ExtResource("2")
 
 [node name="KneeJoint" type="MeshInstance3D" parent="LegL"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6546, 3.67152, -2.01958)
-mesh = SubResource("SphereMesh_53")
+mesh = ExtResource("x34")
 material_override = ExtResource("2")
 
 [node name="HeelJoint" type="MeshInstance3D" parent="LegL"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.792, 1.75932, 0.34614)
-mesh = SubResource("SphereMesh_54")
+mesh = ExtResource("x35")
 material_override = ExtResource("2")
 
 [node name="HomeR" type="Marker3D" parent="."]
@@ -704,12 +458,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("BoxShape3D_55")
 
 [node name="Mesh" type="MeshInstance3D" parent="LegR/Thigh/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_56")
+mesh = ExtResource("x19")
 material_override = ExtResource("1")
 
+[node name="Frame" type="MeshInstance3D" parent="LegR/Thigh/Hit"]
+mesh = ExtResource("x20")
+material_override = ExtResource("2")
+
 [node name="Insignia" type="MeshInstance3D" parent="LegR/Thigh"]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.552, 0, 0)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.6042, -0.3675, 0)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_57")
@@ -729,49 +486,48 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("BoxShape3D_58")
 
 [node name="Mesh" type="MeshInstance3D" parent="LegR/Shin/Hit"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_59")
+mesh = ExtResource("x23")
 material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegR/Shin/Hit"]
+mesh = ExtResource("x24")
+material_override = ExtResource("2")
 
 [node name="Meta" type="Node3D" parent="LegR"]
 transform = Transform3D(1, 0, 0, 0, -0.81388, 0.58104, 0, -0.58104, -0.81388, 1.792, 1.07566, -0.14193)
 
 [node name="Mesh" type="MeshInstance3D" parent="LegR/Meta"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_60")
+mesh = ExtResource("x26")
 material_override = ExtResource("2")
 
 [node name="Foot" type="Node3D" parent="LegR"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.792, 0.196, -0.63)
 
 [node name="Plate" type="MeshInstance3D" parent="LegR/Foot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_61")
+mesh = ExtResource("x30")
 material_override = ExtResource("1")
 
 [node name="Spur" type="MeshInstance3D" parent="LegR/Foot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.056, 1.512)
-mesh = SubResource("BoxMesh_62")
+mesh = ExtResource("x32")
 material_override = ExtResource("2")
 
 [node name="Toes" type="MeshInstance3D" parent="LegR/Foot"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.0784, -1.344)
-mesh = SubResource("BoxMesh_63")
+mesh = ExtResource("x31")
 material_override = ExtResource("2")
 
 [node name="HipJoint" type="MeshInstance3D" parent="LegR"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.512, 5.656, 0)
-mesh = SubResource("SphereMesh_64")
+mesh = ExtResource("x33")
 material_override = ExtResource("2")
 
 [node name="KneeJoint" type="MeshInstance3D" parent="LegR"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6546, 3.67152, -2.01958)
-mesh = SubResource("SphereMesh_65")
+mesh = ExtResource("x34")
 material_override = ExtResource("2")
 
 [node name="HeelJoint" type="MeshInstance3D" parent="LegR"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.792, 1.75932, 0.34614)
-mesh = SubResource("SphereMesh_66")
+mesh = ExtResource("x35")
 material_override = ExtResource("2")
 
 [node name="Ragdoll" type="Node" parent="."]

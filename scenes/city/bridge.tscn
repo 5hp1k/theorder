@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/ChunkedBuilding.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/chunk_dust.tscn" id="2"]
+[ext_resource type="Material" path="res://materials/bridge_deck.tres" id="3"]
+[ext_resource type="Material" path="res://materials/rubble.tres" id="x1"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(16, 2, 20)
+
+[node name="Bridge" type="StaticBody3D"]
+collision_layer = 33
+collision_mask = 0
+script = ExtResource("1")
+Cells = Vector3i(8, 1, 10)
+CellSize = 2
+CellHp = 14
+ChunkFx = ExtResource("2")
+DebrisMaterial = ExtResource("x1")
+BlockCollision = true
+
+[node name="Chunks" type="MultiMeshInstance3D" parent="."]
+material_override = ExtResource("3")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("BoxShape3D_1")

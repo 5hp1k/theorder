@@ -13,6 +13,52 @@ public static class Debris
     public const int MaxChunks = 110;
 
     static PackedScene _chunk;
+    static Mesh[] _lumps;
+
+    /// <summary>
+    /// One of a dozen broken-off shapes, each about a unit across: a block with its corners pulled in
+    /// by different amounts and one or two of them knocked off, flat-faced. Made once, shared by all debris.
+    /// </summary>
+    public static Mesh Lump()
+    {
+        if (_lumps == null)
+        {
+            var rng = new RandomNumberGenerator { Seed = 99 };
+            _lumps = new Mesh[12];
+            for (int i = 0; i < _lumps.Length; i++) _lumps[i] = MakeLump(rng);
+        }
+        return _lumps[GD.Randi() % (uint)_lumps.Length];
+    }
+
+    static Mesh MakeLump(RandomNumberGenerator rng)
+    {
+        // Corners of a cube, each drawn towards the middle; two opposite ones a lot, which gives wedges and slabs.
+        var corners = new Vector3[8];
+        int sharp = rng.RandiRange(0, 7);
+        for (int i = 0; i < 8; i++)
+        {
+            var c = new Vector3((i & 1) == 0 ? -0.5f : 0.5f, (i & 2) == 0 ? -0.5f : 0.5f, (i & 4) == 0 ? -0.5f : 0.5f);
+            float pull = i == sharp || i == 7 - sharp ? rng.RandfRange(0.35f, 0.75f) : rng.RandfRange(0f, 0.3f);
+            corners[i] = c * (1f - pull) + new Vector3(rng.RandfRange(-0.08f, 0.08f), rng.RandfRange(-0.08f, 0.08f), rng.RandfRange(-0.08f, 0.08f));
+        }
+        var builder = new MeshBuilder();
+        // The six sides, each split into two triangles along a random diagonal: the faces are not flat, so it matters.
+        int[][] sides = { new[] { 0, 1, 3, 2 }, new[] { 4, 6, 7, 5 }, new[] { 0, 4, 5, 1 }, new[] { 2, 3, 7, 6 }, new[] { 0, 2, 6, 4 }, new[] { 1, 5, 7, 3 } };
+        foreach (int[] s in sides)
+        {
+            int turn = rng.RandiRange(0, 1);
+            Vector3 a = corners[s[turn]], b = corners[s[turn + 1]], c = corners[s[turn + 2]], d = corners[s[(turn + 3) % 4]];
+            foreach (var (p, q, r) in new[] { (a, b, c), (a, c, d) })
+            {
+                Vector3 n = (q - p).Cross(r - p).Normalized();
+                if (n.Dot((p + q + r) / 3f) < 0f) n = -n;
+                builder.Triangle(p, q, r, n, MeshBuilder.Paint);
+            }
+        }
+        var mesh = new ArrayMesh();
+        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, builder.ToArrays());
+        return mesh;
+    }
     static readonly Queue<DebrisChunk> Chunks = new();
 
     /// <summary>Throws out a loose block of the given size and material.</summary>

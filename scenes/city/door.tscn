@@ -1,0 +1,23 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://models/city/door/Steps.res" id="1"]
+[ext_resource type="Material" path="res://materials/concrete.tres" id="2"]
+[ext_resource type="ArrayMesh" path="res://models/city/door/Leaf.res" id="3"]
+[ext_resource type="Material" path="res://materials/wood_paint.tres" id="4"]
+[ext_resource type="ArrayMesh" path="res://models/city/door/Lamp.res" id="5"]
+[ext_resource type="Material" path="res://materials/lamp_glow.tres" id="6"]
+
+[node name="Door" type="Node3D"]
+
+[node name="Steps" type="MeshInstance3D" parent="."]
+mesh = ExtResource("1")
+material_override = ExtResource("2")
+
+[node name="Leaf" type="MeshInstance3D" parent="."]
+mesh = ExtResource("3")
+material_override = ExtResource("4")
+
+[node name="Lamp" type="MeshInstance3D" parent="."]
+mesh = ExtResource("5")
+material_override = ExtResource("6")
+cast_shadow = 0

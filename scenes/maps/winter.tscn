@@ -2,38 +2,97 @@
 
 [ext_resource type="PackedScene" path="res://scenes/world/winter_terrain.tscn" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/fx/snowfall.tscn" id="2"]
+[ext_resource type="Shader" path="res://materials/sky.gdshader" id="sky_shader"]
+[ext_resource type="Texture2D" path="res://textures/sky/snow_field_puresky_8k.jpg" id="sky_tex"]
+[ext_resource type="Texture2D" path="res://textures/sky/snow_field_puresky_1k.hdr" id="sky_hdr"]
+[ext_resource type="Script" path="res://scripts/Fx/MapLighting.cs" id="lighting"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
-sky_top_color = Color(0.45, 0.52, 0.62, 1)
-sky_horizon_color = Color(0.8, 0.84, 0.9, 1)
-ground_horizon_color = Color(0.8, 0.84, 0.9, 1)
-ground_bottom_color = Color(0.6, 0.65, 0.72, 1)
+[sub_resource type="ShaderMaterial" id="SkyMaterial_1"]
+shader = ExtResource("sky_shader")
+shader_parameter/sky_tex = ExtResource("sky_tex")
+shader_parameter/light_tex = ExtResource("sky_hdr")
+shader_parameter/background_energy = 1.9
+shader_parameter/highlight_boost = 0.5
+shader_parameter/light_energy = 1.2
+shader_parameter/light_clamp = 8.0
+shader_parameter/ground_color = Color(0.7, 0.72, 0.76, 1)
+shader_parameter/rotation = 0.0
 
 [sub_resource type="Sky" id="Sky_2"]
-sky_material = SubResource("ProceduralSkyMaterial_1")
+sky_material = SubResource("SkyMaterial_1")
+process_mode = 3
 
 [sub_resource type="Environment" id="Environment_3"]
 background_mode = 2
 sky = SubResource("Sky_2")
 ambient_light_source = 3
-tonemap_mode = 2
+reflected_light_source = 2
+tonemap_mode = 4
+tonemap_exposure = 0.8
+tonemap_white = 6.0
+ssao_enabled = true
+ssao_radius = 2.5
+ssao_intensity = 2.2
+ssao_power = 1.6
+ssil_enabled = true
+ssil_radius = 6.0
+ssil_intensity = 0.8
+sdfgi_enabled = true
+sdfgi_use_occlusion = true
+sdfgi_cascades = 5
+sdfgi_min_cell_size = 0.6
+sdfgi_y_scale = 0
+sdfgi_energy = 1.0
 glow_enabled = true
+glow_levels/2 = 0.6
+glow_levels/3 = 1.0
+glow_levels/5 = 1.0
+glow_levels/6 = 0.6
+glow_intensity = 0.5
+glow_bloom = 0.04
+glow_blend_mode = 1
+glow_hdr_threshold = 1.4
 fog_enabled = true
-fog_light_color = Color(0.82, 0.86, 0.92, 1)
-fog_density = 0.0045
-fog_sky_affect = 0.6
+fog_light_color = Color(0.8, 0.83, 0.88, 1)
+fog_sun_scatter = 0.25
+fog_density = 0.0009
+fog_aerial_perspective = 1.0
+fog_sky_affect = 0.0
+fog_height = 4.0
+fog_height_density = 0.004
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.003
+volumetric_fog_albedo = Color(0.95, 0.97, 1, 1)
+volumetric_fog_anisotropy = 0.7
+volumetric_fog_length = 260.0
+volumetric_fog_detail_spread = 2.5
+volumetric_fog_ambient_inject = 0.4
+volumetric_fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.12
+adjustment_saturation = 1.0
 
 [node name="Winter" type="Node3D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_3")
+script = ExtResource("lighting")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.79447, -0.31572, 0.51878, 0, 0.85424, 0.51988, -0.6073, 0.41303, -0.67867, 0, 60, 0)
+light_color = Color(1, 0.95, 0.88, 1)
+light_energy = 2.0
+light_angular_distance = 2.0
 shadow_enabled = true
-directional_shadow_max_distance = 220
-transform = Transform3D(0.64279, 0.35964, -0.67638, 0, 0.88295, 0.46947, 0.76604, -0.30177, 0.56755, 0, 60, 0)
-light_color = Color(0.9, 0.94, 1, 1)
-light_energy = 0.7
+shadow_bias = 0.04
+shadow_normal_bias = 1.5
+shadow_blur = 1.2
+directional_shadow_split_1 = 0.06
+directional_shadow_split_2 = 0.16
+directional_shadow_split_3 = 0.4
+directional_shadow_blend_splits = true
+directional_shadow_fade_start = 0.9
+directional_shadow_max_distance = 420.0
 
 [node name="Terrain" parent="." instance=ExtResource("1")]
 

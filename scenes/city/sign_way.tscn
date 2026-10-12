@@ -1,0 +1,26 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/Destructible.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_puff.tscn" id="2"]
+[ext_resource type="ArrayMesh" path="res://models/city/sign_way/Post.res" id="3"]
+[ext_resource type="Material" path="res://materials/street_steel.tres" id="4"]
+[ext_resource type="ArrayMesh" path="res://models/city/sign_way/Board.res" id="5"]
+[ext_resource type="Material" path="res://materials/sign_blue.tres" id="6"]
+
+[node name="SignWay" type="StaticBody3D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1")
+Hp = 3
+How = 0
+Footprint = Vector2(0.5, 0.5)
+Height = 3
+DestroyFx = ExtResource("2")
+
+[node name="Post" type="MeshInstance3D" parent="."]
+mesh = ExtResource("3")
+material_override = ExtResource("4")
+
+[node name="Board" type="MeshInstance3D" parent="."]
+mesh = ExtResource("5")
+material_override = ExtResource("6")

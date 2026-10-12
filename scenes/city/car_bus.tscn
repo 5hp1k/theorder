@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/Destructible.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion_small.tscn" id="2"]
+[ext_resource type="Material" path="res://materials/mech_charred.tres" id="3"]
+[ext_resource type="ArrayMesh" path="res://models/city/car_bus/Body.res" id="4"]
+[ext_resource type="Material" path="res://materials/car_yellow.tres" id="5"]
+[ext_resource type="ArrayMesh" path="res://models/city/car_bus/Glass.res" id="6"]
+[ext_resource type="Material" path="res://materials/car_glass.tres" id="7"]
+[ext_resource type="ArrayMesh" path="res://models/city/car_bus/Trim.res" id="8"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="9"]
+[ext_resource type="ArrayMesh" path="res://models/city/car_bus/Wheels.res" id="10"]
+[ext_resource type="Material" path="res://materials/car_tyre.tres" id="11"]
+
+[sub_resource type="BoxShape3D" id="shape"]
+size = Vector3(2.5, 2.5, 10.5)
+
+[node name="CarBus" type="StaticBody3D"]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("1")
+Hp = 10
+How = 3
+Footprint = Vector2(2.6, 10.5)
+Height = 2.95
+DestroyFx = ExtResource("2")
+CharredMaterial = ExtResource("3")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+mesh = ExtResource("4")
+material_override = ExtResource("5")
+
+[node name="Glass" type="MeshInstance3D" parent="."]
+mesh = ExtResource("6")
+material_override = ExtResource("7")
+
+[node name="Trim" type="MeshInstance3D" parent="."]
+mesh = ExtResource("8")
+material_override = ExtResource("9")
+
+[node name="Wheels" type="MeshInstance3D" parent="."]
+mesh = ExtResource("10")
+material_override = ExtResource("11")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.7, 0)
+shape = SubResource("shape")

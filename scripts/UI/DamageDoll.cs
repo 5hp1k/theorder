@@ -40,7 +40,7 @@ public partial class DamageDoll : HudWidget
         }
 
         float unit = Mathf.Min(Size.X / 9f, Size.Y / 12f);
-        bool blink = Mathf.PosMod(Hud.Time, 0.5f) < 0.3f;
+        bool blink = Mathf.PosMod(Clock, 0.5f) < 0.3f;
         for (int i = 0; i < DamageModel.Count; i++)
         {
             var s = (Section)i;

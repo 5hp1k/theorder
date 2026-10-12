@@ -6,76 +6,26 @@
 [ext_resource type="Material" path="res://materials/mech_charred.tres" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/fx/explosion_medium.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/fx/wreck_fire.tscn" id="6"]
-[ext_resource type="Material" path="res://materials/car_glass.tres" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/srm.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/machine_gun.tscn" id="9"]
 [ext_resource type="AudioStream" path="res://audio/rotor_loop.wav" id="10"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/Fuselage.res" id="x3"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/Canopy.res" id="x4"]
+[ext_resource type="Material" path="res://materials/mech_canopy.tres" id="x5"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/TailBoom.res" id="x6"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/Fin.res" id="x7"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/Wings.res" id="x8"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/PodL.res" id="x9"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/PodR.res" id="x10"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/SkidL.res" id="x11"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/SkidR.res" id="x12"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/Turret.res" id="x13"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/MainRotor.res" id="x14"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/TailRotor.res" id="x15"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/Gun.res" id="x16"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(2.6, 2.8, 8)
-
-[sub_resource type="BoxMesh" id="BoxMesh_2"]
-size = Vector3(2.2, 2.2, 6)
-
-[sub_resource type="BoxMesh" id="BoxMesh_3"]
-size = Vector3(1.8, 1.3, 2.2)
-
-[sub_resource type="BoxMesh" id="BoxMesh_4"]
-size = Vector3(0.6, 0.6, 6.5)
-
-[sub_resource type="BoxMesh" id="BoxMesh_5"]
-size = Vector3(0.2, 2.2, 1.4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_6"]
-size = Vector3(6, 0.2, 1.2)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_7"]
-top_radius = 0.35
-bottom_radius = 0.35
-height = 1.8
-radial_segments = 8
-
-[sub_resource type="BoxMesh" id="BoxMesh_8"]
-size = Vector3(0.15, 0.15, 4.5)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_9"]
-top_radius = 0.35
-bottom_radius = 0.35
-height = 1.8
-radial_segments = 8
-
-[sub_resource type="BoxMesh" id="BoxMesh_10"]
-size = Vector3(0.15, 0.15, 4.5)
-
-[sub_resource type="BoxMesh" id="BoxMesh_11"]
-size = Vector3(13, 0.08, 0.5)
-
-[sub_resource type="BoxMesh" id="BoxMesh_12"]
-size = Vector3(0.5, 0.08, 13)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_13"]
-top_radius = 0.3
-bottom_radius = 0.3
-height = 0.5
-radial_segments = 8
-
-[sub_resource type="BoxMesh" id="BoxMesh_14"]
-size = Vector3(2.4, 0.06, 0.25)
-
-[sub_resource type="BoxMesh" id="BoxMesh_15"]
-size = Vector3(0.25, 0.06, 2.4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_16"]
-size = Vector3(0.9, 0.6, 0.9)
-
-[sub_resource type="BoxMesh" id="BoxMesh_17"]
-size = Vector3(0.35, 0.35, 0.28)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_18"]
-top_radius = 0.07
-bottom_radius = 0.07
-height = 1.4
-radial_segments = 12
 
 [node name="Helicopter" type="CharacterBody3D"]
 floor_max_angle = 0.87
@@ -110,51 +60,46 @@ shape = SubResource("BoxShape3D_1")
 [node name="Hull" type="Node3D" parent="."]
 
 [node name="Fuselage" type="MeshInstance3D" parent="Hull"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_2")
+mesh = ExtResource("x3")
 material_override = ExtResource("1")
 
 [node name="Canopy" type="MeshInstance3D" parent="Hull"]
-transform = Transform3D(1, 0, 0, 0, 0.97815, 0.20791, 0, -0.20791, 0.97815, 0, 0.35, -3.6)
-mesh = SubResource("BoxMesh_3")
-material_override = ExtResource("7")
+mesh = ExtResource("x4")
+material_override = ExtResource("x5")
 
 [node name="TailBoom" type="MeshInstance3D" parent="Hull"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 6)
-mesh = SubResource("BoxMesh_4")
+mesh = ExtResource("x6")
 material_override = ExtResource("1")
 
 [node name="Fin" type="MeshInstance3D" parent="Hull"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 8.8)
-mesh = SubResource("BoxMesh_5")
+mesh = ExtResource("x7")
 material_override = ExtResource("1")
 
 [node name="Wings" type="MeshInstance3D" parent="Hull"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.3, 0.5)
-mesh = SubResource("BoxMesh_6")
-material_override = ExtResource("2")
+mesh = ExtResource("x8")
+material_override = ExtResource("1")
 
 [node name="PodL" type="MeshInstance3D" parent="Hull"]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, -2.7, -0.6, 0.4)
-mesh = SubResource("CylinderMesh_7")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, -0.6, 0.4)
+mesh = ExtResource("x9")
 material_override = ExtResource("2")
 
 [node name="SkidL" type="MeshInstance3D" parent="Hull"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.215, -1.7, -0.3)
-mesh = SubResource("BoxMesh_8")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.22, -1.7, -0.3)
+mesh = ExtResource("x11")
 material_override = ExtResource("2")
 
 [node name="RocketsL" parent="Hull" instance=ExtResource("8")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, -0.6, -0.7)
 
 [node name="PodR" type="MeshInstance3D" parent="Hull"]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 2.7, -0.6, 0.4)
-mesh = SubResource("CylinderMesh_9")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, -0.6, 0.4)
+mesh = ExtResource("x10")
 material_override = ExtResource("2")
 
 [node name="SkidR" type="MeshInstance3D" parent="Hull"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.215, -1.7, -0.3)
-mesh = SubResource("BoxMesh_10")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.22, -1.7, -0.3)
+mesh = ExtResource("x12")
 material_override = ExtResource("2")
 
 [node name="RocketsR" parent="Hull" instance=ExtResource("8")]
@@ -163,53 +108,29 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, -0.6, -0.7)
 [node name="RotorMain" type="Node3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
 
-[node name="BladeA" type="MeshInstance3D" parent="Hull/RotorMain"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_11")
-material_override = ExtResource("2")
-
-[node name="BladeB" type="MeshInstance3D" parent="Hull/RotorMain"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_12")
-material_override = ExtResource("2")
-
-[node name="Hub" type="MeshInstance3D" parent="Hull/RotorMain"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.2, 0)
-mesh = SubResource("CylinderMesh_13")
+[node name="Blades" type="MeshInstance3D" parent="Hull/RotorMain"]
+mesh = ExtResource("x14")
 material_override = ExtResource("2")
 
 [node name="RotorTail" type="Node3D" parent="Hull"]
 transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 0.4, 1, 8.9)
 
-[node name="BladeA" type="MeshInstance3D" parent="Hull/RotorTail"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_14")
-material_override = ExtResource("2")
-
-[node name="BladeB" type="MeshInstance3D" parent="Hull/RotorTail"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_15")
+[node name="Blades" type="MeshInstance3D" parent="Hull/RotorTail"]
+mesh = ExtResource("x15")
 material_override = ExtResource("2")
 
 [node name="Turret" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.9, -2.6)
 
 [node name="Body" type="MeshInstance3D" parent="Turret"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.3, 0)
-mesh = SubResource("BoxMesh_16")
+mesh = ExtResource("x13")
 material_override = ExtResource("1")
 
 [node name="Gun" type="Node3D" parent="Turret"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -0.3)
 
 [node name="Mantlet" type="MeshInstance3D" parent="Turret/Gun"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.14)
-mesh = SubResource("BoxMesh_17")
-material_override = ExtResource("2")
-
-[node name="Barrel" type="MeshInstance3D" parent="Turret/Gun"]
-transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -0.7)
-mesh = SubResource("CylinderMesh_18")
+mesh = ExtResource("x16")
 material_override = ExtResource("2")
 
 [node name="CockpitCam" type="Marker3D" parent="Turret/Gun"]

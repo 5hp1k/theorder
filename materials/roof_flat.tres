@@ -1,5 +1,22 @@
 [gd_resource type="StandardMaterial3D" format=3]
 
+[ext_resource type="Texture2D" path="res://textures/concrete_debris/concrete_debris_diff.jpg" id="1"]
+[ext_resource type="Texture2D" path="res://textures/concrete_debris/concrete_debris_nor.jpg" id="2"]
+[ext_resource type="Texture2D" path="res://textures/concrete_debris/concrete_debris_arm.jpg" id="3"]
+
 [resource]
-albedo_color = Color(0.25, 0.25, 0.27, 1)
-roughness = 0.9
+albedo_color = Color(0.45, 0.45, 0.47, 1)
+albedo_texture = ExtResource("1")
+roughness_texture = ExtResource("3")
+roughness_texture_channel = 1
+normal_enabled = true
+normal_texture = ExtResource("2")
+ao_enabled = true
+ao_light_affect = 0.3
+ao_texture = ExtResource("3")
+ao_texture_channel = 0
+uv1_scale = Vector3(0.2500, 0.2500, 0.2500)
+uv1_triplanar = true
+uv1_triplanar_sharpness = 4.0
+uv1_world_triplanar = true
+texture_filter = 5

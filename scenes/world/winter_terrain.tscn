@@ -9,7 +9,7 @@
 [ext_resource type="PackedScene" path="res://scenes/props/fir_small.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/fx/footprint_snow.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/fx/splash.tscn" id="9"]
-[ext_resource type="Material" path="res://materials/snow.tres" id="10"]
+[ext_resource type="Material" path="res://materials/terrain_winter.tres" id="10"]
 [ext_resource type="Material" path="res://materials/ice.tres" id="11"]
 [ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="12"]
 
@@ -20,13 +20,13 @@ script = ExtResource("1")
 Seed = 4242
 Size = 800
 CellSize = 4
-RidgeHeight = 3
+RidgeHeight = 4
 RidgeLength = 70
-HillHeight = 16
+HillHeight = 20
 HillLength = 220
 FlatRadius = 28
-SolidCount = 48
-PlantCount = 170
+SolidCount = 60
+PlantCount = 330
 DrifterCount = 0
 HasWater = true
 WaterLevel = -6
@@ -41,6 +41,7 @@ SolidScenes = Array[PackedScene]([ExtResource("2"), ExtResource("3"), ExtResourc
 PlantScenes = Array[PackedScene]([ExtResource("5"), ExtResource("6"), ExtResource("7")])
 FootprintScene = ExtResource("8")
 SplashScene = ExtResource("9")
+PlantClumping = 0.8
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 material_override = ExtResource("10")

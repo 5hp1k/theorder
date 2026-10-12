@@ -3,23 +3,11 @@
 [ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
 [ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
 [ext_resource type="AudioStream" path="res://audio/swing.wav" id="3"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_1"]
-size = Vector3(0.7, 0.7, 0.7)
-
-[sub_resource type="BoxMesh" id="BoxMesh_2"]
-size = Vector3(0.26, 0.26, 4.6)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3"]
-albedo_color = Color(0.6, 0.6, 0.62, 1)
-metallic = 0.9
-roughness = 0.3
-
-[sub_resource type="BoxMesh" id="BoxMesh_4"]
-size = Vector3(0.16, 1.9, 1.3)
-
-[sub_resource type="BoxMesh" id="BoxMesh_5"]
-size = Vector3(0.16, 0.5, 0.5)
+[ext_resource type="ArrayMesh" path="res://models/small/hatchet/Grip.res" id="x2"]
+[ext_resource type="ArrayMesh" path="res://models/small/hatchet/Haft.res" id="x3"]
+[ext_resource type="ArrayMesh" path="res://models/small/hatchet/Blade.res" id="x4"]
+[ext_resource type="Material" path="res://materials/street_steel.tres" id="x5"]
+[ext_resource type="ArrayMesh" path="res://models/small/hatchet/Spike.res" id="x6"]
 
 [node name="Hatchet" type="Node3D"]
 script = ExtResource("1")
@@ -37,23 +25,19 @@ SwingAngle = -1.9
 CraterSize = 1.6
 
 [node name="Fist" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_1")
+mesh = ExtResource("x2")
 material_override = ExtResource("2")
 
 [node name="Handle" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2)
-mesh = SubResource("BoxMesh_2")
+mesh = ExtResource("x3")
 material_override = ExtResource("2")
 
 [node name="Blade" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.85, -3.7)
-mesh = SubResource("BoxMesh_4")
-material_override = SubResource("StandardMaterial3D_3")
+mesh = ExtResource("x4")
+material_override = ExtResource("x5")
 
 [node name="Spike" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4, -3.9)
-mesh = SubResource("BoxMesh_5")
+mesh = ExtResource("x6")
 material_override = ExtResource("2")
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]

@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/foliage.gdshader" id="shader"]
+[ext_resource type="Texture2D" path="res://textures/foliage/leaves_birch.png" id="1"]
+
+[resource]
+shader = ExtResource("shader")
+shader_parameter/albedo_tex = ExtResource("1")
+shader_parameter/tint = Color(1.0, 1.05, 0.9, 1)
+shader_parameter/sway = 0.2
+shader_parameter/backlight = 0.6

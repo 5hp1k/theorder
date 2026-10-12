@@ -3,14 +3,37 @@
 [ext_resource type="Script" path="res://scripts/UI/MainMenu.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/ui/weapon_slot_row.tscn" id="2"]
 [ext_resource type="AudioStream" path="res://audio/ui_click.wav" id="3"]
+[ext_resource type="Shader" path="res://materials/sky.gdshader" id="sky_shader"]
+[ext_resource type="Texture2D" path="res://textures/sky/kloofendal_48d_partly_cloudy_puresky_8k.jpg" id="sky_tex"]
+[ext_resource type="Texture2D" path="res://textures/sky/kloofendal_48d_partly_cloudy_puresky_1k.hdr" id="sky_hdr"]
+
+[sub_resource type="ShaderMaterial" id="SkyMaterial_1"]
+shader = ExtResource("sky_shader")
+shader_parameter/sky_tex = ExtResource("sky_tex")
+shader_parameter/light_tex = ExtResource("sky_hdr")
+shader_parameter/ground_color = Color(0.2, 0.2, 0.22, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("SkyMaterial_1")
+process_mode = 3
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
-background_color = Color(0.06, 0.07, 0.08, 1)
-ambient_light_source = 2
-ambient_light_color = Color(0.75, 0.8, 0.9, 1)
-ambient_light_energy = 0.55
-tonemap_mode = 2
+background_color = Color(0.14, 0.155, 0.17, 1)
+sky = SubResource("Sky_1")
+ambient_light_source = 3
+ambient_light_energy = 0.7
+reflected_light_source = 2
+tonemap_mode = 4
+tonemap_exposure = 0.9
+ssao_enabled = true
+ssao_radius = 2.0
+ssao_intensity = 2.0
+glow_enabled = true
+glow_intensity = 0.4
+glow_hdr_threshold = 1.4
+adjustment_enabled = true
+adjustment_contrast = 1.1
 
 [sub_resource type="CylinderMesh" id="CylinderMesh_2"]
 top_radius = 7
@@ -73,8 +96,12 @@ current = true
 
 [node name="KeyLight" type="DirectionalLight3D" parent="Preview/Viewport"]
 transform = Transform3D(0.76604, -0.41318, 0.4924, 0, 0.76604, 0.64279, -0.64279, -0.4924, 0.58682, 0, 10, 0)
-light_energy = 1.3
+light_color = Color(1, 0.95, 0.86, 1)
+light_energy = 2.6
+light_angular_distance = 1.0
 shadow_enabled = true
+shadow_blur = 1.5
+directional_shadow_max_distance = 60.0
 
 [node name="Floor" type="MeshInstance3D" parent="Preview/Viewport"]
 mesh = SubResource("CylinderMesh_2")

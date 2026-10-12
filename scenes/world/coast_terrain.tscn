@@ -10,7 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/props/pine_small.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/fx/footprint_dirt.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/fx/splash.tscn" id="10"]
-[ext_resource type="Material" path="res://materials/grass.tres" id="11"]
+[ext_resource type="Material" path="res://materials/terrain_coast.tres" id="11"]
 [ext_resource type="Material" path="res://materials/water.tres" id="12"]
 [ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="13"]
 
@@ -26,8 +26,8 @@ RidgeLength = 80
 HillHeight = 9
 HillLength = 240
 FlatRadius = 28
-SolidCount = 22
-PlantCount = 260
+SolidCount = 34
+PlantCount = 420
 DrifterCount = 0
 HasWater = true
 WaterLevel = -3.5
@@ -45,6 +45,7 @@ SolidScenes = Array[PackedScene]([ExtResource("3"), ExtResource("4")])
 PlantScenes = Array[PackedScene]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("5")])
 FootprintScene = ExtResource("9")
 SplashScene = ExtResource("10")
+PlantClumping = 0.8
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 material_override = ExtResource("11")

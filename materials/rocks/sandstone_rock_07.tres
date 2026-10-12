@@ -1,0 +1,21 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/rock.gdshader" id="shader"]
+[ext_resource type="Texture2D" path="res://textures/rock_07/rock_07_diff.jpg" id="1"]
+[ext_resource type="Texture2D" path="res://textures/rock_07/rock_07_nor.jpg" id="2"]
+[ext_resource type="Texture2D" path="res://textures/rock_07/rock_07_arm.jpg" id="3"]
+[ext_resource type="Texture2D" path="res://textures/cliff_side/cliff_side_diff.jpg" id="4"]
+[ext_resource type="Texture2D" path="res://textures/dense_sand/dense_sand_diff.jpg" id="5"]
+[ext_resource type="Texture2D" path="res://textures/dense_sand/dense_sand_arm.jpg" id="6"]
+
+[resource]
+shader = ExtResource("shader")
+shader_parameter/albedo_tex = ExtResource("1")
+shader_parameter/normal_tex = ExtResource("2")
+shader_parameter/arm_tex = ExtResource("3")
+shader_parameter/tint = Color(1.0, 0.9, 0.78, 1)
+shader_parameter/grain_tex = ExtResource("4")
+shader_parameter/cover_albedo = ExtResource("5")
+shader_parameter/cover_arm = ExtResource("6")
+shader_parameter/cover_tint = Color(1.12, 1.02, 0.9, 1)
+shader_parameter/cover_amount = 0.3

@@ -1,44 +1,24 @@
 [gd_scene format=3]
 
-[ext_resource type="Material" path="res://materials/leaves.tres" id="1"]
 [ext_resource type="Script" path="res://scripts/World/Destructible.cs" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/fx/splinters.tscn" id="3"]
 [ext_resource type="Script" path="res://scripts/World/PropPart.cs" id="4"]
-[ext_resource type="Material" path="res://materials/fir_trunk.tres" id="5"]
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
-top_radius = 0.34
-bottom_radius = 0.34
-height = 4.25
-radial_segments = 8
+[ext_resource type="ArrayMesh" path="res://models/trees/tree_birch_trunk.obj" id="x1"]
+[ext_resource type="Material" path="res://materials/bark_birch.tres" id="x2"]
+[ext_resource type="ArrayMesh" path="res://models/trees/tree_birch_crown1.obj" id="x3"]
+[ext_resource type="Material" path="res://materials/foliage_birch.tres" id="x4"]
+[ext_resource type="ArrayMesh" path="res://models/trees/tree_birch_crown2.obj" id="x5"]
+[ext_resource type="ArrayMesh" path="res://models/trees/tree_birch_crown3.obj" id="x6"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_2"]
 radius = 0.4675
 height = 3.74
 
-[sub_resource type="SphereMesh" id="SphereMesh_3"]
-radius = 1.7
-height = 3.4
-radial_segments = 16
-rings = 8
-
 [sub_resource type="SphereShape3D" id="SphereShape3D_4"]
 radius = 1.53
 
-[sub_resource type="SphereMesh" id="SphereMesh_5"]
-radius = 1.275
-height = 2.55
-radial_segments = 16
-rings = 8
-
 [sub_resource type="SphereShape3D" id="SphereShape3D_6"]
 radius = 1.1475
-
-[sub_resource type="SphereMesh" id="SphereMesh_7"]
-radius = 1.275
-height = 2.55
-radial_segments = 16
-rings = 8
 
 [sub_resource type="SphereShape3D" id="SphereShape3D_8"]
 radius = 1.1475
@@ -63,8 +43,8 @@ Vital = true
 
 [node name="Mesh" type="MeshInstance3D" parent="Trunk"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.125, 0)
-mesh = SubResource("CylinderMesh_1")
-material_override = ExtResource("5")
+mesh = ExtResource("x1")
+surface_material_override/0 = ExtResource("x2")
 
 [node name="Shape" type="CollisionShape3D" parent="Trunk"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.87, 0)
@@ -79,8 +59,9 @@ BreakFx = ExtResource("3")
 
 [node name="Mesh" type="MeshInstance3D" parent="Crown1"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.44, 0)
-mesh = SubResource("SphereMesh_3")
-material_override = ExtResource("1")
+mesh = ExtResource("x3")
+surface_material_override/0 = ExtResource("x2")
+surface_material_override/1 = ExtResource("x4")
 
 [node name="Shape" type="CollisionShape3D" parent="Crown1"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.44, 0)
@@ -95,8 +76,9 @@ BreakFx = ExtResource("3")
 
 [node name="Mesh" type="MeshInstance3D" parent="Crown2"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.51, 6.63, -0.255)
-mesh = SubResource("SphereMesh_5")
-material_override = ExtResource("1")
+mesh = ExtResource("x5")
+surface_material_override/0 = ExtResource("x2")
+surface_material_override/1 = ExtResource("x4")
 
 [node name="Shape" type="CollisionShape3D" parent="Crown2"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.51, 6.63, -0.255)
@@ -111,8 +93,9 @@ BreakFx = ExtResource("3")
 
 [node name="Mesh" type="MeshInstance3D" parent="Crown3"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.595, 4.59, 0.425)
-mesh = SubResource("SphereMesh_7")
-material_override = ExtResource("1")
+mesh = ExtResource("x6")
+surface_material_override/0 = ExtResource("x2")
+surface_material_override/1 = ExtResource("x4")
 
 [node name="Shape" type="CollisionShape3D" parent="Crown3"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.595, 4.59, 0.425)

@@ -1,0 +1,10 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://models/city/roof_vent/Box.res" id="1"]
+[ext_resource type="Material" path="res://materials/street_steel.tres" id="2"]
+
+[node name="RoofVent" type="Node3D"]
+
+[node name="Box" type="MeshInstance3D" parent="."]
+mesh = ExtResource("1")
+material_override = ExtResource("2")

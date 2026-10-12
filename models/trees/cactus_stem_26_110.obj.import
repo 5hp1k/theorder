@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://1nlq4er6kxvg"
+path="res://.godot/imported/cactus_stem_26_110.obj-5ee220b167990ed06f1e5d96ec8c0c6a.mesh"
+
+[deps]
+
+files=["res://.godot/imported/cactus_stem_26_110.obj-5ee220b167990ed06f1e5d96ec8c0c6a.mesh"]
+
+source_file="res://models/trees/cactus_stem_26_110.obj"
+dest_files=["res://.godot/imported/cactus_stem_26_110.obj-5ee220b167990ed06f1e5d96ec8c0c6a.mesh", "res://.godot/imported/cactus_stem_26_110.obj-5ee220b167990ed06f1e5d96ec8c0c6a.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

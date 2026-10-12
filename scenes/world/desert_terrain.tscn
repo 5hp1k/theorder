@@ -10,7 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/props/tumbleweed.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/fx/footprint_sand.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/fx/splash.tscn" id="10"]
-[ext_resource type="Material" path="res://materials/sand.tres" id="11"]
+[ext_resource type="Material" path="res://materials/terrain_desert.tres" id="11"]
 [ext_resource type="Material" path="res://materials/water.tres" id="12"]
 [ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="13"]
 
@@ -21,13 +21,13 @@ script = ExtResource("1")
 Seed = 1337
 Size = 800
 CellSize = 4
-RidgeHeight = 5
+RidgeHeight = 7
 RidgeLength = 95
-HillHeight = 12
+HillHeight = 15
 HillLength = 260
 FlatRadius = 28
-SolidCount = 36
-PlantCount = 90
+SolidCount = 64
+PlantCount = 130
 DrifterCount = 16
 HasWater = true
 WaterLevel = -5.5
@@ -43,6 +43,8 @@ PlantScenes = Array[PackedScene]([ExtResource("5"), ExtResource("6"), ExtResourc
 DrifterScene = ExtResource("8")
 FootprintScene = ExtResource("9")
 SplashScene = ExtResource("10")
+PlantClumping = 0.6
+SizeVariety = 0.45
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 material_override = ExtResource("11")

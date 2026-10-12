@@ -12,6 +12,11 @@ namespace MechSim;
 /// from the Cells settings), "Collision" (one box around the whole building), optional "Preview"
 /// (a plain box so the building shows in the editor; hidden in play), "Roof" (removed with the top
 /// floor) and "Rubble" (shown once the ground floor is mostly gone).
+/// Blocks don't just vanish: a block that has been hit shows ragged holes (the wall shader eats them
+/// out as its damage grows), the blocks round a gap are cracked, what breaks off flies or falls as
+/// irregular lumps of masonry, and a section left without support comes down as heavy pieces.
+/// The walls are dressed at start-up with whatever the Fittings list offers — a door, air conditioners
+/// under the windows, things on a flat roof — each hung on one block and gone when that block goes.
 /// </summary>
 public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageable
 {
@@ -23,8 +28,30 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
     [Export] public float CellHp = 12f;
     /// <summary>Effect spawned where a block is knocked out (dust, debris).</summary>
     [Export] public PackedScene ChunkFx;
+    /// <summary>What the lumps that break off are made of; empty = the wall material.</summary>
+    [Export] public Material DebrisMaterial;
     /// <summary>Whether a mech walking into it breaks through.</summary>
     [Export] public bool Trample = true;
+    /// <summary>
+    /// Gives every block a collision shape of its own instead of one box round the lot, so that things
+    /// fall through where blocks are missing. For bridges; too many shapes for a tower.
+    /// </summary>
+    [Export] public bool BlockCollision;
+
+    [ExportGroup("Fittings")]
+    /// <summary>A way in on the ground floor. Fitting prefabs have their origin on the wall, +Z pointing out of it.</summary>
+    [Export] public PackedScene DoorScene;
+    /// <summary>How many doors.</summary>
+    [Export] public int Doors = 1;
+    /// <summary>Things hung under windows (air conditioners, dishes); one is picked for each window that gets one.</summary>
+    [Export] public PackedScene[] WallFittings = System.Array.Empty<PackedScene>();
+    /// <summary>Share of windows with something under them.</summary>
+    [Export(PropertyHint.Range, "0,1")] public float WallShare = 0.1f;
+    /// <summary>Storeys up to which the walls are dressed (higher up nobody would see it).</summary>
+    [Export] public int DressedStoreys = 8;
+    /// <summary>Things that stand on a flat roof (their origin on the roof, any way round).</summary>
+    [Export] public PackedScene[] RoofFittings = System.Array.Empty<PackedScene>();
+    [Export] public int RoofCount = 3;
 
     public static readonly List<ChunkedBuilding> All = new();
     /// <summary>Blocks still standing.</summary>
@@ -47,6 +74,11 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
     /// <summary>Which way the last blow came from, so the masonry flies the right way.</summary>
     Vector3 _push;
     readonly Queue<(int cell, double due)> _pending = new();
+    readonly Dictionary<int, List<Node3D>> _fittings = new();
+    // Per block: which faces are on the outside of the building (a bit each), and how broken it looks (0..1).
+    CollisionShape3D[] _shapes;
+    byte[] _outside;
+    float[] _damage;
     double _time;
 
     int Index(int x, int y, int z) => (y * Cells.Z + z) * Cells.X + x;
@@ -59,6 +91,8 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
         _hp = new float[count];
         _alive = new bool[count];
         _shown = new bool[count];
+        _outside = new byte[count];
+        _damage = new float[count];
         _aliveCount = count;
         _groundAlive = Cells.X * Cells.Z;
         _origin = new Vector3(-Cells.X * CellSize * 0.5f, 0f, -Cells.Z * CellSize * 0.5f);
@@ -67,6 +101,8 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
         _mesh = new MultiMesh
         {
             TransformFormat = MultiMesh.TransformFormatEnum.Transform3D,
+            // Each block tells the wall shader where in the building it is.
+            UseCustomData = true,
             Mesh = new BoxMesh { Size = Vector3.One * CellSize },
             InstanceCount = count,
         };
@@ -81,8 +117,11 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
             bool outer = x == 0 || z == 0 || y == Cells.Y - 1 || x == Cells.X - 1 || z == Cells.Z - 1;
             _shown[i] = outer;
             _mesh.SetInstanceTransform(i, outer ? new Transform3D(Basis.Identity, CellCenter(x, y, z)) : Gone(x, y, z));
+            _outside[i] = (byte)((x == Cells.X - 1 ? 1 : 0) | (x == 0 ? 2 : 0) | (y == Cells.Y - 1 ? 4 : 0) | (y == 0 ? 8 : 0) | (z == Cells.Z - 1 ? 16 : 0) | (z == 0 ? 32 : 0));
+            TellShader(i);
         }
         chunks.Multimesh = _mesh;
+        chunks.SetInstanceShaderParameter("cell_size", CellSize);
         _wall = chunks.MaterialOverride;
 
         GetNodeOrNull<Node3D>("Preview")?.Hide();
@@ -95,8 +134,95 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
         var half = new Vector2((turned ? Cells.Z : Cells.X) * CellSize, (turned ? Cells.X : Cells.Z) * CellSize) * 0.5f;
         _area = new Rect2(new Vector2(p.X, p.Z) - half, half * 2f);
         All.Add(this);
+        if (BlockCollision)
+        {
+            if (GetNodeOrNull<CollisionShape3D>("Collision") is { } whole) whole.Disabled = true;
+            var box = new BoxShape3D { Size = Vector3.One * CellSize };
+            _shapes = new CollisionShape3D[count];
+            for (int i = 0; i < count; i++)
+            {
+                _shapes[i] = new CollisionShape3D { Shape = box, Position = CellCenter(i % Cells.X, i / (Cells.X * Cells.Z), i / Cells.X % Cells.Z) };
+                AddChild(_shapes[i]);
+            }
+        }
+        Dress();
         // Nothing to do each frame until a block goes and something may be left hanging.
         SetProcess(false);
+    }
+
+    /// <summary>Hangs the fittings on the walls and stands them on the roof, each tied to the block behind it.</summary>
+    void Dress()
+    {
+        if (DoorScene == null && WallFittings.Length == 0 && RoofFittings.Length == 0) return;
+        Vector3 p = GlobalPosition;
+        var rng = new RandomNumberGenerator { Seed = (ulong)(Mathf.Abs(Mathf.RoundToInt(p.X * 13f + p.Z * 7f)) + Cells.X * 31 + Cells.Y) };
+        // Where the windows are is the wall material's business.
+        float bay = CellSize, storey = CellSize, sill = 0.25f;
+        if (_wall is ShaderMaterial wall)
+        {
+            bay = (float)wall.GetShaderParameter("bay_width");
+            storey = (float)wall.GetShaderParameter("floor_height");
+            sill = (float)wall.GetShaderParameter("sill");
+            if (bay <= 0f || storey <= 0f) return;
+        }
+        int baysPerCell = Mathf.Max(1, Mathf.RoundToInt(CellSize / bay));
+        int storeys = Mathf.Min(Mathf.RoundToInt(Cells.Y * CellSize / storey), DressedStoreys);
+        float width = Cells.X * CellSize, depth = Cells.Z * CellSize;
+
+        // The four walls: outward direction, and how many bays run along each.
+        var sides = new (Vector3 n, int bays)[] { (Vector3.Back, Cells.X * baysPerCell), (Vector3.Forward, Cells.X * baysPerCell), (Vector3.Right, Cells.Z * baysPerCell), (Vector3.Left, Cells.Z * baysPerCell) };
+        var doors = new HashSet<(int side, int bay)>();
+        for (int i = 0; i < Doors && DoorScene != null; i++)
+        {
+            int side = rng.RandiRange(0, 3);
+            int at = Mathf.Clamp(sides[side].bays / 2 + rng.RandiRange(-1, 1), 0, sides[side].bays - 1);
+            if (doors.Add((side, at))) Hang(DoorScene, sides[side].n, at, 0f, bay, width, depth);
+        }
+        for (int side = 0; side < 4 && WallFittings.Length > 0; side++)
+        for (int at = 0; at < sides[side].bays; at++)
+        for (int floor = 0; floor < storeys; floor++)
+        {
+            if (rng.Randf() > WallShare || (floor == 0 && doors.Contains((side, at)))) continue;
+            Hang(WallFittings[rng.RandiRange(0, WallFittings.Length - 1)], sides[side].n, at, floor * storey + sill * storey - 0.02f, bay, width, depth);
+        }
+
+        // Only a flat roof has anything standing on it.
+        if (_roof is MeshInstance3D { Mesh: PrismMesh }) return;
+        for (int i = 0; i < RoofCount && RoofFittings.Length > 0; i++)
+        {
+            int x = rng.RandiRange(0, Cells.X - 1), z = rng.RandiRange(0, Cells.Z - 1);
+            var node = RoofFittings[rng.RandiRange(0, RoofFittings.Length - 1)].Instantiate<Node3D>();
+            Vector3 c = CellCenter(x, Cells.Y - 1, z);
+            node.Transform = new Transform3D(new Basis(Vector3.Up, rng.RandiRange(0, 3) * Mathf.Pi / 2f), new Vector3(c.X, Cells.Y * CellSize + 0.4f, c.Z));
+            Attach(node, Index(x, Cells.Y - 1, z));
+        }
+    }
+
+    void Hang(PackedScene scene, Vector3 normal, int bayIndex, float height, float bay, float width, float depth)
+    {
+        // Along the wall, left to right as seen from outside.
+        Vector3 along = new(normal.Z, 0f, -normal.X);
+        float run = Mathf.Abs(normal.X) > 0.5f ? depth : width, reach = Mathf.Abs(normal.X) > 0.5f ? width : depth;
+        Vector3 at = along * (-run * 0.5f + (bayIndex + 0.5f) * bay) + normal * (reach * 0.5f) + Vector3.Up * height;
+        var node = scene.Instantiate<Node3D>();
+        node.Transform = new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(normal.X, normal.Z)), at);
+        // The block right behind it.
+        Vector3 inside = (at - normal * (CellSize * 0.5f) - _origin) / CellSize;
+        int x = Mathf.Clamp(Mathf.FloorToInt(inside.X), 0, Cells.X - 1), y = Mathf.Clamp(Mathf.FloorToInt(inside.Y + 0.1f), 0, Cells.Y - 1), z = Mathf.Clamp(Mathf.FloorToInt(inside.Z), 0, Cells.Z - 1);
+        Attach(node, Index(x, y, z));
+    }
+
+    /// <summary>Fixes something to the block at these grid coordinates: it goes when the block goes.</summary>
+    public void Attach(Node3D fitting, int x, int y, int z) => Attach(fitting, Index(Mathf.Clamp(x, 0, Cells.X - 1), Mathf.Clamp(y, 0, Cells.Y - 1), Mathf.Clamp(z, 0, Cells.Z - 1)));
+
+    /// <summary>Middle of a block, in the building's own axes.</summary>
+    public Vector3 BlockCentre(int x, int y, int z) => CellCenter(x, y, z);
+
+    void Attach(Node3D fitting, int cell)
+    {
+        AddChild(fitting);
+        if (!_fittings.TryGetValue(cell, out var list)) _fittings[cell] = list = new List<Node3D>();
+        list.Add(fitting);
     }
 
     public override void _ExitTree() => All.Remove(this);
@@ -183,6 +309,30 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
         _hp[cell] -= amount;
         _push = direction;
         if (_hp[cell] <= 0f) Remove(cell, true);
+        else Wound(cell, (1f - _hp[cell] / CellHp) * 0.8f);
+    }
+
+    /// <summary>Where the block is in the building, which of its faces are outside, how broken it is: all the wall shader needs.</summary>
+    void TellShader(int cell)
+    {
+        int x = cell % Cells.X, z = cell / Cells.X % Cells.Z, y = cell / (Cells.X * Cells.Z);
+        Vector3 c = CellCenter(x, y, z);
+        _mesh.SetInstanceCustomData(cell, new Color(c.X, c.Y, c.Z, 64f + _outside[cell] + Mathf.Clamp(_damage[cell], 0f, 1f) * 0.9f));
+    }
+
+    /// <summary>Makes a block look at least this broken.</summary>
+    void Wound(int cell, float damage)
+    {
+        if (!_alive[cell] || damage <= _damage[cell]) return;
+        _damage[cell] = Mathf.Min(damage, 1f);
+        TellShader(cell);
+    }
+
+    void WoundAt(int x, int y, int z, float more)
+    {
+        if (!Alive(x, y, z)) return;
+        int i = Index(x, y, z);
+        Wound(i, _damage[i] + more);
     }
 
     /// <summary>A hit with no block attached (a hand weapon): the block nearest to the point.</summary>
@@ -256,10 +406,25 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
                 scene.AddChild(fx);
                 fx.GlobalPosition = at;
             }
-            // The masonry itself: a few pieces thrown the way the blow went, or just dropping.
-            Debris.Burst(scene, at, 2, CellSize * 0.5f, _wall, _push, _push == default ? 2.5f : 5f);
+            Material lumps = DebrisMaterial ?? _wall;
+            if (_push == default)
+            {
+                // Nothing under it: it comes down in a couple of heavy pieces, shedding smaller ones.
+                Debris.Chunk(scene, at, Vector3.One * CellSize * 0.8f, lumps, new Vector3((float)GD.RandRange(-1.0, 1.0), -1f, (float)GD.RandRange(-1.0, 1.0)));
+                Debris.Burst(scene, at, 2, CellSize * 0.45f, lumps, default, 2.5f);
+            }
+            else
+            {
+                // Shot out: masonry thrown the way the blow went.
+                Debris.Burst(scene, at, 4, CellSize * 0.5f, lumps, _push, 5f);
+            }
         }
+        // The blocks round the gap are left cracked and holed.
+        WoundAt(x + 1, y, z, 0.4f); WoundAt(x - 1, y, z, 0.4f); WoundAt(x, y + 1, z, 0.5f); WoundAt(x, y - 1, z, 0.3f); WoundAt(x, y, z + 1, 0.4f); WoundAt(x, y, z - 1, 0.4f);
 
+        _shapes?[cell].SetDeferred(CollisionShape3D.PropertyName.Disabled, true);
+        if (_fittings.Remove(cell, out var hung))
+            foreach (Node3D fitting in hung) fitting.QueueFree();
         if (y == Cells.Y - 1 && _roof != null) _roof.Visible = false;
         if (y == 0 && --_groundAlive < Cells.X * Cells.Z / 2 && _rubble != null) _rubble.Visible = true;
         if (_aliveCount == 0) CollisionLayer = 0;

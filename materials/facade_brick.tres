@@ -1,11 +1,23 @@
-[gd_resource type="StandardMaterial3D" format=3]
+[gd_resource type="ShaderMaterial" format=3]
 
-[ext_resource type="Texture2D" path="res://textures/windows.png" id="1"]
+[ext_resource type="Shader" path="res://materials/facade.gdshader" id="shader"]
+[ext_resource type="Texture2D" path="res://textures/brick_wall_006/brick_wall_006_diff.jpg" id="1"]
+[ext_resource type="Texture2D" path="res://textures/brick_wall_006/brick_wall_006_nor.jpg" id="2"]
+[ext_resource type="Texture2D" path="res://textures/brick_wall_006/brick_wall_006_arm.jpg" id="3"]
 
 [resource]
-albedo_color = Color(0.7, 0.42, 0.32, 1)
-albedo_texture = ExtResource("1")
-uv1_scale = Vector3(0.25, 0.25, 0.25)
-uv1_triplanar = true
-uv1_world_triplanar = true
-roughness = 0.8
+shader = ExtResource("shader")
+shader_parameter/wall_albedo = ExtResource("1")
+shader_parameter/wall_normal = ExtResource("2")
+shader_parameter/wall_arm = ExtResource("3")
+shader_parameter/wall_size = 2.5
+shader_parameter/wall_tint = Color(0.95, 0.85, 0.8, 1)
+shader_parameter/bay_width = 2.0
+shader_parameter/floor_height = 2.0
+shader_parameter/window_size = Vector2(0.5, 0.58)
+shader_parameter/sill = 0.24
+shader_parameter/frame_width = 0.07
+shader_parameter/frame_color = Color(0.85, 0.84, 0.8, 1)
+shader_parameter/panes = Vector2(2, 2)
+shader_parameter/dirt = 0.55
+shader_parameter/lit_rooms = 0.1

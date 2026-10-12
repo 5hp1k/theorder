@@ -1,43 +1,27 @@
 [gd_scene format=3]
 
-[ext_resource type="Material" path="res://materials/rock_sandstone.tres" id="1"]
 [ext_resource type="Script" path="res://scripts/World/Destructible.cs" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/fx/dust_puff.tscn" id="3"]
 [ext_resource type="Script" path="res://scripts/World/PropPart.cs" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/fx/chunk_dust.tscn" id="5"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_1"]
-size = Vector3(9, 9.5, 7)
+[ext_resource type="ArrayMesh" path="res://models/rocks/namaqualand_boulder_04.res" id="x1"]
+[ext_resource type="Material" path="res://materials/rocks/sandstone_namaqualand_boulder_04.tres" id="x2"]
+[ext_resource type="ArrayMesh" path="res://models/rocks/namaqualand_boulder_03.res" id="x3"]
+[ext_resource type="Material" path="res://materials/rocks/sandstone_namaqualand_boulder_03.tres" id="x4"]
+[ext_resource type="ArrayMesh" path="res://models/rocks/namaqualand_boulder_06.res" id="x5"]
+[ext_resource type="Material" path="res://materials/rocks/sandstone_namaqualand_boulder_06.tres" id="x6"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_2"]
 size = Vector3(9, 9.5, 7)
 
-[sub_resource type="BoxMesh" id="BoxMesh_3"]
-size = Vector3(6.75, 5.7, 5.6)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_4"]
 size = Vector3(6.75, 5.7, 5.6)
-
-[sub_resource type="BoxMesh" id="BoxMesh_5"]
-size = Vector3(4.5, 8.075, 4.2)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_6"]
 size = Vector3(4.5, 8.075, 4.2)
 
-[sub_resource type="BoxMesh" id="BoxMesh_7"]
-size = Vector3(3.6, 2.85, 3.5)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_8"]
 size = Vector3(3.6, 2.85, 3.5)
-
-[sub_resource type="BoxMesh" id="BoxMesh_9"]
-size = Vector3(8.1, 1.71, 6.3)
-
-[sub_resource type="BoxMesh" id="BoxMesh_10"]
-size = Vector3(3.15, 2.85, 2.1)
-
-[sub_resource type="BoxMesh" id="BoxMesh_11"]
-size = Vector3(2.7, 2.375, 2.45)
 
 [node name="Rock_Large" type="StaticBody3D"]
 collision_layer = 0
@@ -60,9 +44,9 @@ Vital = true
 Carries = Array[NodePath]([NodePath("../Chunk1"), NodePath("../Chunk2"), NodePath("../Chunk3")])
 
 [node name="Mesh" type="MeshInstance3D" parent="Main"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.325, 0)
-mesh = SubResource("BoxMesh_1")
-material_override = ExtResource("1")
+transform = Transform3D(-3.94569, 0, 0, 0, 5.52395, 0, 0, 0, -3.09741, -0.305274, -1.77099, 0.663854)
+mesh = ExtResource("x1")
+material_override = ExtResource("x2")
 
 [node name="Shape" type="CollisionShape3D" parent="Main"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.325, 0)
@@ -76,9 +60,9 @@ Hp = 154.276
 BreakFx = ExtResource("5")
 
 [node name="Mesh" type="MeshInstance3D" parent="Chunk1"]
-transform = Transform3D(0.79869, 0.20286, 0.56651, -0.13746, 0.97808, -0.15643, -0.58583, 0.04707, 0.80907, -3.6, 1.71, 2.1)
-mesh = SubResource("BoxMesh_3")
-material_override = ExtResource("1")
+transform = Transform3D(2.36354, 0.672353, 1.40377, -0.406781, 3.24172, -0.387622, -1.73363, 0.156007, 2.00482, -4.33826, -1.22897, 1.39227)
+mesh = ExtResource("x1")
+material_override = ExtResource("x2")
 
 [node name="Shape" type="CollisionShape3D" parent="Chunk1"]
 transform = Transform3D(0.79869, 0.20286, 0.56651, -0.13746, 0.97808, -0.15643, -0.58583, 0.04707, 0.80907, -3.6, 1.71, 2.1)
@@ -92,9 +76,9 @@ Hp = 116.5705
 BreakFx = ExtResource("5")
 
 [node name="Mesh" type="MeshInstance3D" parent="Chunk2"]
-transform = Transform3D(0.9542, -0.15334, -0.25689, 0.18939, 0.97431, 0.12187, 0.2316, -0.16494, 0.95873, 4.05, 2.4225, -2.1)
-mesh = SubResource("BoxMesh_5")
-material_override = ExtResource("1")
+transform = Transform3D(1.88249, -0.719986, -0.477416, 0.373637, 4.57473, 0.226489, 0.456911, -0.774452, 1.78175, 4.96218, -1.81745, -1.73207)
+mesh = ExtResource("x1")
+material_override = ExtResource("x2")
 
 [node name="Shape" type="CollisionShape3D" parent="Chunk2"]
 transform = Transform3D(0.9542, -0.15334, -0.25689, 0.18939, 0.97431, 0.12187, 0.2316, -0.16494, 0.95873, 4.05, 2.4225, -2.1)
@@ -108,9 +92,9 @@ Hp = 46.546
 BreakFx = ExtResource("5")
 
 [node name="Mesh" type="MeshInstance3D" parent="Chunk3"]
-transform = Transform3D(0.65762, 0.14149, 0.73994, 0.08419, 0.96225, -0.25882, -0.74863, 0.2325, 0.62089, 4.5, 0.855, 3.15)
-mesh = SubResource("BoxMesh_7")
-material_override = ExtResource("1")
+transform = Transform3D(1.03791, 0.234475, 1.14595, 0.132875, 1.59463, -0.400836, -1.18154, 0.385296, 0.961576, 4.11839, -0.519896, 2.49705)
+mesh = ExtResource("x1")
+material_override = ExtResource("x2")
 
 [node name="Shape" type="CollisionShape3D" parent="Chunk3"]
 transform = Transform3D(0.65762, 0.14149, 0.73994, 0.08419, 0.96225, -0.25882, -0.74863, 0.2325, 0.62089, 4.5, 0.855, 3.15)
@@ -120,16 +104,16 @@ shape = SubResource("BoxShape3D_8")
 visible = false
 
 [node name="Heap" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.93404, 0.10567, 0.34119, -0.08694, 0.99377, -0.06976, -0.34643, 0.03549, 0.9374, 0, 0.855, 0)
-mesh = SubResource("BoxMesh_9")
-material_override = ExtResource("1")
+transform = Transform3D(-0.98461, 0.135355, 2.71503, 0.201314, 1.27294, -0.252714, -2.70516, 0.04546, -1.00699, -0.338623, -0.0607081, 0.517123)
+mesh = ExtResource("x3")
+material_override = ExtResource("x4")
 
 [node name="Stone1" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.67852, 0.1464, 0.71985, 0.16318, 0.92542, -0.34202, -0.71623, 0.34953, 0.60402, 2.25, 1.425, 1.4)
-mesh = SubResource("BoxMesh_10")
-material_override = ExtResource("1")
+transform = Transform3D(-2.46852, 0.709789, 1.94421, 1.17286, 4.4867, 0.467571, -2.07132, 1.69462, -2.05226, 2.17944, 0.0450985, 0.801782)
+mesh = ExtResource("x5")
+material_override = ExtResource("x6")
 
 [node name="Stone2" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.83958, -0.24871, -0.48296, 0.40822, 0.87543, 0.25882, 0.35843, -0.41445, 0.83652, -2.7, 1.14, -1.05)
-mesh = SubResource("BoxMesh_11")
-material_override = ExtResource("1")
+transform = Transform3D(-0.518749, -0.343465, -1.00306, 0.278, 1.20896, -0.487707, 0.898509, -0.57235, -0.428222, -2.2083, 0.15074, -0.360696)
+mesh = ExtResource("x1")
+material_override = ExtResource("x2")

@@ -12,73 +12,44 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/explosion_small.tscn" id="10"]
 [ext_resource type="Material" path="res://materials/car_red.tres" id="11"]
 [ext_resource type="Material" path="res://materials/mech_charred.tres" id="12"]
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
-top_radius = 1.1
-bottom_radius = 1.1
-height = 20
-radial_segments = 10
+[ext_resource type="Script" path="res://scripts/Meshes/ArmorBoxMesh.cs" id="x2"]
+[ext_resource type="ArrayMesh" path="res://models/small/oil_rig/Legs.res" id="x3"]
+[ext_resource type="ArrayMesh" path="res://models/small/oil_rig/Deck.res" id="x4"]
+[ext_resource type="ArrayMesh" path="res://models/small/oil_rig/Rails.res" id="x5"]
+[ext_resource type="ArrayMesh" path="res://models/small/oil_rig/Helipad.res" id="x6"]
+[ext_resource type="ArrayMesh" path="res://models/small/oil_rig/Derrick.res" id="x7"]
+[ext_resource type="ArrayMesh" path="res://models/small/oil_rig/Crown.res" id="x8"]
+[ext_resource type="ArrayMesh" path="res://models/small/oil_rig/Crane.res" id="x9"]
+[ext_resource type="ArrayMesh" path="res://models/small/oil_rig/Tank.res" id="x10"]
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_2"]
 radius = 1.2
 height = 20
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_3"]
-top_radius = 1.1
-bottom_radius = 1.1
-height = 20
-radial_segments = 10
-
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_4"]
 radius = 1.2
 height = 20
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_5"]
-top_radius = 1.1
-bottom_radius = 1.1
-height = 20
-radial_segments = 10
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_6"]
 radius = 1.2
 height = 20
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_7"]
-top_radius = 1.1
-bottom_radius = 1.1
-height = 20
-radial_segments = 10
-
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_8"]
 radius = 1.2
 height = 20
 
-[sub_resource type="BoxMesh" id="BoxMesh_9"]
-size = Vector3(24, 2, 24)
-
-[sub_resource type="BoxMesh" id="BoxMesh_10"]
-size = Vector3(24.6, 0.5, 24.6)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_11"]
 size = Vector3(24, 2.6, 24)
 
-[sub_resource type="BoxMesh" id="BoxMesh_12"]
-size = Vector3(8, 5, 7)
+[sub_resource type="PrimitiveMesh" id="ArmorBox_12"]
+script = ExtResource("x2")
+Size = Vector3(8, 5, 7)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_13"]
 size = Vector3(8, 5, 7)
 
-[sub_resource type="BoxMesh" id="BoxMesh_14"]
-size = Vector3(9, 0.4, 9)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_15"]
 size = Vector3(9, 0.6, 9)
-
-[sub_resource type="BoxMesh" id="BoxMesh_16"]
-size = Vector3(4, 24, 4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_17"]
-size = Vector3(5, 1, 5)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_18"]
 size = Vector3(4, 25, 4)
@@ -98,37 +69,24 @@ emission_energy_multiplier = 6
 [sub_resource type="SphereShape3D" id="SphereShape3D_21"]
 radius = 1.2
 
-[sub_resource type="BoxMesh" id="BoxMesh_22"]
-size = Vector3(1, 1, 14)
-
 [sub_resource type="BoxShape3D" id="BoxShape3D_23"]
 size = Vector3(3, 6, 12)
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_24"]
-top_radius = 1.6
-bottom_radius = 1.6
-height = 4
-radial_segments = 12
 
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_25"]
 radius = 1.6
 height = 4
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_26"]
-top_radius = 1.6
-bottom_radius = 1.6
-height = 4
-radial_segments = 12
-
 [sub_resource type="CylinderShape3D" id="CylinderShape3D_27"]
 radius = 1.6
 height = 4
 
-[sub_resource type="BoxMesh" id="BoxMesh_28"]
-size = Vector3(16, 2, 10)
+[sub_resource type="PrimitiveMesh" id="ArmorBox_28"]
+script = ExtResource("x2")
+Size = Vector3(16, 2, 10)
 
-[sub_resource type="BoxMesh" id="BoxMesh_29"]
-size = Vector3(6, 5, 6)
+[sub_resource type="PrimitiveMesh" id="ArmorBox_29"]
+script = ExtResource("x2")
+Size = Vector3(6, 5, 6)
 
 [node name="Oil_Rig" type="StaticBody3D"]
 collision_layer = 0
@@ -150,49 +108,31 @@ BreakFx = ExtResource("4")
 Vital = true
 
 [node name="Leg1" type="MeshInstance3D" parent="Platform"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 4, -9)
-mesh = SubResource("CylinderMesh_1")
+mesh = ExtResource("x3")
 material_override = ExtResource("1")
 
 [node name="LegShape1" type="CollisionShape3D" parent="Platform"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 4, -9)
 shape = SubResource("CylinderShape3D_2")
 
-[node name="Leg2" type="MeshInstance3D" parent="Platform"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 4, -9)
-mesh = SubResource("CylinderMesh_3")
-material_override = ExtResource("1")
-
 [node name="LegShape2" type="CollisionShape3D" parent="Platform"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 4, -9)
 shape = SubResource("CylinderShape3D_4")
 
-[node name="Leg3" type="MeshInstance3D" parent="Platform"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 4, 9)
-mesh = SubResource("CylinderMesh_5")
-material_override = ExtResource("1")
-
 [node name="LegShape3" type="CollisionShape3D" parent="Platform"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9, 4, 9)
 shape = SubResource("CylinderShape3D_6")
-
-[node name="Leg4" type="MeshInstance3D" parent="Platform"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 4, 9)
-mesh = SubResource("CylinderMesh_7")
-material_override = ExtResource("1")
 
 [node name="LegShape4" type="CollisionShape3D" parent="Platform"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9, 4, 9)
 shape = SubResource("CylinderShape3D_8")
 
 [node name="Deck" type="MeshInstance3D" parent="Platform"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15, 0)
-mesh = SubResource("BoxMesh_9")
+mesh = ExtResource("x4")
 material_override = ExtResource("1")
 
 [node name="DeckEdge" type="MeshInstance3D" parent="Platform"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 16.2, 0)
-mesh = SubResource("BoxMesh_10")
+mesh = ExtResource("x5")
 material_override = ExtResource("2")
 
 [node name="DeckShape" type="CollisionShape3D" parent="Platform"]
@@ -208,7 +148,7 @@ BreakFx = ExtResource("6")
 
 [node name="Mesh" type="MeshInstance3D" parent="Quarters"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6, 18.5, 6)
-mesh = SubResource("BoxMesh_12")
+mesh = SubResource("ArmorBox_12")
 material_override = ExtResource("7")
 
 [node name="Shape" type="CollisionShape3D" parent="Quarters"]
@@ -223,8 +163,7 @@ Hp = 60
 BreakFx = ExtResource("8")
 
 [node name="Mesh" type="MeshInstance3D" parent="Helipad"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 16.6, 7)
-mesh = SubResource("BoxMesh_14")
+mesh = ExtResource("x6")
 material_override = ExtResource("9")
 
 [node name="Shape" type="CollisionShape3D" parent="Helipad"]
@@ -240,13 +179,11 @@ BreakFx = ExtResource("6")
 Carries = Array[NodePath]([NodePath("../Flare")])
 
 [node name="Tower" type="MeshInstance3D" parent="Derrick"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 28, -2)
-mesh = SubResource("BoxMesh_16")
+mesh = ExtResource("x7")
 material_override = ExtResource("1")
 
 [node name="Top" type="MeshInstance3D" parent="Derrick"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40.5, -2)
-mesh = SubResource("BoxMesh_17")
+mesh = ExtResource("x8")
 material_override = ExtResource("2")
 
 [node name="Shape" type="CollisionShape3D" parent="Derrick"]
@@ -279,7 +216,7 @@ BreakFx = ExtResource("8")
 
 [node name="Mesh" type="MeshInstance3D" parent="Crane"]
 transform = Transform3D(0.86603, 0.17101, 0.46985, 0, 0.93969, -0.34202, -0.5, 0.2962, 0.8138, 8, 22, -6)
-mesh = SubResource("BoxMesh_22")
+mesh = ExtResource("x9")
 material_override = ExtResource("2")
 
 [node name="Shape" type="CollisionShape3D" parent="Crane"]
@@ -295,7 +232,7 @@ BreakFx = ExtResource("10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Tank1"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8, 18, -7)
-mesh = SubResource("CylinderMesh_24")
+mesh = ExtResource("x10")
 material_override = ExtResource("11")
 
 [node name="Shape" type="CollisionShape3D" parent="Tank1"]
@@ -311,7 +248,7 @@ BreakFx = ExtResource("10")
 
 [node name="Mesh" type="MeshInstance3D" parent="Tank2"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.5, 18, -7)
-mesh = SubResource("CylinderMesh_26")
+mesh = ExtResource("x10")
 material_override = ExtResource("11")
 
 [node name="Shape" type="CollisionShape3D" parent="Tank2"]
@@ -323,10 +260,10 @@ visible = false
 
 [node name="Wreck1" type="MeshInstance3D" parent="Rubble"]
 transform = Transform3D(0.92957, 0.14556, 0.33869, -0.10351, 0.98484, -0.13917, -0.35382, 0.09431, 0.93055, 2, 0.2, -1)
-mesh = SubResource("BoxMesh_28")
+mesh = SubResource("ArmorBox_28")
 material_override = ExtResource("12")
 
 [node name="Wreck2" type="MeshInstance3D" parent="Rubble"]
 transform = Transform3D(0.68304, -0.41062, 0.60402, 0.24321, 0.90767, 0.34202, -0.6887, -0.08671, 0.71985, -6, 1.5, 5)
-mesh = SubResource("BoxMesh_29")
+mesh = SubResource("ArmorBox_29")
 material_override = ExtResource("12")

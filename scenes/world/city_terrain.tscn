@@ -2,9 +2,10 @@
 
 [ext_resource type="Script" path="res://scripts/World/MapTerrain.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/fx/footprint_city.tscn" id="2"]
-[ext_resource type="Material" path="res://materials/city_ground.tres" id="3"]
+[ext_resource type="Material" path="res://materials/terrain_city.tres" id="3"]
 [ext_resource type="Material" path="res://materials/water.tres" id="4"]
 [ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/fx/splash.tscn" id="x1"]
 
 [node name="City_Terrain" type="StaticBody3D"]
 collision_layer = 1
@@ -12,12 +13,13 @@ collision_mask = 0
 script = ExtResource("1")
 Seed = 1
 Size = 800
-CellSize = 16
+CellSize = 4
 RidgeHeight = 0
 RidgeLength = 95
-HillHeight = 0
-HillLength = 260
-FlatRadius = 28
+HillHeight = 5.5
+HillLength = 300
+DetailHeight = 0.25
+FlatRadius = 30
 SolidCount = 0
 PlantCount = 0
 DrifterCount = 0
@@ -26,6 +28,16 @@ MapHigh = Color(0.5, 0.52, 0.5, 1)
 SolidScenes = Array[PackedScene]([])
 PlantScenes = Array[PackedScene]([])
 FootprintScene = ExtResource("2")
+HasWater = true
+WaterLevel = -3.2
+MaxDepth = 3
+RiverWidth = 26
+RiverOffset = -108
+RiverMeander = 14
+MapWater = Color(0.15, 0.35, 0.55, 1)
+SplashScene = ExtResource("x1")
+MountainHeight = 170
+MountainStart = 650
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 material_override = ExtResource("3")

@@ -2,7 +2,6 @@
 
 [ext_resource type="PackedScene" path="res://scenes/world/city_terrain.tscn" id="1"]
 [ext_resource type="Script" path="res://scripts/World/CityLayout.cs" id="2"]
-[ext_resource type="PackedScene" path="res://scenes/city/road_segment.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/city/tower_a.tscn" id="4"]
 [ext_resource type="PackedScene" path="res://scenes/city/tower_b.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/city/office.tscn" id="6"]
@@ -10,42 +9,128 @@
 [ext_resource type="PackedScene" path="res://scenes/city/house_mid_b.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/city/house_small_a.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/city/house_small_b.tscn" id="10"]
-[ext_resource type="PackedScene" path="res://scenes/city/car_red.tscn" id="11"]
-[ext_resource type="PackedScene" path="res://scenes/city/car_blue.tscn" id="12"]
-[ext_resource type="PackedScene" path="res://scenes/city/car_white.tscn" id="13"]
-[ext_resource type="PackedScene" path="res://scenes/city/car_yellow.tscn" id="14"]
+[ext_resource type="Shader" path="res://materials/sky.gdshader" id="sky_shader"]
+[ext_resource type="Texture2D" path="res://textures/sky/kloppenheim_06_puresky_8k.jpg" id="sky_tex"]
+[ext_resource type="Texture2D" path="res://textures/sky/kloppenheim_06_puresky_1k.hdr" id="sky_hdr"]
+[ext_resource type="Script" path="res://scripts/Fx/MapLighting.cs" id="lighting"]
+[ext_resource type="PackedScene" path="res://scenes/city/bridge.tscn" id="x1"]
+[ext_resource type="Material" path="res://materials/concrete.tres" id="x2"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_sedan_red.tscn" id="x3"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_sedan_blue.tscn" id="x4"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_sedan_black.tscn" id="x5"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_sedan_silver.tscn" id="x6"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_hatch_white.tscn" id="x7"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_hatch_yellow.tscn" id="x8"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_hatch_green.tscn" id="x9"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_suv_black.tscn" id="x10"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_suv_silver.tscn" id="x11"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_pickup_blue.tscn" id="x12"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_van_white.tscn" id="x13"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_bus.tscn" id="x14"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_police.tscn" id="x15"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_ambulance.tscn" id="x16"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_fire.tscn" id="x17"]
+[ext_resource type="PackedScene" path="res://scenes/city/street_lamp.tscn" id="x18"]
+[ext_resource type="PackedScene" path="res://scenes/city/traffic_light.tscn" id="x19"]
+[ext_resource type="PackedScene" path="res://scenes/city/sign_stop.tscn" id="x20"]
+[ext_resource type="PackedScene" path="res://scenes/city/sign_limit.tscn" id="x21"]
+[ext_resource type="PackedScene" path="res://scenes/city/sign_way.tscn" id="x22"]
+[ext_resource type="PackedScene" path="res://scenes/city/sign_warn.tscn" id="x23"]
+[ext_resource type="PackedScene" path="res://scenes/city/hydrant.tscn" id="x24"]
+[ext_resource type="PackedScene" path="res://scenes/city/bin.tscn" id="x25"]
+[ext_resource type="PackedScene" path="res://scenes/city/bench.tscn" id="x26"]
+[ext_resource type="PackedScene" path="res://scenes/city/bus_stop.tscn" id="x27"]
+[ext_resource type="PackedScene" path="res://scenes/props/tree_oak.tscn" id="x28"]
+[ext_resource type="PackedScene" path="res://scenes/props/tree_birch.tscn" id="x29"]
+[ext_resource type="PackedScene" path="res://scenes/city/bridge_rail.tscn" id="x30"]
+[ext_resource type="PackedScene" path="res://scenes/city/bridge_pier.tscn" id="x31"]
 
-[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
-sky_top_color = Color(0.42, 0.48, 0.56, 1)
-sky_horizon_color = Color(0.7, 0.72, 0.74, 1)
-ground_horizon_color = Color(0.62, 0.63, 0.64, 1)
-ground_bottom_color = Color(0.3, 0.31, 0.32, 1)
+[sub_resource type="ShaderMaterial" id="SkyMaterial_1"]
+shader = ExtResource("sky_shader")
+shader_parameter/sky_tex = ExtResource("sky_tex")
+shader_parameter/light_tex = ExtResource("sky_hdr")
+shader_parameter/background_energy = 1.0
+shader_parameter/highlight_boost = 1.6
+shader_parameter/light_energy = 1.1
+shader_parameter/light_clamp = 8.0
+shader_parameter/ground_color = Color(0.2, 0.2, 0.2, 1)
+shader_parameter/rotation = 0.0
 
 [sub_resource type="Sky" id="Sky_2"]
-sky_material = SubResource("ProceduralSkyMaterial_1")
+sky_material = SubResource("SkyMaterial_1")
+process_mode = 3
 
 [sub_resource type="Environment" id="Environment_3"]
 background_mode = 2
 sky = SubResource("Sky_2")
 ambient_light_source = 3
-tonemap_mode = 2
+reflected_light_source = 2
+tonemap_mode = 4
+tonemap_exposure = 0.8
+tonemap_white = 6.0
+ssao_enabled = true
+ssao_radius = 2.5
+ssao_intensity = 2.2
+ssao_power = 1.6
+ssil_enabled = true
+ssil_radius = 6.0
+ssil_intensity = 0.8
+sdfgi_enabled = true
+sdfgi_use_occlusion = true
+sdfgi_cascades = 5
+sdfgi_min_cell_size = 0.6
+sdfgi_y_scale = 0
+sdfgi_energy = 1.0
 glow_enabled = true
+glow_levels/2 = 0.6
+glow_levels/3 = 1.0
+glow_levels/5 = 1.0
+glow_levels/6 = 0.6
+glow_intensity = 0.5
+glow_bloom = 0.04
+glow_blend_mode = 1
+glow_hdr_threshold = 1.4
 fog_enabled = true
-fog_light_color = Color(0.68, 0.7, 0.73, 1)
-fog_density = 0.0022
-fog_sky_affect = 0.5
+fog_light_color = Color(0.7, 0.72, 0.78, 1)
+fog_sun_scatter = 0.25
+fog_density = 0.0003
+fog_aerial_perspective = 1.0
+fog_sky_affect = 0.0
+fog_height = 10.0
+fog_height_density = 0.003
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.0014
+volumetric_fog_albedo = Color(1, 0.93, 0.85, 1)
+volumetric_fog_anisotropy = 0.7
+volumetric_fog_length = 260.0
+volumetric_fog_detail_spread = 2.5
+volumetric_fog_ambient_inject = 0.4
+volumetric_fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.12
+adjustment_saturation = 1.12
 
 [node name="City" type="Node3D"]
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_3")
+script = ExtResource("lighting")
 
 [node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.88209, -0.17006, 0.43931, 0, 0.93256, 0.361, -0.47107, 0.31844, -0.82261, 0, 60, 0)
+light_color = Color(1, 0.86, 0.68, 1)
+light_energy = 3.4
+light_angular_distance = 0.7
 shadow_enabled = true
-directional_shadow_max_distance = 220
-transform = Transform3D(0.90631, -0.34619, 0.2424, 0, 0.57358, 0.81915, -0.42262, -0.7424, 0.51984, 0, 60, 0)
-light_color = Color(1, 0.97, 0.92, 1)
-light_energy = 1
+shadow_bias = 0.04
+shadow_normal_bias = 1.5
+shadow_blur = 1.2
+directional_shadow_split_1 = 0.06
+directional_shadow_split_2 = 0.16
+directional_shadow_split_3 = 0.4
+directional_shadow_blend_splits = true
+directional_shadow_fade_start = 0.9
+directional_shadow_max_distance = 420.0
 
 [node name="Terrain" parent="." instance=ExtResource("1")]
 
@@ -55,14 +140,23 @@ Seed = 2024
 Blocks = 10
 BlockSize = 56
 RoadWidth = 16
-RoadScene = ExtResource("3")
 Towers = Array[PackedScene]([ExtResource("4"), ExtResource("5"), ExtResource("6")])
 Houses = Array[PackedScene]([ExtResource("7"), ExtResource("8"), ExtResource("6")])
 SmallHouses = Array[PackedScene]([ExtResource("9"), ExtResource("10")])
-Cars = Array[PackedScene]([ExtResource("11"), ExtResource("12"), ExtResource("13"), ExtResource("14")])
 TowerChance = 0.6
 EmptyPlots = 0.08
 CarsPerBlock = 2
+BridgeScene = ExtResource("x1")
+FoundationMaterial = ExtResource("x2")
+Cars = Array[PackedScene]([ExtResource("x3"), ExtResource("x4"), ExtResource("x5"), ExtResource("x6"), ExtResource("x7"), ExtResource("x8"), ExtResource("x9"), ExtResource("x10"), ExtResource("x11"), ExtResource("x12"), ExtResource("x13"), ExtResource("x14")])
+ServiceCars = Array[PackedScene]([ExtResource("x15"), ExtResource("x15"), ExtResource("x16"), ExtResource("x17")])
+LampScene = ExtResource("x18")
+TrafficLightScene = ExtResource("x19")
+Signs = Array[PackedScene]([ExtResource("x20"), ExtResource("x21"), ExtResource("x22"), ExtResource("x23")])
+Furniture = Array[PackedScene]([ExtResource("x24"), ExtResource("x25"), ExtResource("x26"), ExtResource("x26"), ExtResource("x27")])
+Trees = Array[PackedScene]([ExtResource("x28"), ExtResource("x29"), ExtResource("x28")])
+BridgeRailScene = ExtResource("x30")
+BridgePierScene = ExtResource("x31")
 
 [node name="PlayerSpawn" type="Marker3D" parent="."]
 
