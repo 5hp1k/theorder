@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="AudioStream" path="res://audio/mg.wav" id="2"]
+
+[node name="Rifle" type="Node3D"]
+script = ExtResource("1")
+DisplayName = "Винтовка"
+Group = 1
+Kind = 1
+FxColor = Color(1, 0.85, 0.4, 1)
+Damage = 0.5
+Heat = 0
+Cooldown = 0.12
+Range = 300
+MaxAmmo = 300
+Spread = 0.008
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("2")
+unit_size = 14
+max_distance = 400
+volume_db = -6
+max_polyphony = 4

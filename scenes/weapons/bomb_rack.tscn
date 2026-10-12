@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/bomb.tscn" id="2"]
+[ext_resource type="AudioStream" path="res://audio/swing.wav" id="3"]
+
+[node name="Bomb_Rack" type="Node3D"]
+script = ExtResource("1")
+DisplayName = "Бомбы"
+Group = 2
+Kind = 2
+Damage = 32
+Heat = 0
+Cooldown = 6
+Range = 200
+MaxAmmo = 10
+FxColor = Color(1, 0.7, 0.3, 1)
+ProjectileScene = ExtResource("2")
+SalvoSize = 4
+SalvoInterval = 0.18
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3")
+unit_size = 10
+max_distance = 200
+volume_db = -4
+max_polyphony = 4

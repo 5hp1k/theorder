@@ -1,0 +1,253 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://materials/camo_forest.tres" id="1"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion_small.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/Infantry/Trooper.cs" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/small_laser.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/srm.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/machine_gun.tscn" id="7"]
+[ext_resource type="Material" path="res://materials/mech_canopy.tres" id="8"]
+[ext_resource type="Material" path="res://materials/fx/fire.tres" id="9"]
+[ext_resource type="AudioStream" path="res://audio/jet_loop.wav" id="10"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 0.62
+height = 2.79
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(1.4725, 1.3175, 0.93)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(2.0925, 0.496, 0.93)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4"]
+size = Vector3(0.62, 0.527, 0.62)
+
+[sub_resource type="BoxMesh" id="BoxMesh_5"]
+size = Vector3(0.465, 0.124, 0.0775)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6"]
+size = Vector3(1.085, 0.93, 0.589)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7"]
+size = Vector3(0.527, 1.24, 0.62)
+
+[sub_resource type="BoxMesh" id="BoxMesh_8"]
+size = Vector3(0.465, 1.1625, 0.527)
+
+[sub_resource type="BoxMesh" id="BoxMesh_9"]
+size = Vector3(0.558, 0.465, 0.775)
+
+[sub_resource type="BoxMesh" id="BoxMesh_10"]
+size = Vector3(0.527, 1.24, 0.62)
+
+[sub_resource type="BoxMesh" id="BoxMesh_11"]
+size = Vector3(0.465, 1.1625, 0.527)
+
+[sub_resource type="BoxMesh" id="BoxMesh_12"]
+size = Vector3(0.558, 0.465, 0.775)
+
+[sub_resource type="Gradient" id="Gradient_13"]
+offsets = PackedFloat32Array(0, 0.1, 0.55, 1)
+colors = PackedColorArray(1, 0.9, 0.5, 0, 1, 0.75, 0.25, 0.9, 1, 0.3, 0.05, 0.6, 0.3, 0.05, 0.02, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_14"]
+gradient = SubResource("Gradient_13")
+
+[sub_resource type="Curve" id="Curve_15"]
+_limits = [0.0, 1, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_16"]
+curve = SubResource("Curve_15")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_17"]
+emission_shape = 1
+emission_sphere_radius = 0.1395
+direction = Vector3(0, -1, 0.15)
+spread = 10
+initial_velocity_min = 6.51
+initial_velocity_max = 10.23
+gravity = Vector3(0, 0, 0)
+scale_min = 0.6
+scale_max = 1.2
+color_ramp = SubResource("GradientTexture1D_14")
+scale_curve = SubResource("CurveTexture_16")
+
+[sub_resource type="QuadMesh" id="QuadMesh_18"]
+size = Vector2(0.837, 0.837)
+material = ExtResource("9")
+
+[sub_resource type="Gradient" id="Gradient_19"]
+offsets = PackedFloat32Array(0, 0.1, 0.55, 1)
+colors = PackedColorArray(1, 0.9, 0.5, 0, 1, 0.75, 0.25, 0.9, 1, 0.3, 0.05, 0.6, 0.3, 0.05, 0.02, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_20"]
+gradient = SubResource("Gradient_19")
+
+[sub_resource type="Curve" id="Curve_21"]
+_limits = [0.0, 1, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_22"]
+curve = SubResource("Curve_21")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_23"]
+emission_shape = 1
+emission_sphere_radius = 0.1395
+direction = Vector3(0, -1, 0.15)
+spread = 10
+initial_velocity_min = 6.51
+initial_velocity_max = 10.23
+gravity = Vector3(0, 0, 0)
+scale_min = 0.6
+scale_max = 1.2
+color_ramp = SubResource("GradientTexture1D_20")
+scale_curve = SubResource("CurveTexture_22")
+
+[sub_resource type="QuadMesh" id="QuadMesh_24"]
+size = Vector2(0.837, 0.837)
+material = ExtResource("9")
+
+[node name="Power_Armor" type="CharacterBody3D"]
+collision_layer = 0
+collision_mask = 37
+floor_max_angle = 0.87
+floor_snap_length = 0.3
+script = ExtResource("4")
+ChaseOffset = Vector3(0, 0.93, 6.975)
+DisplayName = "Силовая броня"
+MaxHp = 140
+WalkSpeed = 9
+IsSuit = true
+HasJetpack = true
+JetThrust = 44
+JetFuelTime = 4
+JetRecharge = 6
+DeathFx = ExtResource("3")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.395, 0)
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="Head" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.5575, 0)
+
+[node name="Camera" type="Camera3D" parent="Head"]
+fov = 75
+near = 0.05
+far = 1500
+
+[node name="Laser" parent="Head" instance=ExtResource("5")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.95, -0.9, -0.9)
+
+[node name="Srm" parent="Head" instance=ExtResource("6")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, 0.4)
+
+[node name="MachineGun" parent="Head" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.95, -0.9, -0.9)
+
+[node name="Body" type="Node3D" parent="."]
+
+[node name="Torso" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.86, 0)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("1")
+
+[node name="Shoulders" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.48, 0)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("1")
+
+[node name="Dome" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.759, -0.0775)
+mesh = SubResource("BoxMesh_4")
+material_override = ExtResource("2")
+
+[node name="Visor" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.79, -0.403)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("8")
+
+[node name="MissilePack" type="MeshInstance3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4025, 0.6975)
+mesh = SubResource("BoxMesh_6")
+material_override = ExtResource("2")
+
+[node name="LegL" type="Node3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.434, 1.271, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Body/LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.62, 0)
+mesh = SubResource("BoxMesh_7")
+material_override = ExtResource("1")
+
+[node name="ArmL" type="Node3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.023, 2.356, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Body/ArmL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.58125, 0)
+mesh = SubResource("BoxMesh_8")
+material_override = ExtResource("1")
+
+[node name="Gauntlet" type="MeshInstance3D" parent="Body/ArmL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1625, -0.155)
+mesh = SubResource("BoxMesh_9")
+material_override = ExtResource("2")
+
+[node name="LegR" type="Node3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.434, 1.271, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Body/LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.62, 0)
+mesh = SubResource("BoxMesh_10")
+material_override = ExtResource("1")
+
+[node name="ArmR" type="Node3D" parent="Body"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.023, 2.356, 0)
+
+[node name="Mesh" type="MeshInstance3D" parent="Body/ArmR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.58125, 0)
+mesh = SubResource("BoxMesh_11")
+material_override = ExtResource("1")
+
+[node name="Gauntlet" type="MeshInstance3D" parent="Body/ArmR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.1625, -0.155)
+mesh = SubResource("BoxMesh_12")
+material_override = ExtResource("2")
+
+[node name="Jets" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.86, 0.6975)
+
+[node name="FlameL" type="GPUParticles3D" parent="Jets"]
+amount = 34
+lifetime = 0.45
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_17")
+draw_pass_1 = SubResource("QuadMesh_18")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.4185, 0, 0)
+emitting = false
+
+[node name="FlameR" type="GPUParticles3D" parent="Jets"]
+amount = 34
+lifetime = 0.45
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_23")
+draw_pass_1 = SubResource("QuadMesh_24")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4185, 0, 0)
+emitting = false
+
+[node name="Glow" type="OmniLight3D" parent="Jets"]
+light_color = Color(1, 0.6, 0.25, 1)
+light_energy = 4
+omni_range = 8.37
+visible = false
+
+[node name="Sound" type="AudioStreamPlayer3D" parent="Jets"]
+stream = ExtResource("10")
+unit_size = 6.51
+max_distance = 350
+volume_db = 0

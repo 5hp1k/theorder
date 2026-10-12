@@ -1,0 +1,135 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://materials/camo_desert.tres" id="1"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/Vehicles/Vehicle.cs" id="3"]
+[ext_resource type="Material" path="res://materials/mech_charred.tres" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion_medium.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/fx/wreck_fire.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/autocannon.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/machine_gun.tscn" id="8"]
+[ext_resource type="AudioStream" path="res://audio/reactor_loop.wav" id="9"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(3.7, 2.6, 7.6)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(3.3, 1.3, 7.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(3.168, 0.91, 1.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_4"]
+size = Vector3(2.97, 1.04, 2.16)
+
+[sub_resource type="BoxMesh" id="BoxMesh_5"]
+size = Vector3(0.75, 0.95, 7.488)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6"]
+size = Vector3(0.75, 0.95, 7.488)
+
+[sub_resource type="BoxMesh" id="BoxMesh_7"]
+size = Vector3(1.9, 0.7, 2.2)
+
+[sub_resource type="BoxMesh" id="BoxMesh_8"]
+size = Vector3(0.55, 0.55, 0.44)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_9"]
+top_radius = 0.11
+bottom_radius = 0.11
+height = 3
+radial_segments = 12
+
+[node name="Amphibian" type="CharacterBody3D"]
+floor_max_angle = 0.87
+script = ExtResource("3")
+DisplayName = "Танк-амфибия"
+Kind = 1
+CharredMaterial = ExtResource("4")
+ExplosionScene = ExtResource("5")
+WreckFireScene = ExtResource("6")
+ArmorMaterial = ExtResource("1")
+MaxHp = 95
+CenterHeight = 1.4
+ChaseScale = 0.55
+MaxForwardSpeed = 17
+Acceleration = 5.5
+Deceleration = 9
+TurnRate = 0.95
+TwistRate = 1.6
+MinPitch = -0.15
+MaxPitch = 0.5
+Draft = 0.9
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0)
+shape = SubResource("BoxShape3D_1")
+
+[node name="Hull" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, 0)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("1")
+
+[node name="Glacis" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 0.81915, 0.57358, 0, -0.57358, 0.81915, 0, 1.265, -3.6)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("1")
+
+[node name="Bow" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 0.86603, -0.5, 0, 0.5, 0.86603, 0, 0.94, -3.96)
+mesh = SubResource("BoxMesh_4")
+material_override = ExtResource("1")
+
+[node name="TrackL" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.75, 0.5, 0)
+mesh = SubResource("BoxMesh_5")
+material_override = ExtResource("2")
+
+[node name="TrackR" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.75, 0.5, 0)
+mesh = SubResource("BoxMesh_6")
+material_override = ExtResource("2")
+
+[node name="Turret" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.85, 0.2)
+
+[node name="Body" type="MeshInstance3D" parent="Turret"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, 0)
+mesh = SubResource("BoxMesh_7")
+material_override = ExtResource("1")
+
+[node name="Gun" type="Node3D" parent="Turret"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.35, -0.88)
+
+[node name="Mantlet" type="MeshInstance3D" parent="Turret/Gun"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.22)
+mesh = SubResource("BoxMesh_8")
+material_override = ExtResource("2")
+
+[node name="Barrel" type="MeshInstance3D" parent="Turret/Gun"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -1.5)
+mesh = SubResource("CylinderMesh_9")
+material_override = ExtResource("2")
+
+[node name="CockpitCam" type="Marker3D" parent="Turret/Gun"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.525, 0.3)
+
+[node name="Cannon" parent="Turret/Gun" instance=ExtResource("7")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3.1)
+Group = 1
+Damage = 7
+Cooldown = 0.7
+
+[node name="MachineGun" parent="Turret/Gun" instance=ExtResource("8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.15, -1.1)
+Group = 2
+
+[node name="Sounds" type="Node3D" parent="."]
+
+[node name="Engine" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("9")
+unit_size = 9
+max_distance = 160
+volume_db = -7

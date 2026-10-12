@@ -1,0 +1,66 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/Weather.cs" id="1"]
+[ext_resource type="Material" path="res://materials/fx/weather.tres" id="2"]
+[ext_resource type="AudioStream" path="res://audio/wind_loop.wav" id="3"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_1"]
+emission_shape = 3
+emission_box_extents = Vector3(45, 7, 45)
+direction = Vector3(0, 0, -1)
+spread = 10
+initial_velocity_min = 10
+initial_velocity_max = 18
+gravity = Vector3(0, -0.4, 0)
+scale_min = 0.6
+scale_max = 1.6
+color = Color(0.86, 0.72, 0.5, 0.1)
+
+[sub_resource type="QuadMesh" id="QuadMesh_2"]
+size = Vector2(9, 5)
+material = ExtResource("2")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_3"]
+emission_shape = 3
+emission_box_extents = Vector3(45, 7, 45)
+direction = Vector3(0, 0, -1)
+spread = 5
+initial_velocity_min = 22
+initial_velocity_max = 36
+gravity = Vector3(0, -0.4, 0)
+scale_min = 0.6
+scale_max = 1.4
+color = Color(0.95, 0.84, 0.62, 0.6)
+
+[sub_resource type="QuadMesh" id="QuadMesh_4"]
+size = Vector2(0.8, 0.07)
+material = ExtResource("2")
+
+[node name="SandWind" type="Node3D"]
+script = ExtResource("1")
+WindDirection = Vector3(1, 0, 0.35)
+WindSpeed = 9
+GustPeriod = 11
+
+[node name="Dust" type="GPUParticles3D" parent="."]
+amount = 120
+lifetime = 4
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_1")
+draw_pass_1 = SubResource("QuadMesh_2")
+preprocess = 4
+visibility_aabb = AABB(-70, -25, -70, 140, 50, 140)
+
+[node name="Grains" type="GPUParticles3D" parent="."]
+amount = 900
+lifetime = 2.2
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_3")
+draw_pass_1 = SubResource("QuadMesh_4")
+preprocess = 2.2
+visibility_aabb = AABB(-70, -25, -70, 140, 50, 140)
+
+[node name="Loop" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3")
+volume_db = -14
+autoplay = true

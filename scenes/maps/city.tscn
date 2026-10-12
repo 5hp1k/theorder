@@ -1,0 +1,105 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/world/city_terrain.tscn" id="1"]
+[ext_resource type="Script" path="res://scripts/World/CityLayout.cs" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/city/road_segment.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/city/tower_a.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/city/tower_b.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/city/office.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/city/house_mid_a.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/city/house_mid_b.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/city/house_small_a.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/city/house_small_b.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_red.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_blue.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_white.tscn" id="13"]
+[ext_resource type="PackedScene" path="res://scenes/city/car_yellow.tscn" id="14"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.42, 0.48, 0.56, 1)
+sky_horizon_color = Color(0.7, 0.72, 0.74, 1)
+ground_horizon_color = Color(0.62, 0.63, 0.64, 1)
+ground_bottom_color = Color(0.3, 0.31, 0.32, 1)
+
+[sub_resource type="Sky" id="Sky_2"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_3"]
+background_mode = 2
+sky = SubResource("Sky_2")
+ambient_light_source = 3
+tonemap_mode = 2
+glow_enabled = true
+fog_enabled = true
+fog_light_color = Color(0.68, 0.7, 0.73, 1)
+fog_density = 0.0022
+fog_sky_affect = 0.5
+
+[node name="City" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_3")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+shadow_enabled = true
+directional_shadow_max_distance = 220
+transform = Transform3D(0.90631, -0.34619, 0.2424, 0, 0.57358, 0.81915, -0.42262, -0.7424, 0.51984, 0, 60, 0)
+light_color = Color(1, 0.97, 0.92, 1)
+light_energy = 1
+
+[node name="Terrain" parent="." instance=ExtResource("1")]
+
+[node name="City" type="Node3D" parent="."]
+script = ExtResource("2")
+Seed = 2024
+Blocks = 10
+BlockSize = 56
+RoadWidth = 16
+RoadScene = ExtResource("3")
+Towers = Array[PackedScene]([ExtResource("4"), ExtResource("5"), ExtResource("6")])
+Houses = Array[PackedScene]([ExtResource("7"), ExtResource("8"), ExtResource("6")])
+SmallHouses = Array[PackedScene]([ExtResource("9"), ExtResource("10")])
+Cars = Array[PackedScene]([ExtResource("11"), ExtResource("12"), ExtResource("13"), ExtResource("14")])
+TowerChance = 0.6
+EmptyPlots = 0.08
+CarsPerBlock = 2
+
+[node name="PlayerSpawn" type="Marker3D" parent="."]
+
+[node name="EnemySpawns" type="Node3D" parent="."]
+
+[node name="Spawn1" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -288)
+
+[node name="Spawn2" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 216, 0, -216)
+
+[node name="Spawn3" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 288, 0, 72)
+
+[node name="Spawn4" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72, 0, 288)
+
+[node name="Spawn5" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -216, 0, 216)
+
+[node name="Spawn6" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -288, 0, -72)
+
+[node name="Spawn7" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 216, 0, -288)
+
+[node name="Spawn8" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 288, 0, -144)
+
+[node name="Spawn9" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 216, 0, 216)
+
+[node name="Spawn10" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -144, 0, 288)
+
+[node name="Spawn11" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -288, 0, 144)
+
+[node name="Spawn12" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -216, 0, -216)

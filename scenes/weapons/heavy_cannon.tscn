@@ -1,0 +1,24 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="AudioStream" path="res://audio/cannon.wav" id="2"]
+
+[node name="Heavy_Cannon" type="Node3D"]
+script = ExtResource("1")
+DisplayName = "Пушка"
+Group = 1
+Kind = 1
+Damage = 16
+Heat = 0
+Cooldown = 2.4
+Range = 650
+MaxAmmo = 40
+FxColor = Color(1, 0.8, 0.4, 1)
+CraterSize = 2.2
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("2")
+unit_size = 26
+max_distance = 700
+volume_db = 3
+pitch_scale = 0.65

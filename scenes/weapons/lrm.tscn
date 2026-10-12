@@ -1,0 +1,27 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/missile.tscn" id="2"]
+[ext_resource type="AudioStream" path="res://audio/missile_launch.wav" id="3"]
+
+[node name="Lrm" type="Node3D"]
+script = ExtResource("1")
+DisplayName = "Ракеты"
+Group = 2
+Kind = 2
+Damage = 2.4
+Heat = 0.16
+Cooldown = 5.5
+Range = 700
+MaxAmmo = 18
+FxColor = Color(1, 0.7, 0.3, 1)
+ProjectileScene = ExtResource("2")
+SalvoSize = 10
+SalvoInterval = 0.07
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3")
+unit_size = 16
+max_distance = 450
+volume_db = -5
+max_polyphony = 4

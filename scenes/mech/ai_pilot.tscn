@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Mech/AiPilot.cs" id="1"]
+
+[node name="AiPilot" type="Node3D"]
+script = ExtResource("1")
+SensorRange = 300
+PreferredRange = 140
+PatrolRadius = 70
+PatrolThrottle = 0.4
+AimSpread = 2.6
+CautiousHeat = 0.6
+MemoryTime = 8

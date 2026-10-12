@@ -1,0 +1,95 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/OneShotFx.cs" id="1"]
+[ext_resource type="Material" path="res://materials/fx/smoke.tres" id="2"]
+[ext_resource type="AudioStream" path="res://audio/crack.wav" id="3"]
+
+[sub_resource type="Gradient" id="Gradient_1"]
+offsets = PackedFloat32Array(0, 0.15, 1)
+colors = PackedColorArray(0.35, 0.3, 0.2, 0, 0.35, 0.3, 0.2, 0.6, 0.35, 0.3, 0.2, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_2"]
+gradient = SubResource("Gradient_1")
+
+[sub_resource type="Curve" id="Curve_3"]
+_limits = [0.0, 2, 0.0, 1.0]
+_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 2), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_4"]
+curve = SubResource("Curve_3")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_5"]
+emission_shape = 1
+emission_sphere_radius = 1.1
+direction = Vector3(0, 1, 0)
+spread = 80
+initial_velocity_min = 1.6
+initial_velocity_max = 4.8
+gravity = Vector3(0.8, 0.4, 0.3)
+damping_min = 2.5
+damping_max = 3.75
+scale_min = 0.7
+scale_max = 1.5
+color_ramp = SubResource("GradientTexture1D_2")
+scale_curve = SubResource("CurveTexture_4")
+
+[sub_resource type="QuadMesh" id="QuadMesh_6"]
+size = Vector2(2.3, 2.3)
+material = ExtResource("2")
+
+[sub_resource type="Gradient" id="Gradient_7"]
+offsets = PackedFloat32Array(0, 0.8, 1)
+colors = PackedColorArray(0.175, 0.15, 0.1, 1, 0.175, 0.15, 0.1, 1, 0.175, 0.15, 0.1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_8"]
+gradient = SubResource("Gradient_7")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_9"]
+emission_shape = 1
+emission_sphere_radius = 0.7
+direction = Vector3(0, 1, 0)
+spread = 70
+initial_velocity_min = 5.2
+initial_velocity_max = 11.2
+gravity = Vector3(0, -20, 0)
+damping_min = 0.5
+damping_max = 0.75
+scale_min = 0.6
+scale_max = 1.6
+color_ramp = SubResource("GradientTexture1D_8")
+
+[sub_resource type="QuadMesh" id="QuadMesh_10"]
+size = Vector2(0.35, 0.35)
+material = ExtResource("2")
+
+[node name="Splinters" type="Node3D"]
+script = ExtResource("1")
+Lifetime = 3
+
+[node name="Cloud" type="GPUParticles3D" parent="."]
+amount = 16
+lifetime = 2.5
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_5")
+draw_pass_1 = SubResource("QuadMesh_6")
+one_shot = true
+explosiveness = 0.9
+emitting = true
+
+[node name="Debris" type="GPUParticles3D" parent="."]
+amount = 16
+lifetime = 1.4
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_9")
+draw_pass_1 = SubResource("QuadMesh_10")
+one_shot = true
+explosiveness = 0.9
+emitting = true
+
+[node name="Sound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3")
+unit_size = 18
+max_distance = 370
+volume_db = -2
+autoplay = true

@@ -1,0 +1,35 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/Crater.cs" id="1"]
+[ext_resource type="Material" path="res://materials/crater.tres" id="2"]
+[ext_resource type="Material" path="res://materials/crater_rim.tres" id="3"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
+top_radius = 0.9
+bottom_radius = 1
+height = 0.06
+radial_segments = 14
+rings = 1
+
+[sub_resource type="TorusMesh" id="TorusMesh_2"]
+inner_radius = 0.8
+outer_radius = 1.15
+rings = 16
+ring_segments = 6
+
+[node name="Crater" type="Node3D"]
+script = ExtResource("1")
+Lifetime = 90
+FadeTime = 10
+
+[node name="Scorch" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.03, 0)
+cast_shadow = 0
+material_override = ExtResource("2")
+mesh = SubResource("CylinderMesh_1")
+
+[node name="Rim" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.3, 0, 0, 0, 1, 0, 0.02, 0)
+cast_shadow = 0
+material_override = ExtResource("3")
+mesh = SubResource("TorusMesh_2")

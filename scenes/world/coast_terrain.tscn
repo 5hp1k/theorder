@@ -1,0 +1,70 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/MapTerrain.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/props/oil_rig.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/props/rock_small.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/props/rock_medium.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/tree_oak.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/props/tree_birch.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/props/pine_tall.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/props/pine_small.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/fx/footprint_dirt.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/fx/splash.tscn" id="10"]
+[ext_resource type="Material" path="res://materials/grass.tres" id="11"]
+[ext_resource type="Material" path="res://materials/water.tres" id="12"]
+[ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="13"]
+
+[node name="Coast_Terrain" type="StaticBody3D"]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1")
+Seed = 77
+Size = 800
+CellSize = 4
+RidgeHeight = 2
+RidgeLength = 80
+HillHeight = 9
+HillLength = 240
+FlatRadius = 28
+SolidCount = 22
+PlantCount = 260
+DrifterCount = 0
+HasWater = true
+WaterLevel = -3.5
+MaxDepth = 4
+RiverWidth = 34
+RiverOffset = -150
+RiverMeander = 55
+SeaStart = 110
+WaterPropCount = 4
+MapLow = Color(0.12, 0.25, 0.1, 1)
+MapHigh = Color(0.5, 0.75, 0.35, 1)
+MapWater = Color(0.1, 0.35, 0.65, 1)
+WaterPropScenes = Array[PackedScene]([ExtResource("2")])
+SolidScenes = Array[PackedScene]([ExtResource("3"), ExtResource("4")])
+PlantScenes = Array[PackedScene]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("5")])
+FootprintScene = ExtResource("9")
+SplashScene = ExtResource("10")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+material_override = ExtResource("11")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Water" type="MeshInstance3D" parent="."]
+material_override = ExtResource("12")
+cast_shadow = 0
+visible = false
+layers = 2048
+script = ExtResource("13")
+ReflectionScale = 0.5
+
+[node name="Reflection" type="SubViewport" parent="Water"]
+size = Vector2i(640, 360)
+render_target_update_mode = 0
+
+[node name="Camera" type="Camera3D" parent="Water/Reflection"]
+cull_mask = 1046015
+current = true

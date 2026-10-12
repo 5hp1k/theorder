@@ -1,0 +1,95 @@
+[gd_scene format=3 uid="uid://cir5n20k8r31d"]
+
+[ext_resource type="Script" uid="uid://bkuur6cw3l2f5" path="res://scripts/Game/Game.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/mech/player_pilot.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/mech/ai_pilot.tscn" id="3"]
+[ext_resource type="Material" uid="uid://4v3toovq70ff" path="res://materials/camo_rust.tres" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/infantry/soldier.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/infantry/power_armor.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="7"]
+[ext_resource type="Script" uid="uid://cnqwirantwt6o" path="res://scripts/UI/PauseMenu.cs" id="8"]
+
+[node name="Game" type="Node3D" unique_id=2107216893]
+process_mode = 3
+script = ExtResource("1")
+PlayerPilotScene = ExtResource("2")
+AiPilotScene = ExtResource("3")
+EnemyCamo = ExtResource("4")
+SoldierScene = ExtResource("5")
+SuitScene = ExtResource("6")
+
+[node name="Map" type="Node3D" parent="." unique_id=104266233]
+process_mode = 1
+
+[node name="Units" type="Node3D" parent="." unique_id=1364212635]
+process_mode = 1
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1007976663]
+process_mode = 1
+
+[node name="Hud" parent="HUD" unique_id=1611065041 instance=ExtResource("7")]
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Menu" type="CanvasLayer" parent="." unique_id=1768770095]
+layer = 10
+
+[node name="PauseMenu" type="Control" parent="Menu" unique_id=432761030]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8")
+
+[node name="Dim" type="ColorRect" parent="Menu/PauseMenu" unique_id=1842024308]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="Menu/PauseMenu" unique_id=1726571895]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="Menu/PauseMenu/Center" unique_id=973468752]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="PauseTitle" type="Label" parent="Menu/PauseMenu/Center/Box" unique_id=94327278]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 40
+text = "ПАУЗА"
+horizontal_alignment = 1
+
+[node name="BtnResume" type="Button" parent="Menu/PauseMenu/Center/Box" unique_id=1133099289]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Продолжить"
+
+[node name="BtnRestart" type="Button" parent="Menu/PauseMenu/Center/Box" unique_id=1644044430]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Начать заново"
+
+[node name="BtnMenu" type="Button" parent="Menu/PauseMenu/Center/Box" unique_id=1427957952]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "В главное меню"

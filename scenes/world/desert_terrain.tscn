@@ -1,0 +1,68 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/MapTerrain.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/props/rock_small.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/props/rock_medium.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/props/rock_large.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/cactus_saguaro.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/props/cactus_young.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/props/cactus_pillar.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/props/tumbleweed.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/fx/footprint_sand.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/fx/splash.tscn" id="10"]
+[ext_resource type="Material" path="res://materials/sand.tres" id="11"]
+[ext_resource type="Material" path="res://materials/water.tres" id="12"]
+[ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="13"]
+
+[node name="Desert_Terrain" type="StaticBody3D"]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1")
+Seed = 1337
+Size = 800
+CellSize = 4
+RidgeHeight = 5
+RidgeLength = 95
+HillHeight = 12
+HillLength = 260
+FlatRadius = 28
+SolidCount = 36
+PlantCount = 90
+DrifterCount = 16
+HasWater = true
+WaterLevel = -5.5
+MaxDepth = 3
+RiverWidth = 38
+RiverOffset = 170
+RiverMeander = 70
+MapLow = Color(0.35, 0.27, 0.15, 1)
+MapHigh = Color(0.95, 0.82, 0.55, 1)
+MapWater = Color(0.12, 0.4, 0.6, 1)
+SolidScenes = Array[PackedScene]([ExtResource("2"), ExtResource("3"), ExtResource("4")])
+PlantScenes = Array[PackedScene]([ExtResource("5"), ExtResource("6"), ExtResource("7")])
+DrifterScene = ExtResource("8")
+FootprintScene = ExtResource("9")
+SplashScene = ExtResource("10")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+material_override = ExtResource("11")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Water" type="MeshInstance3D" parent="."]
+material_override = ExtResource("12")
+cast_shadow = 0
+visible = false
+layers = 2048
+script = ExtResource("13")
+ReflectionScale = 0.5
+
+[node name="Reflection" type="SubViewport" parent="Water"]
+size = Vector2i(640, 360)
+render_target_update_mode = 0
+
+[node name="Camera" type="Camera3D" parent="Water/Reflection"]
+cull_mask = 1046015
+current = true

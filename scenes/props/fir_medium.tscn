@@ -1,0 +1,164 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://materials/fir_needles.tres" id="1"]
+[ext_resource type="Material" path="res://materials/snow_cap.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/World/Destructible.cs" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/fx/splinters.tscn" id="4"]
+[ext_resource type="Script" path="res://scripts/World/PropPart.cs" id="5"]
+[ext_resource type="Material" path="res://materials/fir_trunk.tres" id="6"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
+top_radius = 0.35
+bottom_radius = 0.35
+height = 3.2
+radial_segments = 8
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_2"]
+radius = 0.5
+height = 3
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_3"]
+top_radius = 0
+bottom_radius = 2.7
+height = 4.6
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_4"]
+top_radius = 0
+bottom_radius = 1.674
+height = 2.76
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_5"]
+radius = 1.485
+height = 3.68
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_6"]
+top_radius = 0
+bottom_radius = 2.1
+height = 4
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_7"]
+top_radius = 0
+bottom_radius = 1.302
+height = 2.4
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_8"]
+radius = 1.155
+height = 3.2
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_9"]
+top_radius = 0
+bottom_radius = 1.4
+height = 3.6
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_10"]
+top_radius = 0
+bottom_radius = 0.868
+height = 2.16
+radial_segments = 10
+rings = 1
+
+[sub_resource type="CylinderShape3D" id="CylinderShape3D_11"]
+radius = 0.77
+height = 2.88
+
+[node name="Fir_Medium" type="StaticBody3D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("3")
+Hp = 25
+How = 0
+Footprint = Vector2(1.8, 1.8)
+Height = 11
+DestroyFx = ExtResource("4")
+
+[node name="Trunk" type="StaticBody3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("5")
+Hp = 25
+BreakFx = ExtResource("4")
+Vital = true
+
+[node name="Mesh" type="MeshInstance3D" parent="Trunk"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+mesh = SubResource("CylinderMesh_1")
+material_override = ExtResource("6")
+
+[node name="Shape" type="CollisionShape3D" parent="Trunk"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("CylinderShape3D_2")
+
+[node name="Tier1" type="StaticBody3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("5")
+Hp = 10
+BreakFx = ExtResource("4")
+Carries = Array[NodePath]([NodePath("../Tier2"), NodePath("../Tier3")])
+
+[node name="Branches" type="MeshInstance3D" parent="Tier1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.3, 0)
+material_override = ExtResource("1")
+mesh = SubResource("CylinderMesh_3")
+
+[node name="Snow" type="MeshInstance3D" parent="Tier1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.326, 0)
+material_override = ExtResource("2")
+mesh = SubResource("CylinderMesh_4")
+
+[node name="Shape" type="CollisionShape3D" parent="Tier1"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.3, 0)
+shape = SubResource("CylinderShape3D_5")
+
+[node name="Tier2" type="StaticBody3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("5")
+Hp = 10
+BreakFx = ExtResource("4")
+Carries = Array[NodePath]([NodePath("../Tier3")])
+
+[node name="Branches" type="MeshInstance3D" parent="Tier2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.9, 0)
+material_override = ExtResource("1")
+mesh = SubResource("CylinderMesh_6")
+
+[node name="Snow" type="MeshInstance3D" parent="Tier2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.8, 0)
+material_override = ExtResource("2")
+mesh = SubResource("CylinderMesh_7")
+
+[node name="Shape" type="CollisionShape3D" parent="Tier2"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 6.9, 0)
+shape = SubResource("CylinderShape3D_8")
+
+[node name="Tier3" type="StaticBody3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("5")
+Hp = 10
+BreakFx = ExtResource("4")
+
+[node name="Branches" type="MeshInstance3D" parent="Tier3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9.3, 0)
+material_override = ExtResource("1")
+mesh = SubResource("CylinderMesh_9")
+
+[node name="Snow" type="MeshInstance3D" parent="Tier3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 10.116, 0)
+material_override = ExtResource("2")
+mesh = SubResource("CylinderMesh_10")
+
+[node name="Shape" type="CollisionShape3D" parent="Tier3"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 9.3, 0)
+shape = SubResource("CylinderShape3D_11")

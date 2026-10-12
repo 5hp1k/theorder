@@ -1,0 +1,87 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Missile.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion_small.tscn" id="2"]
+[ext_resource type="Material" path="res://materials/missile_body.tres" id="3"]
+[ext_resource type="Material" path="res://materials/fx/smoke.tres" id="4"]
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_1"]
+top_radius = 0.11
+bottom_radius = 0.11
+height = 1.3
+radial_segments = 8
+
+[sub_resource type="SphereMesh" id="SphereMesh_2"]
+radius = 0.22
+height = 0.44
+radial_segments = 8
+rings = 4
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3"]
+albedo_color = Color(0, 0, 0, 1)
+emission_enabled = true
+emission = Color(1, 0.7, 0.3, 1)
+emission_energy_multiplier = 8
+
+[sub_resource type="Gradient" id="Gradient_4"]
+offsets = PackedFloat32Array(0, 0.15, 1)
+colors = PackedColorArray(1, 0.8, 0.5, 0.9, 0.75, 0.75, 0.75, 0.6, 0.6, 0.6, 0.6, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_5"]
+gradient = SubResource("Gradient_4")
+
+[sub_resource type="Curve" id="Curve_6"]
+_limits = [0.0, 1.8, 0.0, 1.0]
+_data = [Vector2(0, 0.4), 0.0, 0.0, 0, 0, Vector2(1, 1.8), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_7"]
+curve = SubResource("Curve_6")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_8"]
+emission_shape = 0
+direction = Vector3(0, 0, 1)
+spread = 8
+initial_velocity_min = 1
+initial_velocity_max = 3
+gravity = Vector3(0, 0.3, 0)
+scale_min = 0.7
+scale_max = 1.2
+color_ramp = SubResource("GradientTexture1D_5")
+scale_curve = SubResource("CurveTexture_7")
+
+[sub_resource type="QuadMesh" id="QuadMesh_9"]
+size = Vector2(0.9, 0.9)
+material = ExtResource("4")
+
+[node name="Missile" type="Node3D"]
+script = ExtResource("1")
+Speed = 110
+TurnRate = 1
+SeekerCone = 0.8
+LostFuse = 1.2
+ArmTime = 0.25
+Loft = 0.22
+Scatter = 0.05
+CraterSize = 1.6
+ImpactScene = ExtResource("2")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, 0)
+mesh = SubResource("CylinderMesh_1")
+material_override = ExtResource("3")
+cast_shadow = 0
+
+[node name="Exhaust" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.75)
+cast_shadow = 0
+mesh = SubResource("SphereMesh_2")
+material_override = SubResource("StandardMaterial3D_3")
+
+[node name="Trail" type="GPUParticles3D" parent="."]
+amount = 40
+lifetime = 0.9
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_8")
+draw_pass_1 = SubResource("QuadMesh_9")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.8)

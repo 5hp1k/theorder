@@ -1,0 +1,70 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/Weather.cs" id="1"]
+[ext_resource type="Material" path="res://materials/fx/weather.tres" id="2"]
+[ext_resource type="AudioStream" path="res://audio/wind_loop.wav" id="3"]
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_1"]
+emission_shape = 3
+emission_box_extents = Vector3(45, 12, 45)
+direction = Vector3(0, -1, -0.8)
+spread = 9
+initial_velocity_min = 7
+initial_velocity_max = 11
+gravity = Vector3(0, -0.4, 0)
+scale_min = 0.6
+scale_max = 1.5
+color = Color(1, 1, 1, 0.9)
+
+[sub_resource type="QuadMesh" id="QuadMesh_2"]
+size = Vector2(0.14, 0.14)
+material = ExtResource("2")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_3"]
+emission_shape = 3
+emission_box_extents = Vector3(45, 7, 45)
+direction = Vector3(0, -0.1, -1)
+spread = 12
+initial_velocity_min = 6
+initial_velocity_max = 11
+gravity = Vector3(0, -0.4, 0)
+scale_min = 0.6
+scale_max = 1.5
+color = Color(0.95, 0.97, 1, 0.07)
+
+[sub_resource type="QuadMesh" id="QuadMesh_4"]
+size = Vector2(10, 6)
+material = ExtResource("2")
+
+[node name="Snowfall" type="Node3D"]
+script = ExtResource("1")
+WindDirection = Vector3(0.6, 0, 1)
+WindSpeed = 6
+GustPeriod = 14
+CalmAmount = 0.5
+QuietDb = -26
+LoudDb = -14
+
+[node name="Flakes" type="GPUParticles3D" parent="."]
+amount = 1800
+lifetime = 4
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_1")
+draw_pass_1 = SubResource("QuadMesh_2")
+preprocess = 4
+visibility_aabb = AABB(-70, -25, -70, 140, 50, 140)
+
+[node name="Veils" type="GPUParticles3D" parent="."]
+amount = 70
+lifetime = 5
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_3")
+draw_pass_1 = SubResource("QuadMesh_4")
+preprocess = 5
+visibility_aabb = AABB(-70, -25, -70, 140, 50, 140)
+
+[node name="Loop" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3")
+volume_db = -18
+autoplay = true
+pitch_scale = 0.8

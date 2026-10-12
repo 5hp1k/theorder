@@ -1,0 +1,197 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://materials/camo_desert.tres" id="1"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/Vehicles/Vehicle.cs" id="3"]
+[ext_resource type="Material" path="res://materials/mech_charred.tres" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion_medium.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/fx/wreck_fire.tscn" id="6"]
+[ext_resource type="Material" path="res://materials/car_tyre.tres" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/autocannon.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/machine_gun.tscn" id="9"]
+[ext_resource type="AudioStream" path="res://audio/reactor_loop.wav" id="10"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(3, 2.6, 6.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_2"]
+size = Vector3(2.8, 1.5, 6.6)
+
+[sub_resource type="BoxMesh" id="BoxMesh_3"]
+size = Vector3(2.688, 1.05, 1.65)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_4"]
+top_radius = 0.6
+bottom_radius = 0.6
+height = 0.45
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_5"]
+top_radius = 0.6
+bottom_radius = 0.6
+height = 0.45
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_6"]
+top_radius = 0.6
+bottom_radius = 0.6
+height = 0.45
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_7"]
+top_radius = 0.6
+bottom_radius = 0.6
+height = 0.45
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_8"]
+top_radius = 0.6
+bottom_radius = 0.6
+height = 0.45
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_9"]
+top_radius = 0.6
+bottom_radius = 0.6
+height = 0.45
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_10"]
+top_radius = 0.6
+bottom_radius = 0.6
+height = 0.45
+radial_segments = 10
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_11"]
+top_radius = 0.6
+bottom_radius = 0.6
+height = 0.45
+radial_segments = 10
+
+[sub_resource type="BoxMesh" id="BoxMesh_12"]
+size = Vector3(1.5, 0.55, 1.7)
+
+[sub_resource type="BoxMesh" id="BoxMesh_13"]
+size = Vector3(0.4, 0.4, 0.32)
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_14"]
+top_radius = 0.08
+bottom_radius = 0.08
+height = 2.2
+radial_segments = 12
+
+[node name="Apc" type="CharacterBody3D"]
+floor_max_angle = 0.87
+script = ExtResource("3")
+DisplayName = "БТР"
+Kind = 0
+CharredMaterial = ExtResource("4")
+ExplosionScene = ExtResource("5")
+WreckFireScene = ExtResource("6")
+ArmorMaterial = ExtResource("1")
+MaxHp = 70
+CenterHeight = 1.6
+ChaseScale = 0.55
+MaxForwardSpeed = 24
+Acceleration = 8
+Deceleration = 12
+TurnRate = 1.1
+TwistRate = 2.2
+MinPitch = -0.2
+MaxPitch = 0.7
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("BoxShape3D_1")
+
+[node name="Hull" type="Node3D" parent="."]
+
+[node name="Body" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.65, 0)
+mesh = SubResource("BoxMesh_2")
+material_override = ExtResource("1")
+
+[node name="Glacis" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 0.81915, 0.57358, 0, -0.57358, 0.81915, 0, 1.725, -3.3)
+mesh = SubResource("BoxMesh_3")
+material_override = ExtResource("1")
+
+[node name="Wheel1L" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -1.45, 0.6, -2.376)
+mesh = SubResource("CylinderMesh_4")
+material_override = ExtResource("7")
+
+[node name="Wheel1R" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 1.45, 0.6, -2.376)
+mesh = SubResource("CylinderMesh_5")
+material_override = ExtResource("7")
+
+[node name="Wheel2L" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -1.45, 0.6, -0.792)
+mesh = SubResource("CylinderMesh_6")
+material_override = ExtResource("7")
+
+[node name="Wheel2R" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 1.45, 0.6, -0.792)
+mesh = SubResource("CylinderMesh_7")
+material_override = ExtResource("7")
+
+[node name="Wheel3L" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -1.45, 0.6, 0.792)
+mesh = SubResource("CylinderMesh_8")
+material_override = ExtResource("7")
+
+[node name="Wheel3R" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 1.45, 0.6, 0.792)
+mesh = SubResource("CylinderMesh_9")
+material_override = ExtResource("7")
+
+[node name="Wheel4L" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, -1.45, 0.6, 2.376)
+mesh = SubResource("CylinderMesh_10")
+material_override = ExtResource("7")
+
+[node name="Wheel4R" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, -1, 0, 1, 0, 0, 0, 0, 1, 1.45, 0.6, 2.376)
+mesh = SubResource("CylinderMesh_11")
+material_override = ExtResource("7")
+
+[node name="Turret" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.4, -0.6)
+
+[node name="Body" type="MeshInstance3D" parent="Turret"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.275, 0)
+mesh = SubResource("BoxMesh_12")
+material_override = ExtResource("1")
+
+[node name="Gun" type="Node3D" parent="Turret"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.275, -0.68)
+
+[node name="Mantlet" type="MeshInstance3D" parent="Turret/Gun"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.16)
+mesh = SubResource("BoxMesh_13")
+material_override = ExtResource("2")
+
+[node name="Barrel" type="MeshInstance3D" parent="Turret/Gun"]
+transform = Transform3D(1, 0, 0, 0, 0, -1, 0, 1, 0, 0, 0, -1.1)
+mesh = SubResource("CylinderMesh_14")
+material_override = ExtResource("2")
+
+[node name="CockpitCam" type="Marker3D" parent="Turret/Gun"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4125, 0.3)
+
+[node name="Autocannon" parent="Turret/Gun" instance=ExtResource("8")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.3)
+Group = 1
+
+[node name="MachineGun" parent="Turret/Gun" instance=ExtResource("9")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.4, 0.1, -0.9)
+Group = 2
+
+[node name="Sounds" type="Node3D" parent="."]
+
+[node name="Engine" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("10")
+unit_size = 8
+max_distance = 150
+volume_db = -8

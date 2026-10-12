@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://textures/windows.png" id="1"]
+
+[resource]
+albedo_color = Color(0.7, 0.42, 0.32, 1)
+albedo_texture = ExtResource("1")
+uv1_scale = Vector3(0.25, 0.25, 0.25)
+uv1_triplanar = true
+uv1_world_triplanar = true
+roughness = 0.8

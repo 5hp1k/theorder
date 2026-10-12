@@ -1,0 +1,18 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Mech/PlayerPilot.cs" id="1"]
+[ext_resource type="AudioStream" path="res://audio/lock.wav" id="2"]
+
+[node name="PlayerPilot" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Camera" type="Camera3D" parent="."]
+top_level = true
+current = true
+fov = 75
+near = 0.05
+far = 1500
+
+[node name="LockSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2")
+volume_db = -8
