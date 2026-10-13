@@ -55,6 +55,8 @@ public partial class WaterSurface : MeshInstance3D
     {
         _clock += (float)delta;
         if (_material == null) return;
+        Color day = MapLighting.Daylight;
+        _material.SetShaderParameter("daylight", new Vector3(day.R, day.G, day.B));
         _material.SetShaderParameter("clock", _clock);
         _material.SetShaderParameter("ripple_count", _count);
         _material.SetShaderParameter("ripple_pos", _spots);
@@ -68,7 +70,7 @@ public partial class WaterSurface : MeshInstance3D
         var eye = GetViewport().GetCamera3D();
         float level = GlobalPosition.Y;
         // No mirror on the lowest effects setting, with the water hidden, or from under it.
-        bool on = Visible && eye != null && GameConfig.EffectsQuality > 0 && eye.GlobalPosition.Y > level;
+        bool on = Visible && eye != null && GameConfig.WaterMirror && eye.GlobalPosition.Y > level;
         _mirror.RenderTargetUpdateMode = on ? SubViewport.UpdateMode.Always : SubViewport.UpdateMode.Disabled;
         _material.SetShaderParameter("use_reflection", on);
         if (!on) return;

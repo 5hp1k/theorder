@@ -97,6 +97,9 @@ directional_shadow_max_distance = 420.0
 [node name="Terrain" parent="." instance=ExtResource("1")]
 
 [node name="Weather" parent="." instance=ExtResource("2")]
+Haze = 1.0
+SkyLight = 1.0
+SunLight = 1.0
 
 [node name="PlayerSpawn" type="Marker3D" parent="."]
 

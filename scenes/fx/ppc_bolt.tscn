@@ -1,0 +1,98 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Missile.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/ppc_impact.tscn" id="2"]
+[ext_resource type="Material" path="res://materials/fx/spark_blue.tres" id="3"]
+[ext_resource type="Script" path="res://scripts/Fx/FireLight.cs" id="4"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_core"]
+shading_mode = 0
+albedo_color = Color(0.85, 0.93, 1, 1)
+emission_enabled = true
+emission = Color(0.6, 0.8, 1, 1)
+emission_energy_multiplier = 9.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_core"]
+radius = 0.32
+height = 0.64
+radial_segments = 12
+rings = 6
+material = SubResource("StandardMaterial3D_core")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_halo"]
+transparency = 1
+blend_mode = 1
+shading_mode = 0
+cull_mode = 2
+albedo_color = Color(0.2, 0.45, 1, 0.35)
+
+[sub_resource type="SphereMesh" id="SphereMesh_halo"]
+radius = 0.7
+height = 1.4
+radial_segments = 12
+rings = 6
+material = SubResource("StandardMaterial3D_halo")
+
+[sub_resource type="Gradient" id="Gradient_trail"]
+offsets = PackedFloat32Array(0, 0.2, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.5, 0.75, 1, 0.8, 0.15, 0.3, 1, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_trail"]
+gradient = SubResource("Gradient_trail")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_trail"]
+emission_shape = 1
+emission_sphere_radius = 0.3
+direction = Vector3(0, 0, 1)
+spread = 60.0
+initial_velocity_min = 2.0
+initial_velocity_max = 9.0
+gravity = Vector3(0, 0, 0)
+damping_min = 4.0
+damping_max = 8.0
+scale_min = 0.4
+scale_max = 1.1
+color_ramp = SubResource("GradientTexture1D_trail")
+
+[sub_resource type="QuadMesh" id="QuadMesh_trail"]
+size = Vector2(0.55, 0.55)
+material = ExtResource("3")
+
+[node name="PpcBolt" type="Node3D"]
+script = ExtResource("1")
+Speed = 340.0
+TurnRate = 0.0
+SeekerCone = 3.2
+LostFuse = 60.0
+CraterSize = 1.3
+ArmTime = 60.0
+Loft = 0.0
+Scatter = 0.004
+MarkKind = 2
+Burns = true
+ImpactScene = ExtResource("2")
+
+[node name="Core" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 3.2, 0, 0, 0)
+cast_shadow = 0
+mesh = SubResource("SphereMesh_core")
+
+[node name="Halo" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 2.4, 0, 0, 0.3)
+cast_shadow = 0
+mesh = SubResource("SphereMesh_halo")
+
+[node name="Trail" type="GPUParticles3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5)
+amount = 70
+lifetime = 0.35
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_trail")
+draw_pass_1 = SubResource("QuadMesh_trail")
+
+[node name="Light" type="OmniLight3D" parent="."]
+light_color = Color(0.45, 0.65, 1, 1)
+light_energy = 6.0
+omni_range = 22.0
+script = ExtResource("4")
+Flicker = 0.6

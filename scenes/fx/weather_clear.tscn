@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/Weather.cs" id="1"]
+
+[node name="WeatherClear" type="Node3D"]
+script = ExtResource("1")
+Haze = 0.6
+SkyLight = 1.0
+SunLight = 1.0
+WindDirection = Vector3(1, 0, 0.3)
+WindSpeed = 2.5
+GustPeriod = 16

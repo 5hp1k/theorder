@@ -15,6 +15,16 @@ uniform float paint_scale = 0.22;
 uniform float paint_roughness : hint_range(0.0, 1.0) = 0.5;
 uniform float paint_metallic : hint_range(0.0, 1.0) = 0.1;
 
+group_uniforms pattern;
+// A pattern drawn over the paint, in three tones: paint_color, pattern_a, pattern_b.
+// 0 = none (the paint is paint_color times paint_tex), 1 = blotches, 2 = digital, 3 = tiger stripes,
+// 4 = splinter, 5 = slanting bands, 6 = flecks.
+uniform int pattern = 0;
+uniform vec3 pattern_a : source_color = vec3(0.2, 0.25, 0.12);
+uniform vec3 pattern_b : source_color = vec3(0.1, 0.1, 0.08);
+// Size of the pattern's shapes, as a multiple of the usual.
+uniform float pattern_size = 1.0;
+
 group_uniforms surface;
 // Fine relief of the metal under the paint.
 uniform sampler2D surface_normal : hint_normal, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -43,12 +53,63 @@ void vertex() {
 // A texture seen from the three sides of the part and mixed by which way the surface faces.
 #define three_sides(tex, p, w) (texture(tex, (p).zy).rgb * (w).x + texture(tex, (p).xz).rgb * (w).y + texture(tex, (p).xy).rgb * (w).z)
 
+float hash3(vec3 p) {
+	p = fract(p * vec3(0.1031, 0.1030, 0.0973));
+	p += dot(p, p.yxz + 33.33);
+	return fract((p.x + p.y) * p.z);
+}
+
+float noise3(vec3 p) {
+	vec3 i = floor(p), f = fract(p);
+	f = f * f * (3.0 - 2.0 * f);
+	return mix(mix(mix(hash3(i), hash3(i + vec3(1, 0, 0)), f.x), mix(hash3(i + vec3(0, 1, 0)), hash3(i + vec3(1, 1, 0)), f.x), f.y),
+	           mix(mix(hash3(i + vec3(0, 0, 1)), hash3(i + vec3(1, 0, 1)), f.x), mix(hash3(i + vec3(0, 1, 1)), hash3(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+}
+
+float fbm3(vec3 p) {
+	return noise3(p) * 0.55 + noise3(p * 2.1 + 5.3) * 0.3 + noise3(p * 4.3 + 9.1) * 0.15;
+}
+
+// Which of the three tones the pattern has at a point of the part: 0, 1 or 2.
+float pattern_tone(vec3 p) {
+	p /= max(pattern_size, 0.05);
+	if (pattern == 1) {            // blotches
+		float n = fbm3(p * 1.1);
+		return n < 0.44 ? 0.0 : (n < 0.56 ? 1.0 : 2.0);
+	} else if (pattern == 2) {     // digital: the same, in little squares
+		vec3 q = floor(p * 5.0) / 5.0;
+		float n = fbm3(q * 1.1) + (hash3(floor(p * 5.0)) - 0.5) * 0.1;
+		return n < 0.44 ? 0.0 : (n < 0.56 ? 1.0 : 2.0);
+	} else if (pattern == 3) {     // tiger stripes: wavering bands across the part
+		float s = sin(p.y * 5.0 + p.x * 1.4 + (noise3(p * 1.4) - 0.5) * 7.0);
+		return s > 0.5 ? 1.0 : (s < -0.82 ? 2.0 : 0.0);
+	} else if (pattern == 4) {     // splinter: shards cut by three families of planes
+		vec3 v = vec3(floor(dot(p, vec3(0.9, 0.5, 0.3)) * 1.5), floor(dot(p, vec3(-0.4, 0.8, 0.6)) * 1.5 + 0.3), floor(dot(p, vec3(0.3, -0.5, 0.9)) * 1.5 + 0.7));
+		float h = hash3(v + 3.1);
+		return h < 0.45 ? 0.0 : (h < 0.75 ? 1.0 : 2.0);
+	} else if (pattern == 5) {     // slanting bands, a thin line of the third tone between them
+		float s = fract(dot(p, normalize(vec3(1.0, 1.0, 0.35))) * 0.9);
+		return s < 0.46 ? 0.0 : (s < 0.5 ? 2.0 : (s < 0.96 ? 1.0 : 2.0));
+	} else if (pattern == 6) {     // flecks of two colours, gathered into drifts
+		float drift = noise3(p * 1.0) * 0.6;
+		if (noise3(p * 5.0) + drift > 0.98) return 1.0;
+		return noise3(p * 5.0 + 17.0) + drift > 1.02 ? 2.0 : 0.0;
+	}
+	return 0.0;
+}
+
 void fragment() {
 	vec3 n = normalize(part_normal);
 	vec3 w = pow(abs(n), vec3(6.0));
 	w /= w.x + w.y + w.z;
 
-	vec3 paint = three_sides(paint_tex, part_pos * paint_scale, w) * paint_color;
+	vec3 paint;
+	if (pattern == 0) {
+		paint = three_sides(paint_tex, part_pos * paint_scale, w) * paint_color;
+	} else {
+		float tone = pattern_tone(part_pos);
+		paint = tone < 0.5 ? paint_color : (tone < 1.5 ? pattern_a : pattern_b);
+	}
 	vec3 arm = three_sides(surface_arm, part_pos * surface_scale, w);
 	vec3 coarse = three_sides(noise_tex, part_pos * 0.11, w);
 	vec3 fine = three_sides(noise_tex, part_pos * 0.9, w);

@@ -155,17 +155,24 @@ public static class Units
     public static ITarget FromCollider(GodotObject collider)
         => collider is HitBox box ? box.Unit as ITarget : collider as ITarget;
 
+    /// <summary>Shows a picture on every plate named "Insignia…" under the unit, or hides the plates.</summary>
+    public static void ApplyInsignia(Node root, Texture2D picture)
+    {
+        foreach (var mesh in Geo.Collect<MeshInstance3D>(root))
+        {
+            if (!mesh.Name.ToString().StartsWith("Insignia")) continue;
+            mesh.Visible = picture != null;
+            if (picture == null || mesh.MaterialOverride is not StandardMaterial3D std) continue;
+            var copy = (StandardMaterial3D)std.Duplicate();
+            copy.AlbedoTexture = picture;
+            mesh.MaterialOverride = copy;
+        }
+    }
+
     public static void SetPreview(Node root, bool on, int layer)
     {
         foreach (var mesh in Geo.Collect<MeshInstance3D>(root))
             mesh.SetLayerMaskValue(layer, on);
     }
 
-    /// <summary>Swaps one material for another on every mesh under root (repainting).</summary>
-    public static void Repaint(Node root, Material from, Material to)
-    {
-        if (from == null || to == null) return;
-        foreach (var mesh in Geo.Collect<MeshInstance3D>(root))
-            if (mesh.MaterialOverride == from) mesh.MaterialOverride = to;
-    }
 }

@@ -1,5 +1,6 @@
 """Cuts the game's sound files out of free recordings (all CC0, from opengameart.org; see README).
-    python3 tools/audio/build_sounds.py <dir with the unpacked downloads>
+    python3 tools/audio/build_sounds.py <dir with the unpacked downloads> [names of the sounds to build]
+With names given, only those are written (and the recordings the others need may be missing).
 Each output keeps the name the scenes already use. One-shots are trimmed, faded and levelled; loops
 are cut from the steady middle of a recording and cross-faded end to start so they repeat cleanly.
 Needs ffmpeg and numpy."""
@@ -9,11 +10,14 @@ import numpy as np
 SRC = sys.argv[1]
 OUT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'audio'))
 RATE = 44100
+ONLY = set(sys.argv[2:])
 
 
 def load(pattern, pick=0):
     files = sorted(glob.glob(os.path.join(SRC, pattern), recursive=True))
     if not files:
+        if ONLY:
+            return np.zeros(RATE)  # for a sound that isn't being built this time
         raise SystemExit('nothing matches ' + pattern)
     raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', files[pick % len(files)], '-f', 'f32le', '-ac', '1', '-ar', str(RATE), '-'], capture_output=True, check=True).stdout
     return np.frombuffer(raw, np.float32).astype(np.float64)
@@ -78,6 +82,8 @@ def at(a, seconds):
 
 
 def save(name, a):
+    if ONLY and name not in ONLY:
+        return
     with wave.open(os.path.join(OUT, name + '.wav'), 'wb') as w:
         w.setnchannels(1)
         w.setsampwidth(2)
@@ -106,7 +112,9 @@ save('reactor_loop', loop(mix(load('deep_rumble.ogg'), pitch(load('steamboat_eng
 launch = load('x/launch/launch/launch*.wav')
 save('missile_launch', shot(launch, 1.4, 0.5))
 save('jet_loop', loop(lowpass(trim(launch), 3500), 2.0, 0.25, 0.3))
-save('splash', shot(load('x/ezwa-water_splash/**/water_splash-*.flac', 2), 1.2, 0.4))
+# Something heavy going into water: a shell splash with the deep thump of a surface burst under it.
+naval = 'x/qubodup-NavalBattleSoundSet-cc0/'
+save('splash', shot(mix(trim(load(naval + 'Splash.wav')), lowpass(pitch(trim(load(naval + 'WaterSurfaceExplosion06.wav')), 0.7), 1200) * 0.55), 1.7, 0.45))
 save('ui_click', shot(load('x/UI_SFX_Set/click*.wav', 0), 0.12, 0.3, 0.7))
 
 # ── Sounds nobody can record: energy weapons, the lock tone, the axe ───────────────────────────────
@@ -177,3 +185,42 @@ noise = rng.standard_normal(n)
 swish = sum(band(noise, c * 0.7, c * 1.4) * np.exp(-((t - 0.16 - i * 0.05) / 0.07) ** 2) for i, c in enumerate((500, 900, 1600, 2600)))
 swish += band(noise, 60, 220) * np.exp(-((t - 0.2) / 0.12) ** 2) * 1.5
 save('swing', swish / np.abs(swish).max() * 0.85)
+
+
+def ppc(seconds=1.5):
+    """A particle cannon: capacitors whining up, the bang of the discharge, then a crackling,
+    tearing bolt — arcing noise chopped at an uneven rate over a low growl — and its thunder."""
+    charge = 0.22
+    m = int(charge * RATE)
+    tc = np.arange(m) / RATE
+    whine = np.sin(2 * np.pi * np.cumsum(180 * (1 + 9 * (tc / charge) ** 2.5)) / RATE) * (tc / charge) ** 2 * 0.5
+    whine += band(rng.standard_normal(m), 3000, 10000) * (tc / charge) ** 4 * 0.3
+    n = int(seconds * RATE)
+    t = np.arange(n) / RATE
+    # arcing: wide noise gated by a jittery square wave, so it spits rather than hisses
+    gate_rate = 70 + 50 * np.sin(2 * np.pi * 3.1 * t) + 30 * rng.standard_normal(n).cumsum() / np.sqrt(np.arange(1, n + 1))
+    gate = (np.sin(2 * np.pi * np.cumsum(gate_rate) / RATE) > -0.2).astype(float)
+    arc = band(rng.standard_normal(n), 1200, 11000) * gate * np.exp(-t * 4.5)
+    growl_hz = 62 * (1 + 0.8 * np.exp(-t * 6))
+    ph = np.cumsum(growl_hz) / RATE
+    growl = sum(2 * ((ph * k) % 1) - 1 for k in (1.0, 1.011, 1.5, 2.02)) / 4
+    growl = band(growl, 50, 1800) * np.exp(-t * 3.2) * (0.7 + 0.3 * np.sin(2 * np.pi * 43 * t))
+    bang = band(rng.standard_normal(n), 300, 9000) * np.exp(-t * 45) * 1.3
+    bang += np.sin(2 * np.pi * np.cumsum(900 * np.exp(-t * 40) + 45) / RATE) * np.exp(-t * 11) * 1.2
+    thunder = band(rng.standard_normal(n), 40, 400) * np.exp(-t * 2.4) * np.minimum(1, t / 0.05) * 0.9
+    out = np.concatenate([whine, np.tanh((bang + arc * 0.8 + growl * 0.9 + thunder) * 1.7)])
+    out = hall(out, 1.3, 0.32)[:int(1.9 * RATE)]
+    fade = int(0.25 * RATE)
+    out[-fade:] *= np.linspace(1, 0, fade)
+    return out / np.abs(out).max() * 0.92
+
+
+save('ppc', ppc())
+
+# rain: a steady hiss of drops with a soft patter in it and a low wash underneath; loops on itself
+n = int(5.5 * RATE)
+t = np.arange(n) / RATE
+hiss = band(rng.standard_normal(n), 1800, 11000) * (0.85 + 0.15 * np.sin(2 * np.pi * 0.37 * t + 1.0))
+patter = band(rng.standard_normal(n) * (rng.random(n) > 0.985), 700, 5000) * 6.0
+wash = band(rng.standard_normal(n), 120, 700) * 0.6
+save('rain_loop', loop(hiss + patter + wash, 4.0, 0.1, 0.5, 0.6))

@@ -14,17 +14,48 @@ from walker import *  # noqa: E402
 ARGS = sys.argv[sys.argv.index("--") + 1:]
 
 
+# ── The house style ─────────────────────────────────────────────────────────────────────────────
+# Slab-sided and square, like a machine welded up out of plate: every lofted section of the hull and
+# the limbs has its corners cut only slightly, and tapers far less towards its ends than it was drawn.
+SQUARE = 0.4      # share of the drawn corner cut that is kept
+BLOCKY = 0.45     # how far each section is pushed out towards the biggest section of its part
+_stations = Part.stations
+
+
+def _slab_stations(self, axis, rows, kind=PAINT, bevel=0.025, seams=None, cuts=(), chamfer=0.1):
+    if self.name.startswith(("Head_", "Cockpit", "Antenna")) or kind == GLASS:
+        return _stations(self, axis, rows, kind, bevel, seams, cuts, chamfer)
+    wide, high = max(r[1] for r in rows), max(r[2] for r in rows)
+    out = []
+    for r in rows:
+        r = list(r)
+        # thin things (struts, blades, lips) stay as they are; bodies are squared up
+        if min(wide, high) > 0.3:
+            r[1] += (wide - r[1]) * BLOCKY
+            r[2] += (high - r[2]) * BLOCKY
+        if len(r) > 5:
+            r[5] *= SQUARE
+        if len(r) > 6:
+            r[6] *= SQUARE
+        out.append(tuple(r))
+    return _stations(self, axis, out, kind, bevel, seams, cuts, chamfer * SQUARE)
+
+
+Part.stations = _slab_stations
+
+
 def bird_torso(model, k, nose="blunt", stacks=True, guns=(), heavy=False):
     """Body of a chicken-walker in the axes of Hips/Torso (turret ring at the origin, nose to -Z),
     at the Ostrich's size times k. guns: (x, y, z of the breech, length, radius) of fixed nose lasers,
     at the Ostrich's size."""
     T = "Hips/Torso"
     p = Part("CenterTorso_Armor")
+    # the chin: a blunt block under the canopy, drawn square as it is (so the glass stays clear of it)
     if nose == "sharp":
-        rows = [(-3.3, 0.45, 0.26, 0, 1.08, 0.07), (-2.6, 1.25, 0.8, 0, 1.18, 0.2), (-1.7, 1.85, 1.45, 0, 1.2, 0.32), (-1.15, 1.5, 1.9, 0, 1.1, 0.25)]
+        rows = [(-3.3, 0.95, 0.55, 0, 0.98, 0.05), (-2.6, 1.4, 0.95, 0, 1.1, 0.06), (-1.7, 1.85, 1.5, 0, 1.2, 0.08), (-1.15, 1.6, 1.9, 0, 1.1, 0.08)]
     else:
-        rows = [(-3.05, 0.8, 0.42, 0, 1.12, 0.12), (-2.55, 1.5, 0.95, 0, 1.2, 0.24), (-1.7, 1.95, 1.5, 0, 1.2, 0.32), (-1.15, 1.5, 1.9, 0, 1.1, 0.25)]
-    p.stations("z", rows, seams=PANELS, cuts=[((0, 0, -2.1), (0, 0, 1))])
+        rows = [(-3.05, 1.45, 0.72, 0, 0.98, 0.05), (-2.55, 1.72, 1.02, 0, 1.08, 0.06), (-1.7, 1.95, 1.5, 0, 1.2, 0.08), (-1.15, 1.6, 1.9, 0, 1.1, 0.08)]
+    _stations(p, "z", rows, seams=PANELS, cuts=[((0, 0, -2.1), (0, 0, 1))])
     p.stations("z", [(-1.15, 1.42, 1.95, 0, 1.1, 0.2), (1.75, 1.42, 1.95, 0, 1.1, 0.2)], seams=PANELS, cuts=[((0, 0, 0.3), (0, 0, 1))])
     p.stations("z", [(-1.05, 0.5, 0.2, 0, 2.1, 0.06), (-0.6, 0.82, 0.34, 0, 2.17, 0.1), (1.3, 0.82, 0.34, 0, 2.17, 0.1), (1.7, 0.6, 0.2, 0, 2.1, 0.06)], seams=SMALL_PANELS)
     p.stations("z", [(-2.0, 0.9, 0.2, 0, 0.5, 0.06), (-1.0, 1.2, 0.3, 0, 0.22, 0.1), (1.3, 1.2, 0.3, 0, 0.22, 0.1), (1.7, 1.0, 0.2, 0, 0.3, 0.06)])
@@ -41,8 +72,14 @@ def bird_torso(model, k, nose="blunt", stacks=True, guns=(), heavy=False):
     f.slats((0, 1.4, 2.96), (0, 0, 1), (1, 0, 0), (1.3, 0.75), 6, 0.09)
     for s in (-1, 1):
         if stacks:
-            f.cyl((s * 0.72, 1.95, 2.15), (s * 0.78, 2.5, 2.8), 0.2, segs=12, kind=FRAME)
-            f.cyl((s * 0.778, 2.48, 2.78), (s * 0.782, 2.515, 2.815), 0.14, segs=12, kind=RECESS, bevel=0)
+            # square exhaust stacks
+            f.box((s * 0.75, 2.3, 2.4), (0.36, 0.8, 0.46), FRAME, 0.02)
+            f.box((s * 0.75, 2.705, 2.4), (0.26, 0.02, 0.36), RECESS, 0)
+        # a grab rail along the roof and a stowage bin behind it
+        f.box((s * 0.6, 2.5, 0.35), (0.04, 0.04, 1.5), FRAME, 0.008)
+        for z in (-0.35, 0.35, 1.05):
+            f.box((s * 0.6, 2.42, z), (0.04, 0.14, 0.04), FRAME, 0.006)
+        f.box((s * 0.42, 2.42, 1.45), (0.5, 0.2, 0.36), FRAME, 0.02)
         f.slats((s * 1.16, 1.4, 2.2), (s, 0, 0), (0, 1, 0), (0.7, 0.7), 5, 0.06)
     f.cyl((0, -0.62, 0), (0, 0.2, 0), 0.78, segs=20, kind=FRAME)
     f.cyl((0, -0.3, 0), (0, -0.12, 0), 0.95, segs=20, kind=SOFT)
@@ -77,9 +114,7 @@ def bird_torso(model, k, nose="blunt", stacks=True, guns=(), heavy=False):
     left.plate(None, (-1.83, 1.05, 1.0), (-1, 0, 0), (1.2, 1.3), 0.09 if heavy else 0.05, along=(0, 0, 1))
     model.both(left.scale(k), T + "/LeftTorso", "Armor", CAMO)
 
-    s = Part("Stripe")
-    s.stations("x", [(-1.76, 0.5, 0.1, -0.85, 2.09, 0.03), (-0.72, 0.62, 0.12, -0.85, 2.12, 0.03), (0.72, 0.62, 0.12, -0.85, 2.12, 0.03), (1.76, 0.5, 0.1, -0.85, 2.09, 0.03)], bevel=0.012)
-    model.add(s.scale(k), T, "Stripe", ACCENT)
+    model.removes += [T + "/Stripe"]
 
     a = Part("Antenna")
     a.box((-1.2, 2.18, 1.5), (0.26, 0.18, 0.26), FRAME)
@@ -224,9 +259,7 @@ def cleaver():
     m.both(left, T + "/LeftTorso", "Hull", CAMO)
     m.removes += [T + "/LeftTorso/Shoulder", T + "/RightTorso/Shoulder"]
 
-    s = Part("Stripe")
-    s.stations("x", [(-1.66, 0.45, 0.1, -0.86, 2.74, 0.03), (-0.7, 0.5, 0.12, -1.0, 2.5, 0.03), (0.7, 0.5, 0.12, -1.0, 2.5, 0.03), (1.66, 0.45, 0.1, -0.86, 2.74, 0.03)], bevel=0.012)
-    m.add(s, T, "Stripe", ACCENT)
+    m.removes += [T + "/Stripe"]
     a = Part("Antenna")
     a.box((-0.86, 2.9, 0.57), (0.2, 0.14, 0.2), FRAME)
     a.cyl((-0.86, 2.95, 0.57), (-0.86, 4.0, 0.57), 0.03, 0.01, segs=6, kind=FRAME, bevel=0)

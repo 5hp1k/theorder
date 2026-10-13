@@ -23,9 +23,15 @@
 [ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/MainRotor.res" id="x14"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/TailRotor.res" id="x15"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/helicopter/Gun.res" id="x16"]
+[ext_resource type="Script" path="res://scripts/Combat/Hardpoint.cs" id="hardpoint"]
+[ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
+[ext_resource type="Material" path="res://materials/insignia.tres" id="insignia"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(2.6, 2.8, 8)
+
+[sub_resource type="QuadMesh" id="QuadMesh_insignia"]
+size = Vector2(0.6, 0.6)
 
 [node name="Helicopter" type="CharacterBody3D"]
 floor_max_angle = 0.87
@@ -89,8 +95,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.22, -1.7, -0.3)
 mesh = ExtResource("x11")
 material_override = ExtResource("2")
 
-[node name="RocketsL" parent="Hull" instance=ExtResource("8")]
+[node name="HardpointRocketsL" type="Node3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, -0.6, -0.7)
+script = ExtResource("hardpoint")
+DisplayName = "Корпус"
+Type = 2
+Slots = 2
+Mount = 5
+
+[node name="RocketsL" parent="Hull/HardpointRocketsL" instance=ExtResource("8")]
 
 [node name="PodR" type="MeshInstance3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, -0.6, 0.4)
@@ -102,8 +115,15 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.22, -1.7, -0.3)
 mesh = ExtResource("x12")
 material_override = ExtResource("2")
 
-[node name="RocketsR" parent="Hull" instance=ExtResource("8")]
+[node name="HardpointRocketsR" type="Node3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, -0.6, -0.7)
+script = ExtResource("hardpoint")
+DisplayName = "Корпус"
+Type = 2
+Slots = 2
+Mount = 5
+
+[node name="RocketsR" parent="Hull/HardpointRocketsR" instance=ExtResource("8")]
 
 [node name="RotorMain" type="Node3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
@@ -133,11 +153,24 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -0.3)
 mesh = ExtResource("x16")
 material_override = ExtResource("2")
 
+[node name="HeadlightL" parent="Turret/Gun" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.45, -0.4, -1)
+
+[node name="HeadlightR" parent="Turret/Gun" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, -0.4, -1)
+
 [node name="CockpitCam" type="Marker3D" parent="Turret/Gun"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, -0.4)
 
-[node name="MachineGun" parent="Turret/Gun" instance=ExtResource("9")]
+[node name="HardpointMachineGun" type="Node3D" parent="Turret/Gun"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
+script = ExtResource("hardpoint")
+DisplayName = "Башня"
+Type = 1
+Slots = 2
+Mount = 5
+
+[node name="MachineGun" parent="Turret/Gun/HardpointMachineGun" instance=ExtResource("9")]
 Group = 1
 Damage = 1.2
 
@@ -148,3 +181,17 @@ stream = ExtResource("10")
 unit_size = 14
 max_distance = 300
 volume_db = -3
+
+[node name="InsigniaL" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.725, -0.2, 0.2)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_insignia")
+material_override = ExtResource("insignia")
+
+[node name="InsigniaR" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.725, -0.2, 0.2)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_insignia")
+material_override = ExtResource("insignia")

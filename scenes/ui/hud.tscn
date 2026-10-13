@@ -339,6 +339,7 @@ theme_override_font_sizes/font_size = 14
 text = "F1 — управление"
 
 [node name="HelpPanel" type="PanelContainer" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0
@@ -347,8 +348,8 @@ anchor_right = 0
 anchor_bottom = 0
 offset_left = 10
 offset_top = 8
-offset_right = 490
-offset_bottom = 310
+offset_right = 520
+offset_bottom = 350
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_4")
 
@@ -357,16 +358,18 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.45, 1, 0.55, 0.9)
 theme_override_font_sizes/font_size = 14
-text = "W / S — газ (с остановкой на нуле)
-X — полный стоп
-A / D — поворот ног
-Мышь — поворот и наклон торса
+text = "W / S — газ (с остановкой на нуле),  X — полный стоп
+A / D — поворот ног (техника: поворот корпуса, самолёт: крен)
+Мышь — торс, башня, прицел
 C — выровнять торс по ногам
 Ctrl (держать) — осмотреться, орудия на месте
 Z или колесо мыши — приближение
 E — ближайшая цель, T — следующая, Q — под прицелом
+Ракеты: держи прицел на цели до надписи «ЗАХВАТ»
 ЛКМ — группа 1,  ПКМ — группа 2,  СКМ / R — группа 3
-Пробел — прыжок (в воздухе: вверх),  Shift — вниз
-M — режим радара,  F — сесть в броню / выйти
+Пробел — прыжковые двигатели (вертолёт: вверх),  Shift — вниз
+L — фары,  M — режим радара
 V — кабина / внешний вид
-Esc — пауза и меню,  F1 — скрыть справку"
+F3 — счётчик кадров
+Esc — пауза, настройки и управление,  F1 — скрыть справку
+Клавиши меняются в настройках, на вкладке «Управление»."

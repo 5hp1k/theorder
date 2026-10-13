@@ -41,6 +41,9 @@ script = ExtResource("1")
 WindDirection = Vector3(1, 0, 0.35)
 WindSpeed = 9
 GustPeriod = 11
+Haze = 2.6
+SkyLight = 0.8
+SunLight = 0.65
 
 [node name="Dust" type="GPUParticles3D" parent="."]
 amount = 120

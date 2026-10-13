@@ -3,7 +3,8 @@ using Godot;
 namespace MechSim;
 
 /// <summary>
-/// MechWarrior-style target window: live view of the locked target, range and integrity.
+/// MechWarrior-style target window: live view of the locked target, range and integrity, and under it
+/// the target's weapons with their state.
 /// Children in the scene: TargetView (SubViewport) with a Camera, View (TextureRect), Doll (DamageDoll).
 /// The camera shares the game world but only sees the render layer the locked target is switched onto.
 /// </summary>
@@ -14,6 +15,8 @@ public partial class TargetPanel : HudWidget
     [Export] public float ViewHeight = 5f;
     /// <summary>Redraw the target view once per this many frames.</summary>
     [Export] public int UpdateEvery = 3;
+    /// <summary>Height of a row in the list of the target's weapons.</summary>
+    [Export] public float WeaponRow = 17f;
 
     SubViewport _viewport;
     Camera3D _camera;
@@ -76,5 +79,22 @@ public partial class TargetPanel : HudWidget
         float lockOn = Seat.LockProgress;
         if (lockOn >= 1f) Text("ЗАХВАТ", new Vector2(Size.X - 90f, Size.Y - 12f), 14, Red, HorizontalAlignment.Right, 80f);
         else if (lockOn > 0f) Text($"захват {Mathf.RoundToInt(lockOn * 100f)}%", new Vector2(Size.X - 110f, Size.Y - 12f), 13, Amber, HorizontalAlignment.Right, 100f);
+
+        // What it is armed with, under the window: knocked-out and empty weapons too.
+        if (t is not IDrivable { Weapons: { } arms } || arms.Weapons.Count == 0) return;
+        var list = arms.Weapons;
+        float top = Size.Y + 4f;
+        DrawRect(new Rect2(0f, top, Size.X, list.Count * WeaponRow + 8f), Panel);
+        for (int i = 0; i < list.Count; i++)
+        {
+            var w = list[i];
+            float y = top + 16f + i * WeaponRow;
+            bool empty = !w.HasAmmo;
+            Color col = w.Destroyed ? Red : empty ? Amber : Green;
+            Text(w.DisplayName, new Vector2(10f, y), 13, col);
+            string state = w.Destroyed ? "УНИЧТОЖЕНО" : empty ? "ПУСТО" : w.MaxAmmo >= 0 ? $"{w.Ammo}" : "";
+            Text(state, new Vector2(Size.X - 120f, y), 12, col, HorizontalAlignment.Right, 110f);
+            if (w.Destroyed) DrawLine(new Vector2(10f, y - 5f), new Vector2(Size.X - 130f, y - 5f), Red, 1f);
+        }
     }
 }

@@ -308,7 +308,16 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
         if (cell < 0 || cell >= _alive.Length || !_alive[cell]) return;
         _hp[cell] -= amount;
         _push = direction;
-        if (_hp[cell] <= 0f) Remove(cell, true);
+        if (_hp[cell] <= 0f)
+        {
+            Remove(cell, true);
+            // Burnt through by a beam: the hole goes on burning (not a bridge deck — there's nothing left to burn).
+            if (Burning.Heat && Trample)
+            {
+                int x = cell % Cells.X, z = cell / Cells.X % Cells.Z, y = cell / (Cells.X * Cells.Z);
+                Burning.Ignite(GetParent(), GlobalTransform * (CellCenter(x, y, z) - new Vector3(0f, CellSize * 0.4f, 0f)), CellSize / 3f);
+            }
+        }
         else Wound(cell, (1f - _hp[cell] / CellHp) * 0.8f);
     }
 
@@ -369,6 +378,32 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
             b.ForEachCellIn(local - new Vector3(radius, 0.5f, radius), local + new Vector3(radius, height, radius),
                             (x, y, z) => b.Remove(b.Index(x, y, z), true));
         }
+    }
+
+    /// <summary>
+    /// The top of a deck that carries traffic (a bridge: a building that isn't trampled) over this spot,
+    /// if there is one no higher than <paramref name="below"/>. For things that otherwise ask the terrain.
+    /// </summary>
+    public static bool DeckAt(float x, float z, float below, out float height)
+    {
+        height = 0f;
+        bool found = false;
+        var spot = new Vector2(x, z);
+        foreach (var b in All)
+        {
+            if (b.Trample || b._aliveCount == 0 || !b._area.HasPoint(spot)) continue;
+            Transform3D t = b.GlobalTransform;
+            Vector3 local = t.AffineInverse() * new Vector3(x, t.Origin.Y, z);
+            int cx = Mathf.FloorToInt((local.X - b._origin.X) / b.CellSize), cz = Mathf.FloorToInt((local.Z - b._origin.Z) / b.CellSize);
+            for (int cy = b.Cells.Y - 1; cy >= 0; cy--)
+            {
+                if (!b.Alive(cx, cy, cz)) continue;
+                float top = (t * new Vector3(local.X, b._origin.Y + (cy + 1) * b.CellSize, local.Z)).Y;
+                if (top <= below && (!found || top > height)) { height = top; found = true; }
+                break;
+            }
+        }
+        return found;
     }
 
     void ForEachCellIn(Vector3 min, Vector3 max, System.Action<int, int, int> action)

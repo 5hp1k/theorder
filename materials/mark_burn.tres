@@ -1,0 +1,16 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/impact_mark.gdshader" id="1"]
+
+[resource]
+render_priority = 1
+shader = ExtResource("1")
+shader_parameter/core_size = 0.42
+shader_parameter/core_ragged = 0.35
+shader_parameter/char_color = Color(0.022, 0.018, 0.015, 1)
+shader_parameter/soot_strength = 0.6
+shader_parameter/soot_reach = 0.6
+shader_parameter/ray_count = 6.0
+shader_parameter/ray_strength = 0.2
+shader_parameter/spill_strength = 0.0
+shader_parameter/glow_energy = 5.0

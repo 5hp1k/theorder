@@ -50,6 +50,8 @@ public partial class AiPilot : MechPilot
         _strafeSign = GD.Randf() < 0.5f ? -1f : 1f;
         _wait = GD.Randf() * 3f;
         PickWaypoint();
+        // Lamps on in the dark.
+        Headlight.Set(unit.Body, MapLighting.Dark);
     }
 
     // ── Brain ───────────────────────────────────────────────────

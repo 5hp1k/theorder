@@ -101,24 +101,59 @@ def power_armor():
 
 
 def hatchet():
+    """A battle axe at mech scale. The haft runs from the fist (z 0) out along -Z; the bit hangs to -Y."""
     m = Model("hatchet", "scenes/weapons/hatchet.tscn")
     f = Part("Grip")
     f.stations("z", [(0.35, 0.3, 0.3, 0, 0, 0.06), (-0.3, 0.3, 0.3, 0, 0, 0.06)], kind=FRAME)
     m.add(f, ".", "Fist", JOINT)
+
+    head = -3.72  # where the eye of the axe sits on the haft
     h = Part("Haft")
-    h.cyl((0, 0, 0.3), (0, 0, -4.25), 0.12, segs=10, kind=FRAME)
-    for z in (-0.6, -1.0, -1.4):
-        h.cyl((0, 0, z), (0, 0, z - 0.1), 0.15, segs=10, kind=SOFT, bevel=0.008)
-    h.stations("z", [(-3.2, 0.3, 0.6, 0, -0.05, 0.08), (-4.2, 0.3, 0.7, 0, -0.05, 0.08)], kind=FRAME, seams=SMALL_PANELS)  # head socket
+    # the shaft: oval, a touch thicker towards the head, swelling into a knob at the butt so it can't slip the fist
+    h.lathe((0, 0, 0.72), (0, 0, -4.3), [(0.0, 0.05), (0.012, 0.15), (0.045, 0.17), (0.075, 0.15), (0.095, 0.105), (0.5, 0.1), (0.8, 0.115), (1.0, 0.12)], segs=12, kind=FRAME)
+    # a wrapped grip ahead of the fist
+    z = -0.42
+    while z > -1.75:
+        h.cyl((0, 0, z), (0, 0, z - 0.075), 0.125, segs=12, kind=SOFT, bevel=0.012)
+        z -= 0.095
+    h.cyl((0, 0, -1.8), (0, 0, -1.9), 0.14, segs=12, kind=FRAME, bevel=0.015)
+    # langets: steel straps down both cheeks of the haft below the head, riveted through
+    for side in (-1, 1):
+        h.box((side * 0.118, 0, head + 1.15), (0.03, 0.13, 1.5), kind=FRAME, bevel=0.008)
+        h.bolts([(side * 0.133, 0, head + 0.65 + i * 0.36) for i in range(4)], (side, 0, 0), r=0.03, h=0.025)
+    # the finial: a short thrusting point past the head
+    h.lathe((0, 0, head - 0.5), (0, 0, head - 1.25), [(0.0, 0.13), (0.12, 0.15), (0.2, 0.1), (1.0, 0.004)], segs=8, kind=FRAME)
     m.add(h, ".", "Handle", JOINT)
+
+    def lens(u, t, y0, reach, top, toe, bottom, beard, sag):
+        """One section through the bit, u of the way from the eye to the edge: a flattened hexagon,
+        t thick in the middle and thin at both ends, following the flare of the blade and the curve of the edge."""
+        z_far = head - (top + toe * u ** 1.4)        # towards the tip of the haft
+        z_near = head + (bottom + beard * u ** 2.0)  # towards the fist: the beard
+        ring = []
+        for sx, order in ((1, (-1.0, -0.8, -0.45, 0.0, 0.45, 0.8, 1.0)), (-1, (1.0, 0.8, 0.45, 0.0, -0.45, -0.8, -1.0))):
+            for v in order:
+                z = (z_far + z_near) / 2 + v * (z_near - z_far) / 2
+                y = -(y0 + reach * u) + sag * u * u * v * v
+                ring.append((sx * t * (0.25 if abs(v) > 0.9 else 0.85 if abs(v) > 0.7 else 1.0), y, z))
+        return ring
+
     b = Part("Blade")
-    # the bit: thick at the socket, drawn out to a long curved edge
-    edge = [(-3.05, -0.4), (-2.85, -1.2), (-3.2, -1.75), (-3.8, -1.95), (-4.4, -1.72), (-4.7, -1.2), (-4.5, -0.4)]
-    back = [(-3.25, -0.35), (-3.3, -0.36), (-3.5, -0.37), (-3.75, -0.38), (-4.0, -0.37), (-4.2, -0.36), (-4.3, -0.35)]
-    b.loft([[(x, y, z) for z, y in pts] for x, pts in ((-0.1, back), (-0.012, edge), (0.012, edge), (0.1, back))], bevel=0.0)
+    # cheeks thinning from the eye, then the ground bevel running out to nothing at the edge
+    profile = [(0.0, 0.2), (0.2, 0.15), (0.45, 0.115), (0.68, 0.1), (0.84, 0.055), (1.0, 0.004)]
+    b.loft([lens(u, t, 0.2, 1.75, 0.4, 0.5, 0.4, 1.05, 0.34) for u, t in profile], kind=FRAME, bevel=0.0)
     m.add(b, ".", "Blade", "street_steel")
+
     s = Part("Spike")
-    s.stations("y", [(0.25, 0.22, 0.5, 0, -3.7, 0.05), (0.75, 0.1, 0.24, 0, -3.75, 0.03), (1.15, 0.02, 0.04, 0, -3.8, 0.005)], kind=FRAME)
+    # the eye: the socket the haft passes through, with a raised band at each end
+    s.stations("z", [(head + 0.56, 0.36, 0.5, 0, 0, 0.1), (head + 0.3, 0.44, 0.62, 0, 0, 0.12), (head - 0.3, 0.44, 0.62, 0, 0, 0.12), (head - 0.56, 0.36, 0.5, 0, 0, 0.1)], kind=FRAME, bevel=0.015)
+    for z in (head + 0.5, head - 0.5):
+        s.stations("z", [(z + 0.07, 0.42, 0.56, 0, 0, 0.1), (z - 0.07, 0.42, 0.56, 0, 0, 0.1)], kind=SOFT, bevel=0.012)
+    s.bolts([(sx * 0.22, 0, head + dz) for sx in (-1, 1) for dz in (-0.16, 0.16)], (1, 0, 0), r=0.045, h=0.03)
+    s.bolts([(-0.22, 0, head + dz) for dz in (-0.16, 0.16)], (-1, 0, 0), r=0.045, h=0.03)
+    # the poll: a hammer face behind the eye, drawn out into a short beak
+    s.stations("y", [(0.26, 0.34, 0.6, 0, head, 0.08), (0.5, 0.3, 0.5, 0, head, 0.07), (0.62, 0.34, 0.56, 0, head, 0.07), (0.7, 0.3, 0.5, 0, head, 0.07)], kind=FRAME, bevel=0.012)
+    s.stations("y", [(0.7, 0.16, 0.3, 0, head, 0.04), (1.0, 0.09, 0.2, 0, head - 0.05, 0.025), (1.28, 0.01, 0.02, 0, head - 0.16, 0.003)], kind=FRAME, bevel=0.0)
     m.add(s, ".", "Spike", JOINT)
     return m
 

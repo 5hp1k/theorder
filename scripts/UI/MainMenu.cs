@@ -4,29 +4,58 @@ using Godot;
 namespace MechSim;
 
 /// <summary>
-/// Main menu: mech choice, customisation (paint and weapons), battle setup (map, enemies) and settings.
+/// Main menu: unit choice, the hangar (paint and weapons), battle setup (map, hour, weather, enemies)
+/// and settings (the settings page is its own scene, settings_panel.tscn, shared with the pause menu).
 /// All the controls are laid out in main_menu.tscn; this fills the lists from <see cref="Catalog"/>,
 /// keeps <see cref="GameConfig"/> in sync and shows the chosen mech turning in the preview.
 /// </summary>
 public partial class MainMenu : Control
 {
     [Export(PropertyHint.File, "*.tscn")] public string GameScene = "res://scenes/game.tscn";
+    /// <summary>One hardpoint in the hangar: its name, sort, slots and the list of what is fitted.</summary>
+    [Export] public PackedScene HardpointRowScene;
+    /// <summary>One fitted weapon inside a hardpoint row.</summary>
     [Export] public PackedScene SlotRowScene;
     [Export] public float PreviewTurnSpeed = 0.5f;
 
-    static readonly string[] SectionNames = { "Голова", "Корпус", "Левый торс", "Правый торс", "Левая рука", "Правая рука", "Левая нога", "Правая нога" };
+    static readonly string[] SlotNames = { "ЛУЧЕВОЕ", "БАЛЛИСТИКА", "РАКЕТЫ", "ЛЮБОЕ", "РУЧНОЕ", "БОМБЫ" };
+    // As in MechWarrior 4: beam mounts red, ballistic yellow, missile green, omni grey.
+    static readonly Color[] SlotColors = { new(1f, 0.35f, 0.3f), new(1f, 0.85f, 0.3f), new(0.45f, 0.9f, 0.4f), new(0.8f, 0.82f, 0.85f), new(0.75f, 0.6f, 0.45f), new(0.6f, 0.7f, 1f) };
+
+    record WeaponInfo(string Id, string Name, SlotType Slot, int Slots);
+    static WeaponInfo[] _weaponInfo;
+
+    /// <summary>What sort of mount each catalog weapon needs and how many slots: read once from its prefab.</summary>
+    static WeaponInfo[] Weapons()
+    {
+        if (_weaponInfo != null) return _weaponInfo;
+        _weaponInfo = new WeaponInfo[Catalog.Weapons.Length];
+        for (int i = 0; i < _weaponInfo.Length; i++)
+        {
+            var w = GD.Load<PackedScene>(Catalog.Weapons[i].Path).Instantiate<Weapon>();
+            _weaponInfo[i] = new WeaponInfo(Catalog.Weapons[i].Id, Catalog.Weapons[i].Name, w.Slot, w.Slots);
+            w.Free();
+        }
+        return _weaponInfo;
+    }
+
+    static WeaponInfo Info(string id)
+    {
+        foreach (var w in Weapons())
+            if (w.Id == id) return w;
+        return null;
+    }
 
     Control[] _pages;
     Node3D _pivot;
     Node3D _preview;
-    Label _summary, _mechInfo, _mapInfo, _enemyCountLabel, _volumeLabel, _sensLabel, _fovLabel;
+    Label _summary, _mechInfo, _mapInfo, _enemyCountLabel;
     VBoxContainer _slotList;
+    HardpointDrop _shelf;
     AudioStreamPlayer _click;
     Label _vehicleCountLabel;
     TextureRect _insigniaPreview;
     FileDialog _insigniaDialog;
-    readonly Button[] _bindButtons = new Button[GameConfig.BindableActions.Length];
-    int _rebinding = -1;
 
     public override void _Ready()
     {
@@ -38,16 +67,15 @@ public partial class MainMenu : Control
         _mechInfo = GetNode<Label>("%MechInfo");
         _mapInfo = GetNode<Label>("%MapInfo");
         _enemyCountLabel = GetNode<Label>("%EnemyCountLabel");
-        _volumeLabel = GetNode<Label>("%VolumeLabel");
-        _sensLabel = GetNode<Label>("%SensLabel");
-        _fovLabel = GetNode<Label>("%FovLabel");
         _slotList = GetNode<VBoxContainer>("%SlotList");
         _click = GetNodeOrNull<AudioStreamPlayer>("%Click");
         _vehicleCountLabel = GetNode<Label>("%VehicleCountLabel");
         _insigniaPreview = GetNode<TextureRect>("%InsigniaPreview");
         _insigniaDialog = GetNode<FileDialog>("%InsigniaDialog");
 
-        _pages = new[] { GetNode<Control>("%PageMech"), GetNode<Control>("%PageCustom"), GetNode<Control>("%PageBattle"), GetNode<Control>("%PageSettings") };
+        _pages = new[] { GetNode<Control>("%PageMech"), GetNode<Control>("%PageCustom"), GetNode<Control>("%PageBattle"), GetNode<Control>("%PageSettings"), GetNode<Control>("%PageHangar") };
+        GetNode<Button>("%BtnHangar").Pressed += () => ShowPage(4);
+        _shelf = GetNode<HardpointDrop>("%Shelf");
         GetNode<Button>("%BtnPlay").Pressed += StartBattle;
         GetNode<Button>("%BtnMech").Pressed += () => ShowPage(0);
         GetNode<Button>("%BtnCustom").Pressed += () => ShowPage(1);
@@ -62,7 +90,6 @@ public partial class MainMenu : Control
         SetupMechPage();
         SetupCustomPage();
         SetupBattlePage();
-        SetupSettingsPage();
         ShowPage(0);
         RebuildPreview();
         RebuildSlots();
@@ -113,13 +140,37 @@ public partial class MainMenu : Control
 
     void SetupCustomPage()
     {
-        var camo = GetNode<OptionButton>("%CamoOption");
-        Fill(camo, Catalog.Camos, GameConfig.CamoId);
-        camo.ItemSelected += index =>
+        // Ready-made schemes: choosing one fills in the colours and the pattern below.
+        var preset = GetNode<OptionButton>("%PresetOption");
+        var pattern = GetNode<OptionButton>("%PatternOption");
+        var basePick = GetNode<ColorPickerButton>("%BasePicker");
+        var aPick = GetNode<ColorPickerButton>("%PatternAPicker");
+        var bPick = GetNode<ColorPickerButton>("%PatternBPicker");
+        preset.Clear();
+        preset.AddItem("— свои цвета —");
+        foreach (var scheme0 in PaintJob.Presets) preset.AddItem(scheme0.Name);
+        preset.ItemSelected += index =>
         {
-            GameConfig.CamoId = Catalog.Camos[index].Id;
+            if (index < 1) return;
+            var chosen = PaintJob.Presets[index - 1];
+            GameConfig.PaintBase = basePick.Color = chosen.Base;
+            GameConfig.PatternId = pattern.Selected = chosen.Pattern;
+            GameConfig.PatternA = aPick.Color = chosen.A;
+            GameConfig.PatternB = bPick.Color = chosen.B;
             RebuildPreview();
         };
+        pattern.Clear();
+        foreach (string name in PaintJob.PatternNames) pattern.AddItem(name);
+        pattern.Selected = GameConfig.PatternId;
+        pattern.ItemSelected += index =>
+        {
+            GameConfig.PatternId = (int)index;
+            preset.Selected = 0;
+            RebuildPreview();
+        };
+        Picker("%BasePicker", GameConfig.PaintBase, c => GameConfig.PaintBase = c);
+        Picker("%PatternAPicker", GameConfig.PatternA, c => GameConfig.PatternA = c);
+        Picker("%PatternBPicker", GameConfig.PatternB, c => GameConfig.PatternB = c);
 
         var stripe = GetNode<ColorPickerButton>("%StripePicker");
         stripe.Color = GameConfig.StripeColor;
@@ -129,10 +180,26 @@ public partial class MainMenu : Control
             RebuildPreview();
         };
 
+        var scheme = GetNode<OptionButton>("%SchemeOption");
+        scheme.Clear();
+        foreach (string name in PaintJob.SchemeNames) scheme.AddItem(name);
+        scheme.Selected = GameConfig.PaintScheme;
+        scheme.ItemSelected += index =>
+        {
+            GameConfig.PaintScheme = (int)index;
+            RebuildPreview();
+        };
+
+        Picker("%GlassPicker", GameConfig.GlassColor, c => GameConfig.GlassColor = c);
+        Slider("%WearSlider", GameConfig.Wear, v => GameConfig.Wear = v);
+        Slider("%DirtSlider", GameConfig.Dirt, v => GameConfig.Dirt = v);
+        Slider("%GlossSlider", GameConfig.Gloss, v => GameConfig.Gloss = v);
+        Slider("%PatternSlider", GameConfig.PatternSize, v => GameConfig.PatternSize = v);
+        Slider("%InsigniaSizeSlider", GameConfig.InsigniaSize, v => GameConfig.InsigniaSize = v);
+
         GetNode<Button>("%BtnStock").Pressed += () =>
         {
             GameConfig.Loadouts.Remove(GameConfig.MechId);
-            GameConfig.Groups.Remove(GameConfig.MechId);
             RebuildPreview();
             RebuildSlots();
         };
@@ -143,18 +210,26 @@ public partial class MainMenu : Control
         _insigniaDialog.FileSelected += SetInsignia;
         _insigniaPreview.Texture = GameConfig.Insignia;
 
-        // Which key or mouse button fires each weapon group.
-        for (int i = 0; i < _bindButtons.Length; i++)
+    }
+
+    void Picker(string name, Color value, System.Action<Color> set)
+    {
+        var picker = GetNode<ColorPickerButton>(name);
+        picker.Color = value;
+        picker.ColorChanged += color =>
         {
-            int index = i;
-            _bindButtons[i] = GetNode<Button>($"%BindGroup{i + 1}");
-            _bindButtons[i].Pressed += () =>
-            {
-                _rebinding = index;
-                RefreshBindings();
-            };
-        }
-        RefreshBindings();
+            set(color);
+            RebuildPreview();
+        };
+    }
+
+    void Slider(string name, float value, System.Action<float> set)
+    {
+        var slider = GetNode<HSlider>(name);
+        slider.Value = value;
+        // The model is rebuilt when the slider is let go, not at every step of the drag.
+        slider.ValueChanged += v => set((float)v);
+        slider.DragEnded += _ => RebuildPreview();
     }
 
     void SetInsignia(string path)
@@ -162,26 +237,6 @@ public partial class MainMenu : Control
         GameConfig.InsigniaPath = path;
         _insigniaPreview.Texture = GameConfig.Insignia;
         RebuildPreview();
-    }
-
-    void RefreshBindings()
-    {
-        for (int i = 0; i < _bindButtons.Length; i++)
-            _bindButtons[i].Text = i == _rebinding ? "нажмите клавишу или кнопку мыши…" : GameConfig.BindingText(GameConfig.BindableActions[i]);
-    }
-
-    public override void _Input(InputEvent @event)
-    {
-        // Waiting for the new key of a weapon group: the next key or mouse button press is it.
-        if (_rebinding < 0) return;
-        bool key = @event is InputEventKey { Pressed: true, Echo: false };
-        bool mouse = @event is InputEventMouseButton { Pressed: true };
-        if (!key && !mouse) return;
-        if (@event is not InputEventKey { PhysicalKeycode: Key.Escape })
-            GameConfig.Rebind(GameConfig.BindableActions[_rebinding], @event);
-        _rebinding = -1;
-        RefreshBindings();
-        GetViewport().SetInputAsHandled();
     }
 
     void SetupBattlePage()
@@ -193,6 +248,18 @@ public partial class MainMenu : Control
             GameConfig.MapId = Catalog.Maps[index].Id;
             Refresh();
         };
+
+        var day = GetNode<OptionButton>("%TimeOfDayOption");
+        day.Clear();
+        foreach (string name in MapLighting.TimeNames) day.AddItem(name);
+        day.Selected = GameConfig.TimeOfDay;
+        day.ItemSelected += index => GameConfig.TimeOfDay = (int)index;
+
+        var weather = GetNode<OptionButton>("%WeatherOption");
+        weather.Clear();
+        foreach (string name in Weather.Names) weather.AddItem(name);
+        weather.Selected = GameConfig.WeatherId;
+        weather.ItemSelected += index => GameConfig.WeatherId = (int)index;
 
         var count = GetNode<HSlider>("%EnemyCount");
         count.Value = GameConfig.EnemyCount;
@@ -240,62 +307,6 @@ public partial class MainMenu : Control
         difficulty.ItemSelected += index => GameConfig.Difficulty = (int)index;
     }
 
-    void SetupSettingsPage()
-    {
-        var volume = GetNode<HSlider>("%VolumeSlider");
-        volume.Value = GameConfig.MasterVolume;
-        volume.ValueChanged += value =>
-        {
-            GameConfig.MasterVolume = (float)value;
-            GameConfig.ApplySettings();
-            Refresh();
-        };
-
-        var sens = GetNode<HSlider>("%SensSlider");
-        sens.Value = GameConfig.MouseSensitivity;
-        sens.ValueChanged += value =>
-        {
-            GameConfig.MouseSensitivity = (float)value;
-            Refresh();
-        };
-
-        var fov = GetNode<HSlider>("%FovSlider");
-        fov.Value = GameConfig.Fov;
-        fov.ValueChanged += value =>
-        {
-            GameConfig.Fov = (float)value;
-            Refresh();
-        };
-
-        var fullscreen = GetNode<CheckButton>("%FullscreenCheck");
-        fullscreen.ButtonPressed = GameConfig.Fullscreen;
-        fullscreen.Toggled += on =>
-        {
-            GameConfig.Fullscreen = on;
-            GameConfig.ApplySettings();
-        };
-
-        var vsync = GetNode<CheckButton>("%VSyncCheck");
-        vsync.ButtonPressed = GameConfig.VSync;
-        vsync.Toggled += on =>
-        {
-            GameConfig.VSync = on;
-            GameConfig.ApplySettings();
-        };
-
-        var rate = GetNode<OptionButton>("%SimRateOption");
-        rate.Selected = GameConfig.SimulationRate >= 120 ? 1 : 0;
-        rate.ItemSelected += index =>
-        {
-            GameConfig.SimulationRate = index == 1 ? 120 : 60;
-            GameConfig.ApplySettings();
-        };
-
-        var effects = GetNode<OptionButton>("%EffectsOption");
-        effects.Selected = GameConfig.EffectsQuality;
-        effects.ItemSelected += index => GameConfig.EffectsQuality = (int)index;
-    }
-
     void Refresh()
     {
         var mech = Catalog.Find(Catalog.PlayerUnits, GameConfig.MechId);
@@ -304,9 +315,6 @@ public partial class MainMenu : Control
         _mapInfo.Text = map.Description;
         _enemyCountLabel.Text = GameConfig.EnemyCount.ToString();
         _vehicleCountLabel.Text = GameConfig.EnemyVehicleCount.ToString();
-        _volumeLabel.Text = $"{Mathf.RoundToInt(GameConfig.MasterVolume * 100f)}%";
-        _sensLabel.Text = $"×{GameConfig.MouseSensitivity:0.00}";
-        _fovLabel.Text = $"{Mathf.RoundToInt(GameConfig.Fov)}°";
         _summary.Text = $"{mech.Name}  ·  {map.Name}  ·  мехов: {GameConfig.EnemyCount}, техники: {GameConfig.EnemyVehicleCount}";
     }
 
@@ -320,16 +328,17 @@ public partial class MainMenu : Control
         _preview = SpawnStock();
         // A statue: no pilot and no simulation, just the model in its rest pose.
         _preview.ProcessMode = ProcessModeEnum.Disabled;
+        GameConfig.Loadouts.TryGetValue(GameConfig.MechId, out string[] loadout);
+        Hardpoint.Apply(_preview, loadout);
         if (_preview is Mech mech)
         {
-            GameConfig.Loadouts.TryGetValue(GameConfig.MechId, out string[] loadout);
-            mech.ApplyLoadout(loadout);
-            mech.ApplyPaint(GD.Load<Material>(Catalog.Find(Catalog.Camos, GameConfig.CamoId).Path), GameConfig.StripeColor);
+            mech.ApplyPaint(GameConfig.PlayerPaint());
             mech.ApplyInsignia(GameConfig.Insignia);
         }
         else if (_preview is Vehicle vehicle)
         {
-            vehicle.ApplyPaint(GD.Load<Material>(Catalog.Find(Catalog.Camos, GameConfig.CamoId).Path));
+            vehicle.ApplyPaint(GameConfig.PlayerPaint());
+            vehicle.ApplyInsignia(GameConfig.Insignia);
         }
         _pivot.AddChild(_preview);
         if (_preview is not Mech)
@@ -342,56 +351,166 @@ public partial class MainMenu : Control
         }
     }
 
-    /// <summary>One row per weapon slot of the chosen mech, each with a list of weapons to fit.</summary>
+    /// <summary>
+    /// The hangar. On the left the shelf: every weapon the chosen machine has a mount for. On the right
+    /// one panel per hardpoint, in the colour of the sort of weapon it takes, with its slots and what is
+    /// fitted. Weapons are dragged from the shelf into a hardpoint (if it is the right sort and there
+    /// is room), from one hardpoint to another, or back to the shelf to take them off.
+    /// </summary>
     void RebuildSlots()
     {
         foreach (Node child in _slotList.GetChildren()) child.QueueFree();
+        var shelfList = _shelf.GetNode<VBoxContainer>("Column/Weapons");
+        foreach (Node child in shelfList.GetChildren()) child.QueueFree();
 
         var stockNode = SpawnStock();
-        if (stockNode is not Mech stockMech)
-        {
-            // Nothing to refit on foot or in a vehicle.
-            stockNode.Free();
-            return;
-        }
-        List<Weapon> slots = stockMech.GetWeaponSlots();
-        var stock = new string[slots.Count];
-        for (int i = 0; i < slots.Count; i++)
-            stock[i] = Catalog.WeaponIdByPath(slots[i].SceneFilePath) ?? Catalog.Weapons[0].Id;
-
+        var points = Hardpoint.Of(stockNode);
+        string[] stock = Hardpoint.Stock(stockNode);
         GameConfig.Loadouts.TryGetValue(GameConfig.MechId, out string[] chosen);
         if (chosen == null || chosen.Length != stock.Length) chosen = stock;
-
-        for (int i = 0; i < slots.Count; i++)
+        var types = new SlotType[points.Count];
+        var room = new int[points.Count];
+        for (int i = 0; i < points.Count; i++)
         {
-            int slot = i;
-            var row = SlotRowScene.Instantiate<Control>();
+            types[i] = points[i].Type;
+            room[i] = points[i].Slots;
+        }
+        var fits = new List<(string id, int group)>[points.Count];
+        for (int i = 0; i < points.Count; i++) fits[i] = new List<(string id, int group)>(Hardpoint.Parse(chosen[i]));
+
+        int Used(int point, int except = -1)
+        {
+            int used = 0;
+            for (int k = 0; k < fits[point].Count; k++)
+                if (k != except) used += Info(fits[point][k].id)?.Slots ?? 0;
+            return used;
+        }
+
+        void Commit(bool rebuild)
+        {
+            var now = new string[fits.Length];
+            for (int i = 0; i < fits.Length; i++) now[i] = Hardpoint.Format(fits[i]);
+            GameConfig.Loadouts[GameConfig.MechId] = now;
+            if (!rebuild) return;
+            _click?.Play();
+            RebuildPreview();
+            // Not from inside the signal of a control that is about to be freed.
+            Callable.From(RebuildSlots).CallDeferred();
+        }
+
+        // The shelf: taking a fitted weapon back.
+        _shelf.GetNode<Label>("Column/Header/Name").Text = "Полка";
+        _shelf.GetNode<Label>("Column/Header/Type").Text = "";
+        _shelf.GetNode<Label>("Column/Header/Pips").Text = "";
+        _shelf.GetNode<Label>("Column/Empty").Text = points.Count == 0 ? "у этой машины нет точек подвески" : "";
+        _shelf.Accepts = (_, from, _) => from >= 0;
+        _shelf.Dropped = (_, from, index) =>
+        {
+            if (from < 0 || index < 0 || index >= fits[from].Count) return;
+            fits[from].RemoveAt(index);
+            Commit(true);
+        };
+        foreach (var w in Weapons())
+        {
+            bool mountable = false;
+            for (int i = 0; i < points.Count; i++) mountable |= Hardpoint.Fits(types[i], w.Slot) && w.Slots <= room[i];
+            if (!mountable) continue;
+            var chip = SlotRowScene.Instantiate<WeaponChip>();
+            shelfList.AddChild(chip);
+            Dress(chip, w, w.Id);
+            chip.GetNode<Control>("Row/Group").Visible = false;
+            chip.GetNode<Control>("Row/Remove").Visible = false;
+        }
+
+        for (int i = 0; i < points.Count; i++)
+        {
+            int point = i;
+            Hardpoint hp = points[i];
+            int used = Used(i);
+
+            var row = HardpointRowScene.Instantiate<HardpointDrop>();
             _slotList.AddChild(row);
-            row.GetNode<Label>("Name").Text = $"{i + 1}. {SectionNames[(int)slots[i].Mount]}";
-            var option = row.GetNode<OptionButton>("Option");
-            Fill(option, Catalog.Weapons, chosen[i]);
-            option.ItemSelected += index =>
+            Color colour = SlotColors[(int)hp.Type];
+            Tint(row, colour);
+            row.GetNode<Label>("Column/Header/Name").Text = hp.Title;
+            var type = row.GetNode<Label>("Column/Header/Type");
+            type.Text = SlotNames[(int)hp.Type];
+            type.AddThemeColorOverride("font_color", colour);
+            var pips = row.GetNode<Label>("Column/Header/Pips");
+            pips.Text = Pips(used, hp.Slots - used);
+            pips.AddThemeColorOverride("font_color", colour);
+            row.GetNode<Control>("Column/Empty").Visible = fits[i].Count == 0;
+
+            // What may be dropped here: the right sort, and no bigger than the room left (a weapon
+            // moved within its own hardpoint doesn't count against itself).
+            row.Accepts = (id, from, index) =>
             {
-                GameConfig.Loadouts.TryGetValue(GameConfig.MechId, out string[] current);
-                if (current == null || current.Length != stock.Length) current = (string[])stock.Clone();
-                current[slot] = Catalog.Weapons[index].Id;
-                GameConfig.Loadouts[GameConfig.MechId] = current;
-                RebuildPreview();
+                var info = Info(id);
+                if (info == null || !Hardpoint.Fits(types[point], info.Slot)) return false;
+                if (from == point) return false;
+                return Used(point) + info.Slots <= room[point];
+            };
+            row.Dropped = (id, from, index) =>
+            {
+                int group = 0;
+                if (from >= 0 && index >= 0 && index < fits[from].Count)
+                {
+                    group = fits[from][index].group;
+                    fits[from].RemoveAt(index);
+                }
+                fits[point].Add((id, group));
+                Commit(true);
             };
 
-            // Which trigger this slot is on: its weapon's usual group unless the player chose otherwise.
-            var group = row.GetNode<OptionButton>("Group");
-            GameConfig.Groups.TryGetValue(GameConfig.MechId, out int[] groups);
-            bool custom = groups != null && groups.Length == stock.Length && groups[i] >= 1;
-            group.Selected = custom ? groups[i] : 0;
-            group.ItemSelected += index =>
+            var list = row.GetNode<VBoxContainer>("Column/Weapons");
+            for (int k = 0; k < fits[i].Count; k++)
             {
-                GameConfig.Groups.TryGetValue(GameConfig.MechId, out int[] now);
-                if (now == null || now.Length != stock.Length) now = new int[stock.Length];
-                now[slot] = (int)index;
-                GameConfig.Groups[GameConfig.MechId] = now;
-            };
+                int at = k;
+                var info = Info(fits[i][k].id);
+                var chip = SlotRowScene.Instantiate<WeaponChip>();
+                list.AddChild(chip);
+                Dress(chip, info, fits[i][k].id);
+                chip.Point = point;
+                chip.Index = k;
+                // Which trigger it is on: its usual group unless the player chose otherwise.
+                var group = chip.GetNode<OptionButton>("Row/Group");
+                group.Selected = fits[i][k].group;
+                group.ItemSelected += index =>
+                {
+                    fits[point][at] = (fits[point][at].id, (int)index);
+                    Commit(false);
+                };
+                chip.GetNode<Button>("Row/Remove").Pressed += () =>
+                {
+                    fits[point].RemoveAt(at);
+                    Commit(true);
+                };
+            }
         }
-        stockMech.Free();
+        stockNode.Free();
+    }
+
+    static string Pips(int full, int empty)
+        => string.Join(" ", System.Linq.Enumerable.Concat(System.Linq.Enumerable.Repeat("■", full), System.Linq.Enumerable.Repeat("□", Mathf.Max(0, empty))));
+
+    /// <summary>Gives a panel the colour of a sort of weapon along its edge.</summary>
+    static void Tint(Control panel, Color colour)
+    {
+        if (panel.GetThemeStylebox("panel") is not StyleBoxFlat box) return;
+        var own = (StyleBoxFlat)box.Duplicate();
+        own.BorderColor = colour;
+        panel.AddThemeStyleboxOverride("panel", own);
+    }
+
+    static void Dress(WeaponChip chip, WeaponInfo info, string id)
+    {
+        chip.WeaponId = id;
+        chip.GetNode<Label>("Row/Name").Text = info?.Name ?? id;
+        var size = chip.GetNode<Label>("Row/Size");
+        size.Text = Pips(info?.Slots ?? 1, 0);
+        if (info == null) return;
+        Color colour = SlotColors[(int)info.Slot];
+        size.AddThemeColorOverride("font_color", colour);
+        Tint(chip, colour);
     }
 }

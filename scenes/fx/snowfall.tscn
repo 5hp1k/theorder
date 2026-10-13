@@ -44,6 +44,9 @@ GustPeriod = 14
 CalmAmount = 0.5
 QuietDb = -26
 LoudDb = -14
+Haze = 2.2
+SkyLight = 0.7
+SunLight = 0.45
 
 [node name="Flakes" type="GPUParticles3D" parent="."]
 amount = 1800

@@ -12,7 +12,7 @@ namespace MechSim;
 /// turret, "CockpitCam" sits on the hull and the weapons point where the nose does;
 /// Weapon nodes anywhere; nodes named "Rotor…" spin; nodes under "Hull" named "Wheel…" roll with the
 /// speed (their axle is their local X) and, on a vehicle without tracks, the front ones steer;
-/// "TreadTop" / "TreadBottom" under "TrackL" / "TrackR" are the links of a track, which run round;
+/// "Belt" (a TrackBelt) under "TrackL" / "TrackR" is the track itself, drawn round the wheels of its side;
 /// optional "Sounds/Engine" loop.
 /// </summary>
 public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
@@ -50,6 +50,26 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     [Export] public float StallFraction = 0.45f;
     /// <summary>How far a plane rolls into a turn, radians.</summary>
     [Export] public float BankAngle = 0.7f;
+    /// <summary>How fast it rolls and (helicopter) tips over to the commanded attitude, rad/s.</summary>
+    [Export] public float AttitudeRate = 1.4f;
+    /// <summary>Helicopter: how far it tips to accelerate, radians. Steeper = quicker, and harder to stop.</summary>
+    [Export] public float MaxTilt = 0.38f;
+    /// <summary>Gravity as the flight model feels it, m/s².</summary>
+    [Export] public float FlightGravity = 11f;
+    /// <summary>Hitting anything faster than this wrecks an aircraft, m/s. A helicopter set down slower than this lands.</summary>
+    [Export] public float CrashSpeed = 6f;
+
+    [ExportGroup("Suspension")]
+    /// <summary>How far each wheel can move up and down from its rest position, metres.</summary>
+    [Export] public float SuspensionTravel = 0.38f;
+    /// <summary>How quickly the wheels follow the ground, per second.</summary>
+    [Export] public float SuspensionRate = 16f;
+    /// <summary>How much the hull squats under acceleration and dips under braking, radians per m/s².</summary>
+    [Export] public float BodyPitchPerAccel = 0.012f;
+    /// <summary>How quickly the hull takes up a turn and comes out of it (higher = snappier).</summary>
+    [Export] public float TurnResponse = 4.5f;
+    /// <summary>Share of the speed lost in a full-rate turn.</summary>
+    [Export(PropertyHint.Range, "0,0.8")] public float TurnDrag = 0.3f;
 
     [ExportGroup("Turret")]
     /// <summary>Travel each way; π = all the way round; 0 = fixed guns.</summary>
@@ -128,11 +148,16 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     readonly List<Node3D> _rotors = new();
     // Wheels: the node, its radius, and how far forward it sits (1 = front axle, 0 = middle and back).
     readonly List<(Node3D node, float radius, float front)> _wheels = new();
+    // Suspension: where each wheel sits at rest (hull space) and how far it has travelled from there.
+    readonly List<Vector3> _wheelRest = new();
+    float[] _wheelTravel = System.Array.Empty<float>();
+    // Tracks: the belt of each side, the wheels it runs round, how far it has run, and the vehicle's rate of turn.
+    readonly List<(TrackBelt belt, Node3D mount, List<int> wheels, float side)> _belts = new();
+    readonly float[] _trackRun = new float[2];
+    readonly List<Vector3> _beltWheels = new();
+    float _groundYawRate;
+    float _squat, _lastSpeed;
     float _rollAngle, _steer;
-    // Track links: the strip, and which way it runs (+1 = towards the nose) as the vehicle goes forward.
-    readonly List<(Node3D strip, float way)> _treads = new();
-    /// <summary>Length of one track link, metres: the links slide this far and jump back.</summary>
-    const float TrackLink = 0.3f;
     bool _steers;
     readonly List<MeshInstance3D> _meshes = new();
     readonly List<Material> _original = new();
@@ -146,7 +171,8 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     Transform3D _spawn;
     uint _layer, _mask;
     float _yaw, _pitch, _climb, _roll, _tilt;
-    bool _falling;
+    bool _falling, _avoiding;
+    float _yawRate, _sink;
     int _tick, _wake;
 
     void FindWheels()
@@ -160,12 +186,6 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             found.Add(wheel);
             reach = Mathf.Max(reach, Mathf.Abs(wheel.Position.Z));
         }
-        foreach (string side in new[] { "TrackL", "TrackR" })
-        {
-            // Seen from the vehicle, the run on the ground goes backwards and the upper run forwards.
-            if (_hull.GetNodeOrNull<Node3D>(side + "/TreadTop") is { } top) _treads.Add((top, 1f));
-            if (_hull.GetNodeOrNull<Node3D>(side + "/TreadBottom") is { } bottom) _treads.Add((bottom, -1f));
-        }
         // Tracked vehicles turn by their tracks; the wheels inside only roll.
         _steers = _hull.GetNodeOrNull("TrackL") == null;
         foreach (Node3D wheel in found)
@@ -173,24 +193,91 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             Aabb box = wheel is MeshInstance3D { Mesh: not null } mesh ? mesh.Mesh.GetAabb() : new Aabb(Vector3.One * -0.5f, Vector3.One);
             float radius = Mathf.Max(box.Size.Y, box.Size.Z) * 0.5f;
             _wheels.Add((wheel, Mathf.Max(radius, 0.05f), Mathf.Clamp(-wheel.Position.Z / reach, 0f, 1f)));
+            _wheelRest.Add(wheel.Position);
+        }
+        _wheelTravel = new float[_wheels.Count];
+        foreach (string name in new[] { "TrackL", "TrackR" })
+        {
+            if (_hull.GetNodeOrNull<Node3D>(name) is not { } mount || mount.GetNodeOrNull<TrackBelt>("Belt") is not { } belt) continue;
+            float side = Mathf.Sign(belt.Position.X);
+            var round = new List<int>();
+            for (int i = 0; i < _wheelRest.Count; i++)
+                if (Mathf.Sign(_wheelRest[i].X) == side) round.Add(i);
+            _belts.Add((belt, mount, round, side));
+        }
+    }
+
+    /// <summary>Half the distance between the two tracks.</summary>
+    float TrackGauge => _belts.Count > 0 ? Mathf.Abs(_belts[0].belt.Position.X) : 0f;
+
+    /// <summary>Draws each track round its wheels where they are now.</summary>
+    void LayTracks()
+    {
+        foreach (var (belt, mount, round, side) in _belts)
+        {
+            // A track that has been shot off lies where it fell.
+            if (!IsInstanceValid(belt) || !IsInstanceValid(mount) || mount.GetParent() != _hull) continue;
+            _beltWheels.Clear();
+            foreach (int i in round)
+            {
+                Vector3 rest = _wheelRest[i];
+                _beltWheels.Add(new Vector3(rest.Z, rest.Y + _wheelTravel[i], _wheels[i].radius));
+            }
+            belt.Lay(_beltWheels, _trackRun[side < 0f ? 0 : 1]);
         }
     }
 
     void TurnWheels(float dt)
     {
-        if (_wheels.Count == 0 && _treads.Count == 0) return;
+        if (_wheels.Count == 0) return;
         _rollAngle -= Speed * dt;
-        // _rollAngle is minus the distance covered. Forward is -Z.
-        float slide = Mathf.PosMod(-_rollAngle, TrackLink);
-        foreach (var (strip, way) in _treads)
-            if (IsInstanceValid(strip)) strip.Position = new Vector3(0f, 0f, -way * slide);
+        // A turning tank's tracks run at different speeds: the outer one faster, the inner one slower
+        // (or backwards, turning on the spot). Forward is -Z; a positive rate of turn is to the left.
+        float gauge = TrackGauge;
+        _trackRun[0] += (Speed - _groundYawRate * gauge) * dt;
+        _trackRun[1] += (Speed + _groundYawRate * gauge) * dt;
         _steer = Mathf.MoveToward(_steer, _steers ? Mathf.Clamp(TurnInput, -1f, 1f) * 0.5f : 0f, 2.5f * dt);
-        foreach (var (wheel, radius, front) in _wheels)
+        for (int i = 0; i < _wheels.Count; i++)
         {
+            var (wheel, radius, front) = _wheels[i];
             // One that has been shot off lies where it fell.
             if (!IsInstanceValid(wheel) || wheel.GetParent() != _hull) continue;
-            wheel.Basis = new Basis(Vector3.Up, _steer * front) * new Basis(Vector3.Right, _rollAngle / radius);
+            // _rollAngle is minus the distance covered; the wheels inside a track turn with that track.
+            float rolled = _belts.Count > 0 ? -_trackRun[_wheelRest[i].X < 0f ? 0 : 1] : _rollAngle;
+            wheel.Basis = new Basis(Vector3.Up, _steer * front) * new Basis(Vector3.Right, rolled / radius);
         }
+    }
+
+    /// <summary>
+    /// Suspension: every wheel reaches for the ground under it, as far as its travel allows, so on rough
+    /// going the wheels ride up and down while the hull stays put. The tracks are then drawn round them.
+    /// </summary>
+    void Suspend(float dt, bool afloat)
+    {
+        if (_wheels.Count == 0) return;
+        var terrain = MapTerrain.Instance;
+        Transform3D hull = _hull.GlobalTransform;
+        float upright = Mathf.Max(hull.Basis.Y.Y, 0.5f);
+        float ease = 1f - Mathf.Exp(-SuspensionRate * dt);
+        float shoe = _belts.Count > 0 ? _belts[0].belt.Thickness : 0f;
+        for (int i = 0; i < _wheels.Count; i++)
+        {
+            var (wheel, radius, _) = _wheels[i];
+            Vector3 rest = _wheelRest[i];
+            float want = 0f;
+            if (!afloat && terrain != null)
+            {
+                Vector3 at = hull * rest;
+                // (a wheel inside a track stands on the track, not on the ground)
+                want = Mathf.Clamp((FloorAt(at.X, at.Z) + radius + shoe - at.Y) / upright, -SuspensionTravel, SuspensionTravel);
+            }
+            else want = -SuspensionTravel * 0.6f; // hanging free in the water
+            _wheelTravel[i] = Mathf.Lerp(_wheelTravel[i], want, ease);
+            if (IsInstanceValid(wheel) && wheel.GetParent() == _hull)
+                wheel.Position = rest + Vector3.Up * _wheelTravel[i];
+
+        }
+        LayTracks();
     }
 
     public override void _EnterTree() => Units.All.Add(this);
@@ -223,7 +310,10 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         // Mech bodies only get in the way if mechs aren't allowed to walk over vehicles.
         uint mechs = GameConfig.MechsCrush ? 0 : Phys.LayerMech | Phys.LayerTargets;
         CollisionLayer = _layer = IsAircraft ? hit : hit | Phys.LayerVehicles;
-        CollisionMask = _mask = IsAircraft ? Phys.LayerWorld : Phys.LayerWorld | Phys.LayerVehicles | Phys.LayerProps | mechs;
+        // Aircraft fly into everything there is to fly into.
+        CollisionMask = _mask = IsAircraft
+            ? Phys.LayerWorld | Phys.LayerProps | Phys.LayerVehicles | Phys.LayerMech | Phys.LayerTargets | Phys.LayerWreck
+            : Phys.LayerWorld | Phys.LayerVehicles | Phys.LayerProps | mechs;
 
         if (GetNodeOrNull<CollisionShape3D>("Collision")?.Shape is BoxShape3D box)
             HalfExtents = new Vector2(box.Size.X, box.Size.Z) * 0.5f;
@@ -240,14 +330,20 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         Pilot?.Attach(this);
     }
 
-    /// <summary>Repaints the plating with a camouflage material. Call before it enters the tree.</summary>
-    public void ApplyPaint(Material camo)
-    {
-        Units.Repaint(this, ArmorMaterial, camo);
-        if (camo != null) ArmorMaterial = camo;
-    }
+    /// <summary>Repaints the armour (see <see cref="PaintJob"/>).</summary>
+    public void ApplyPaint(PaintJob paint) => ArmorMaterial = paint.Apply(this, ArmorMaterial);
+
+    /// <summary>Shows a picture on the plates named "Insignia…" in the scene, or hides them.</summary>
+    public void ApplyInsignia(Texture2D picture) => Units.ApplyInsignia(this, picture);
 
     public void SetPreview(bool on, int layer) => Units.SetPreview(this, on, layer);
+
+    /// <summary>What the wheels stand on here: the ground, or a bridge deck over it.</summary>
+    float FloorAt(float x, float z)
+    {
+        float ground = MapTerrain.Instance?.HeightAt(x, z) ?? 0f;
+        return ChunkedBuilding.DeckAt(x, z, GlobalPosition.Y + 1.5f, out float deck) ? Mathf.Max(ground, deck) : ground;
+    }
 
     float SurfaceAt(float x, float z)
     {
@@ -290,6 +386,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         Throttle = Mathf.Clamp(Throttle, -ReverseFraction, 1f);
         Blocked = false;
 
+        if (IsAircraft) LookAhead();
         switch (Kind)
         {
             case MoveKind.Helicopter: Hover(dt); break;
@@ -334,6 +431,8 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         var terrain = MapTerrain.Instance;
         Vector3 p = GlobalPosition;
         float depth = terrain?.WaterDepthAt(p.X, p.Z) ?? 0f;
+        // Over the water on a bridge isn't in it.
+        if (depth > 0f && terrain != null && p.Y > terrain.WaterLevel && ChunkedBuilding.DeckAt(p.X, p.Z, p.Y + 1f, out _)) depth = 0f;
         Vector3 forward = -GlobalTransform.Basis.Z;
 
         float factor = 1f;
@@ -362,7 +461,20 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 
         // Ships need way on to answer the helm; tracked things can turn on the spot.
         float steer = Kind == MoveKind.Ship ? Mathf.Clamp(Mathf.Abs(Speed) / (MaxForwardSpeed * 0.3f), 0.15f, 1f) : 1f;
-        Rotation = new Vector3(0f, Rotation.Y + Mathf.Clamp(TurnInput, -1f, 1f) * TurnRate * steer * dt, 0f);
+        float wantTurn = Mathf.Clamp(TurnInput, -1f, 1f) * TurnRate * steer;
+        if (Kind != MoveKind.Ship && !afloat)
+        {
+            float pace = Mathf.Abs(Speed) / Mathf.Max(MaxForwardSpeed, 0.1f);
+            // Wheels steer only while they roll (and the other way in reverse); tracks can pivot on the
+            // spot, but at speed the hull's weight resists being swung round.
+            if (_steers) wantTurn *= Mathf.Clamp(pace / 0.3f, 0f, 1f) * (Speed < -0.2f ? -1f : 1f);
+            else wantTurn *= Mathf.Lerp(1f, 0.6f, pace);
+            // Slewing a hull sideways across the ground costs speed.
+            factor *= 1f - TurnDrag * Mathf.Abs(_groundYawRate) / Mathf.Max(TurnRate, 0.01f);
+        }
+        // The hull has inertia about its vertical axis: it winds up into a turn and out of it.
+        _groundYawRate = Mathf.Lerp(_groundYawRate, wantTurn, 1f - Mathf.Exp(-TurnResponse * dt));
+        Rotation = new Vector3(0f, Rotation.Y + _groundYawRate * dt, 0f);
         Accelerate(Throttle * MaxForwardSpeed * factor, dt);
 
         forward = -GlobalTransform.Basis.Z;
@@ -390,69 +502,189 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             Vector3 right = GlobalTransform.Basis.X;
             p = GlobalPosition;
             Vector3 f = p + forward * 2f, b = p - forward * 2f, l = p - right * 1.3f, r = p + right * 1.3f;
-            pitch = Mathf.Atan2(terrain.HeightAt(f.X, f.Z) - terrain.HeightAt(b.X, b.Z), 4f);
-            roll = Mathf.Atan2(terrain.HeightAt(r.X, r.Z) - terrain.HeightAt(l.X, l.Z), 2.6f);
+            pitch = Mathf.Atan2(FloorAt(f.X, f.Z) - FloorAt(b.X, b.Z), 4f);
+            roll = Mathf.Atan2(FloorAt(r.X, r.Z) - FloorAt(l.X, l.Z), 2.6f);
         }
         float k = 1f - Mathf.Exp(-6f * dt);
         _tilt = Mathf.Lerp(_tilt, pitch, k);
         _roll = Mathf.Lerp(_roll, roll, k);
-        _hull.Rotation = new Vector3(_tilt, 0f, _roll);
+        // The body rocks on its springs: back on its haunches pulling away, nose down under braking.
+        float accel = (Speed - _lastSpeed) / Mathf.Max(dt, 1e-4f);
+        _lastSpeed = Speed;
+        _squat = Mathf.Lerp(_squat, afloat ? 0f : Mathf.Clamp(accel * BodyPitchPerAccel, -0.09f, 0.09f), 1f - Mathf.Exp(-5f * dt));
+        _hull.Rotation = new Vector3(_tilt + _squat, 0f, _roll);
+        Suspend(dt, afloat);
     }
 
-    /// <summary>Helicopter: flies where it points, climbs and sinks on command (the AI holds its cruise altitude).</summary>
+    /// <summary>
+    /// Helicopter. The rotor lifts along the machine's own "up": tipped forward, part of that lift pulls
+    /// it along, so it gathers speed gradually, keeps it when the nose comes up, and slides wide in turns.
+    /// Throttle = how far to tip forward (or back); steering = yaw; Jump / Descend = more or less lift.
+    /// It hovers by itself with the controls let go. The AI holds its cruise altitude.
+    /// </summary>
     void Hover(float dt)
     {
-        Rotation = new Vector3(0f, Rotation.Y + Mathf.Clamp(TurnInput, -1f, 1f) * TurnRate * dt, 0f);
-        Accelerate(Throttle * MaxForwardSpeed, dt);
+        float turn = Mathf.Clamp(TurnInput, -1f, 1f);
+        _yawRate = Mathf.Lerp(_yawRate, turn * TurnRate, 1f - Mathf.Exp(-4f * dt));
+        Rotation = new Vector3(0f, Rotation.Y + _yawRate * dt, 0f);
+
+        // Attitude follows the controls at its own pace.
+        _tilt = Mathf.MoveToward(_tilt, -Throttle * MaxTilt, AttitudeRate * dt);
+        _roll = Mathf.MoveToward(_roll, turn * MaxTilt * 0.6f, AttitudeRate * dt);
 
         Vector3 p = GlobalPosition;
-        float floor = SurfaceAt(p.X, p.Z) + MinAltitude;
-        float climb;
-        if (Pilot is PlayerPilot) climb = ((Jump ? 1f : 0f) - (Descend ? 1f : 0f)) * ClimbRate;
-        else climb = Mathf.Clamp((floor - MinAltitude + CruiseAltitude - p.Y) * 0.8f, -ClimbRate, ClimbRate);
-        _climb = Mathf.Lerp(_climb, climb, 1f - Mathf.Exp(-3f * dt));
+        float ground = SurfaceAt(p.X, p.Z);
+        float lift; // as a share of the machine's weight
+        if (Pilot is PlayerPilot) lift = 1f + ((Jump ? 1f : 0f) - (Descend ? 1f : 0f)) * ClimbRate / 10f;
+        else
+        {
+            float wantClimb = Mathf.Clamp((ground + CruiseAltitude - p.Y) * 0.8f, -ClimbRate, ClimbRate);
+            if (_avoiding) wantClimb = ClimbRate;
+            lift = 1f + Mathf.Clamp((wantClimb - Velocity.Y) * 0.25f, -0.9f, 0.9f);
+        }
 
-        Velocity = -GlobalTransform.Basis.Z * Speed + Vector3.Up * _climb;
+        Basis body = GlobalTransform.Basis * Basis.FromEuler(new Vector3(_tilt, 0f, _roll));
+        // Enough extra lift to make up for the tilt, so tipping forward doesn't by itself lose height.
+        float hold = 1f / Mathf.Max(body.Y.Y, 0.6f);
+        Vector3 accel = body.Y * (FlightGravity * lift * hold) + Vector3.Down * FlightGravity;
+
+        // Air drag: enough along the nose to top out at MaxForwardSpeed at full tilt, much more sideways.
+        Vector3 v = Velocity;
+        Vector3 forward = -GlobalTransform.Basis.Z, right = GlobalTransform.Basis.X;
+        float along = v.Dot(forward), across = v.Dot(right);
+        float drag = FlightGravity * Mathf.Tan(MaxTilt) / Mathf.Max(MaxForwardSpeed, 1f);
+        accel -= forward * (along * drag) + right * (across * drag * 2.5f) + Vector3.Up * (v.Y * 0.9f);
+        v += accel * dt;
+        v.Y = Mathf.Clamp(v.Y, -ClimbRate * 2f, ClimbRate);
+        if (p.Y > ground + MaxAltitude) v.Y = Mathf.Min(v.Y, 0f);
+
+        Velocity = v;
+        float impact = v.Length();
         MoveAndSlide();
-        p = GlobalPosition;
-        GlobalPosition = new Vector3(p.X, Mathf.Clamp(p.Y, floor, floor + MaxAltitude), p.Z);
+        Speed = Velocity.Dot(forward);
 
-        if (_hull == null) return;
-        // Nose down to go forward, leaning into turns.
-        float k = 1f - Mathf.Exp(-4f * dt);
-        _tilt = Mathf.Lerp(_tilt, -0.22f * Speed / MaxForwardSpeed, k);
-        _roll = Mathf.Lerp(_roll, -0.25f * Mathf.Clamp(TurnInput, -1f, 1f), k);
-        _hull.Rotation = new Vector3(_tilt, 0f, _roll);
+        if (GetSlideCollisionCount() > 0)
+        {
+            var hit = GetSlideCollision(0);
+            // How hard it came against whatever it met.
+            float closing = -v.Dot(hit.GetNormal());
+            bool ground_ = hit.GetCollider() is MapTerrain && hit.GetNormal().Y > 0.7f;
+            if (closing > CrashSpeed || (!ground_ && impact > CrashSpeed)) Crash(hit.GetPosition(), hit.GetCollider());
+            // Otherwise it has set down (or nudged something): the skids take the speed off.
+            else Velocity *= Mathf.Exp(-3f * dt);
+        }
+        else if (GlobalPosition.Y < ground + 0.3f) Crash(GlobalPosition, null); // into the water
+
+        if (_hull != null) _hull.Rotation = new Vector3(_tilt, 0f, _roll);
     }
 
-    /// <summary>Plane: always moving; the throttle sets the speed, TargetPitch the climb, steering banks it round.</summary>
+    /// <summary>
+    /// Plane. It trades speed and height: the engine pushes, drag holds it back, climbing costs speed and
+    /// diving gives it. Steering rolls it and the bank is what turns it — faster round the tighter the
+    /// bank and the slower it flies; the stick (TargetPitch) raises and lowers the nose with less
+    /// authority at low speed. Too slow and the wing stops flying: the nose drops and it sinks until it
+    /// has picked up speed again.
+    /// </summary>
     void Fly(float dt)
     {
-        float turn = Mathf.Clamp(TurnInput, -1f, 1f);
-        Rotation = new Vector3(0f, Rotation.Y + turn * TurnRate * dt, 0f);
-        float want = Mathf.Lerp(StallFraction, 1f, Mathf.Clamp(Throttle, 0f, 1f)) * MaxForwardSpeed;
-        Speed = Mathf.MoveToward(Speed, want, Acceleration * dt);
-        _climb = Mathf.MoveToward(_climb, Mathf.Clamp(TargetPitch, MinPitch, MaxPitch), PitchRate * dt);
+        float top = MaxForwardSpeed, stall = StallFraction * top;
+        float authority = Mathf.Clamp(Speed / (top * 0.6f), 0.25f, 1f);
+        bool stalled = Speed < stall;
 
-        Vector3 p = GlobalPosition;
-        float floor = SurfaceAt(p.X, p.Z) + MinAltitude;
-        // Pull out rather than fly into the ground.
-        if (p.Y <= floor + 2f && _climb < 0.05f) _climb = 0.05f;
+        float turn = Mathf.Clamp(TurnInput, -1f, 1f);
+        _roll = Mathf.MoveToward(_roll, turn * BankAngle, AttitudeRate * authority * dt);
+        float wantPitch = Mathf.Clamp(_avoiding ? MaxPitch : TargetPitch, MinPitch, MaxPitch);
+        // Stalled, the nose falls whatever the stick says.
+        if (stalled) wantPitch = Mathf.Min(wantPitch, MinPitch);
+        _climb = Mathf.MoveToward(_climb, wantPitch, PitchRate * authority * dt);
+
+        // A banked wing turns the plane: rate = g · tan(bank) / speed.
+        float rate = FlightGravity * Mathf.Tan(Mathf.Clamp(_roll, -1.2f, 1.2f)) / Mathf.Max(Speed, stall * 0.7f);
+        Rotation = new Vector3(0f, Rotation.Y + rate * dt, 0f);
+
+        // Thrust against drag (which settles it at top speed on full throttle), plus the pull of the slope
+        // it is flying along and the price of a hard turn.
+        float thrust = Acceleration * Mathf.Clamp(Throttle, 0f, 1f);
+        float drag = Acceleration * (Speed * Speed) / (top * top);
+        float turning = Mathf.Abs(Mathf.Tan(_roll)) * 1.5f;
+        Speed += (thrust - drag - FlightGravity * Mathf.Sin(_climb) - turning) * dt;
+        Speed = Mathf.Max(Speed, stall * 0.4f);
 
         Vector3 dir = -GlobalTransform.Basis.Z * Mathf.Cos(_climb) + Vector3.Up * Mathf.Sin(_climb);
-        Velocity = dir * Speed;
-        p += Velocity * dt;
-        GlobalPosition = new Vector3(p.X, Mathf.Clamp(p.Y, floor, floor + MaxAltitude), p.Z);
+        Vector3 v = dir * Speed;
+        // Below flying speed the wing carries less than the weight and the rest is falling.
+        if (stalled) _sink = Mathf.Min(_sink + FlightGravity * (1f - Speed / stall) * dt, 40f);
+        else _sink = Mathf.MoveToward(_sink, 0f, FlightGravity * dt);
+        v.Y -= _sink;
+        Velocity = v;
 
-        _roll = Mathf.Lerp(_roll, turn * BankAngle, 1f - Mathf.Exp(-3f * dt));
+        Vector3 p = GlobalPosition, next = p + v * dt;
+        float ceiling = SurfaceAt(next.X, next.Z) + MaxAltitude;
+        if (next.Y > ceiling)
+        {
+            next.Y = ceiling;
+            _climb = Mathf.Min(_climb, 0f);
+        }
+        // Anything in the way — ground, water, a tower, another machine — is the end of the flight.
+        if (Phys.Ray(GetWorld3D().DirectSpaceState, p, next + v.Normalized() * (HalfExtents.Y * 0.8f), _mask, _exclude, out var hit))
+        {
+            GlobalPosition = hit.Position - v.Normalized() * 2f;
+            Crash(hit.Position, hit.Collider);
+            return;
+        }
+        if (next.Y < SurfaceAt(next.X, next.Z) + 1f)
+        {
+            GlobalPosition = next;
+            Crash(next, null);
+            return;
+        }
+        GlobalPosition = next;
         if (_hull != null) _hull.Rotation = new Vector3(_climb, 0f, _roll);
+    }
+
+    /// <summary>Flew into something: the aircraft is destroyed there and then, and what it hit feels it.</summary>
+    void Crash(Vector3 at, GodotObject into)
+    {
+        if (IsDestroyed) return;
+        var space = GetWorld3D().DirectSpaceState;
+        float height = GlobalPosition.Y - SurfaceAt(GlobalPosition.X, GlobalPosition.Z);
+        TakeDamage(MaxHp * 4f, at);
+        // On the ground already: no long fall, it burns where it hit.
+        if (height < 6f)
+        {
+            _falling = false;
+            Velocity = Vector3.Zero;
+        }
+        else Velocity = new Vector3(Velocity.X * 0.2f, Mathf.Min(Velocity.Y, 0f), Velocity.Z * 0.2f);
+        Phys.Blast(space, at, 9f, 45f, Phys.LayerProps | Phys.LayerVehicles | Phys.LayerHitPlayer | Phys.LayerHitEnemy, _exclude);
+        if (into is MapTerrain terrain) terrain.AddCrater(at, 4.5f, 1.1f);
+        Impacts.Water(GetParent(), at + Vector3.Up * 2f, at + Vector3.Down * 2f, 3f);
+    }
+
+    /// <summary>
+    /// The AI doesn't fly by sight, so it gets this much help: a look along its path every few ticks, and
+    /// if something is in the way it climbs until the way is clear.
+    /// </summary>
+    void LookAhead()
+    {
+        if (Pilot is PlayerPilot || (_tick % 8) != 0) return;
+        Vector3 v = Velocity;
+        if (v.LengthSquared() < 4f)
+        {
+            _avoiding = false;
+            return;
+        }
+        Vector3 from = GlobalPosition;
+        float reach = Mathf.Max(60f, v.Length() * 4f);
+        _avoiding = Phys.Ray(GetWorld3D().DirectSpaceState, from, from + new Vector3(v.X, 0f, v.Z).Normalized() * reach + Vector3.Down * 4f,
+                             Phys.LayerWorld | Phys.LayerProps, _exclude, out _);
     }
 
     void KeepOnMap()
     {
         var terrain = MapTerrain.Instance;
         if (terrain == null) return;
-        float limit = terrain.Size * 0.5f - 12f;
+        float limit = terrain.PlayHalf;
         Vector3 p = GlobalPosition;
         if (Mathf.Abs(p.X) <= limit && Mathf.Abs(p.Z) <= limit) return;
         if (Kind == MoveKind.Plane)
@@ -609,7 +841,8 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         Velocity = Vector3.Zero;
         Speed = Kind == MoveKind.Plane ? MaxForwardSpeed * 0.8f : 0f;
         Throttle = 0f;
-        _yaw = _pitch = _climb = _roll = _tilt = 0f;
+        _yaw = _pitch = _climb = _roll = _tilt = _yawRate = _sink = _squat = 0f;
+        _avoiding = false;
         TargetYaw = TargetPitch = 0f;
         _falling = false;
         if (_hull != null) _hull.Rotation = Vector3.Zero;

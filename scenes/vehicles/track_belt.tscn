@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Vehicles/TrackBelt.cs" id="1"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_link"]
+size = Vector3(0.72, 0.07, 0.25)
+
+[sub_resource type="MultiMesh" id="MultiMesh_links"]
+transform_format = 1
+mesh = SubResource("BoxMesh_link")
+
+[node name="Belt" type="MultiMeshInstance3D"]
+material_override = ExtResource("2")
+multimesh = SubResource("MultiMesh_links")
+script = ExtResource("1")
+LinkLength = 0.3
+Thickness = 0.09
+Sag = 0.06

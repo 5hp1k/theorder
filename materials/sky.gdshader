@@ -18,12 +18,19 @@ uniform float light_energy = 1.0;
 uniform float light_clamp = 8.0;
 // What lies below the horizon: seen in the distance and lighting the undersides of things.
 uniform vec3 ground_color : source_color = vec3(0.3, 0.27, 0.22);
+// A colour cast over the sky and its light (dawn, dusk, night), and how much of its own colour is kept.
+uniform vec3 tint : source_color = vec3(1.0);
+uniform float saturation = 1.0;
 // Turns the whole sky about the vertical, radians.
 uniform float rotation = 0.0;
 
 vec3 turned(vec3 d) {
 	float c = cos(rotation), s = sin(rotation);
 	return vec3(d.x * c - d.z * s, d.y, d.x * s + d.z * c);
+}
+
+vec3 mood(vec3 c) {
+	return mix(vec3(dot(c, vec3(0.2126, 0.7152, 0.0722))), c, saturation) * tint;
 }
 
 void sky() {
@@ -34,7 +41,8 @@ void sky() {
 		vec3 light = min(textureLod(light_tex, vec2(u, min(v, 0.5)), 1.0).rgb, vec3(light_clamp));
 		// The ground's own bounce stands in for the lower half.
 		float below = smoothstep(0.0, -0.12, d.y);
-		COLOR = mix(light, ground_color * dot(textureLod(light_tex, vec2(u, 0.3), 6.0).rgb, vec3(0.33)), below) * light_energy;
+		COLOR = mix(light, ground_color * dot(textureLod(light_tex, vec2(u, 0.3), 6.0).rgb, vec3(0.33)), below);
+		COLOR = mood(COLOR) * light_energy;
 	} else {
 		float v = acos(clamp(d.y, 0.0, 1.0)) / (PI * 0.5);
 		vec3 c = textureLod(sky_tex, vec2(u, min(v, 0.997)), 0.0).rgb;
@@ -42,9 +50,9 @@ void sky() {
 		c *= 1.0 + highlight_boost * smoothstep(0.55, 1.0, lum);
 		// Under the horizon: the horizon's own colour sinking into the haze.
 		// (taken from the blurred copy of the sky that lights the scene: a row of the photo itself would smear into streaks)
-		vec3 haze = textureLod(RADIANCE, normalize(vec3(EYEDIR.x, 0.06, EYEDIR.z)), 4.0).rgb / max(background_energy, 0.001);
+		vec3 haze = textureLod(RADIANCE, normalize(vec3(EYEDIR.x, 0.06, EYEDIR.z)), 4.0).rgb / max(light_energy, 0.001) / max(tint, vec3(0.02));
 		float below = smoothstep(0.0, -0.25, d.y);
 		c = mix(c, mix(haze, ground_color, below), step(d.y, 0.0));
-		COLOR = c * background_energy;
+		COLOR = mood(c) * background_energy;
 	}
 }

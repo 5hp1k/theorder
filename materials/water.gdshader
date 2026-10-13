@@ -35,6 +35,9 @@ uniform bool use_reflection = false;
 uniform sampler2D reflection_tex : source_color, filter_linear, repeat_disable;
 uniform vec4 sky_color : source_color = vec4(0.6, 0.72, 0.85, 1.0);
 uniform float sun_glint = 2.0;
+// How much light there is to see the water's own colours by, as a colour: 1 on the map as it was
+// made, darker and tinted at dusk, at night, under cloud (set by WaterSurface.cs from MapLighting).
+uniform vec3 daylight = vec3(1.0);
 
 group_uniforms ripples;
 uniform float ripple_speed = 6.0;
@@ -108,10 +111,10 @@ void fragment() {
 	}
 	vec3 below = texture(screen_tex, bent).rgb;
 	below *= mix(vec3(1.0), shallow_tint.rgb, clamp(bent_thickness * 0.6, 0.0, 1.0));
-	below = mix(below, water_color.rgb, 1.0 - exp(-bent_thickness / clarity));
+	below = mix(below, water_color.rgb * daylight, 1.0 - exp(-bent_thickness / clarity));
 
 	// What is above it, mirrored. (The mirror camera's picture is flipped left to right.)
-	vec3 above = sky_color.rgb;
+	vec3 above = sky_color.rgb * daylight;
 	if (use_reflection) {
 		above = texture(reflection_tex, vec2(1.0 - SCREEN_UV.x, SCREEN_UV.y) + slope * reflect_distortion).rgb;
 	}
@@ -122,7 +125,7 @@ void fragment() {
 	vec3 colour = mix(below, above, clamp(fresnel * reflectivity, 0.0, 1.0));
 
 	float foam = (1.0 - smoothstep(0.0, foam_width, thickness)) * 0.7 + clamp(abs(ring_here) * 0.5, 0.0, 0.5);
-	colour = mix(colour, foam_color.rgb, clamp(foam, 0.0, 1.0));
+	colour = mix(colour, foam_color.rgb * daylight, clamp(foam, 0.0, 1.0));
 
 	ALBEDO = vec3(0.0);
 	EMISSION = colour;

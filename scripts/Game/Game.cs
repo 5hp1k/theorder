@@ -21,7 +21,9 @@ public partial class Game : Node3D
     [Export] public PackedScene PlayerPilotScene;
     [Export] public PackedScene AiPilotScene;
     [Export] public Material EnemyCamo;
+    /// <summary>The enemy's second colour, and which parts wear it (see <see cref="PaintJob.SchemeNames"/>).</summary>
     [Export] public Color EnemyStripe = new(0.5f, 0.1f, 0.06f);
+    [Export] public int EnemyScheme = 1;
     [Export] public float PlayerRespawnTime = 7f;
     [Export] public float EnemyRespawnTime = 14f;
     [Export] public PackedScene SoldierScene;
@@ -65,6 +67,18 @@ public partial class Game : Node3D
         TimeLeft = GameConfig.TimeLimitMinutes * 60f;
 
         _map = GD.Load<PackedScene>(Catalog.Find(Catalog.Maps, GameConfig.MapId).Path).Instantiate<Node3D>();
+        // The weather the player asked for, in place of the map's own.
+        if (GameConfig.WeatherId > 0 && GameConfig.WeatherId < Weather.Scenes.Length)
+        {
+            if (_map.GetNodeOrNull("Weather") is { } own)
+            {
+                _map.RemoveChild(own);
+                own.QueueFree();
+            }
+            var weather = GD.Load<PackedScene>(Weather.Scenes[GameConfig.WeatherId]).Instantiate();
+            weather.Name = "Weather";
+            _map.AddChild(weather);
+        }
         GetNode("Map").AddChild(_map);
         _units = GetNode<Node3D>("Units");
 
@@ -88,7 +102,7 @@ public partial class Game : Node3D
     {
         Transform3D spawn = _map.GetNode<Node3D>("PlayerSpawn").Transform;
         var entry = Catalog.Find(Catalog.PlayerUnits, GameConfig.MechId);
-        var camo = GD.Load<Material>(Catalog.Find(Catalog.Camos, GameConfig.CamoId).Path);
+        PaintJob paint = GameConfig.PlayerPaint();
 
         if (entry.Kind == Catalog.Kind.Infantry)
         {
@@ -108,10 +122,7 @@ public partial class Game : Node3D
             mech.Team = Team.Player;
             mech.DisplayName = entry.Name;
             mech.RespawnTime = PlayerRespawnTime;
-            GameConfig.Loadouts.TryGetValue(entry.Id, out string[] loadout);
-            GameConfig.Groups.TryGetValue(entry.Id, out int[] groups);
-            mech.ApplyLoadout(loadout, groups);
-            mech.ApplyPaint(camo, GameConfig.StripeColor);
+            mech.ApplyPaint(paint);
             mech.ApplyInsignia(GameConfig.Insignia);
         }
         else if (node is Vehicle vehicle)
@@ -119,11 +130,15 @@ public partial class Game : Node3D
             vehicle.Team = Team.Player;
             vehicle.DisplayName = entry.Name;
             vehicle.RespawnTime = PlayerRespawnTime;
-            vehicle.ApplyPaint(camo);
+            vehicle.ApplyPaint(paint);
+            vehicle.ApplyInsignia(GameConfig.Insignia);
             // A ship starts at sea; where the map has none, in the nearest water there is.
             if (entry.Kind == Catalog.Kind.Water)
                 spawn.Origin = MapTerrain.Instance?.RandomSeaSpot(24f) ?? WaterSpotNear(spawn.Origin) ?? spawn.Origin;
         }
+        // What the player fitted in the hangar.
+        GameConfig.Loadouts.TryGetValue(entry.Id, out string[] loadout);
+        Hardpoint.Apply(node, loadout);
         node.AddChild(PlayerPilotScene.Instantiate());
         node.Transform = spawn;
         _units.AddChild(node);
@@ -143,7 +158,7 @@ public partial class Game : Node3D
             mech.Respawns = GameConfig.EnemyRespawn;
             mech.RespawnTime = EnemyRespawnTime;
             mech.DamageDealtScale = GameConfig.EnemyDamageScale;
-            mech.ApplyPaint(EnemyCamo, EnemyStripe);
+            mech.ApplyPaint(new PaintJob { Camo = EnemyCamo, Second = EnemyStripe, Scheme = EnemyScheme });
             mech.ApplyInsignia(null);
             Place(mech, NextSpawn());
         }
@@ -176,7 +191,7 @@ public partial class Game : Node3D
             vehicle.Respawns = GameConfig.EnemyRespawn;
             vehicle.RespawnTime = EnemyRespawnTime;
             vehicle.DamageDealtScale = GameConfig.EnemyDamageScale;
-            vehicle.ApplyPaint(EnemyCamo);
+            vehicle.ApplyPaint(new PaintJob { Camo = EnemyCamo, Second = EnemyStripe, Scheme = EnemyScheme });
             Place(vehicle, position);
         }
     }
@@ -203,7 +218,7 @@ public partial class Game : Node3D
         if (terrain == null || !terrain.HasWater) return null;
         // Widening rings around the start until one reaches open water with room for the hull;
         // failing that, any water deep enough (a river: cramped, but afloat).
-        float edge = terrain.Size * 0.5f - 45f;
+        float edge = terrain.PlayHalf - 33f;
         foreach (float clear in new[] { 24f, 0f })
         for (float r = 20f; r < terrain.Size; r += 15f)
         for (int i = 0; i < 16; i++)

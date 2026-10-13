@@ -1,7 +1,7 @@
 namespace MechSim;
 
 /// <summary>
-/// What the menus offer: mechs, vehicles, maps, weapons, paint schemes. To add one, make its scene or
+/// What the menus offer: mechs, vehicles, maps, weapons (paint schemes are in <see cref="PaintJob"/>). To add one, make its scene or
 /// material and list it here.
 /// </summary>
 public static class Catalog
@@ -40,9 +40,14 @@ public static class Catalog
     };
 
     public const string InfantryId = "infantry";
-    /// <summary>What the player can start as: any mech or vehicle, or on foot.</summary>
+    /// <summary>
+    /// Whether the menu offers the foot soldier with his suit of power armour. Switched off for now: the
+    /// scenes and the code are all still there, this only takes the entry out of the list.
+    /// </summary>
+    public const bool InfantryEnabled = false;
+    /// <summary>What the player can start as: any mech or vehicle (or on foot, see above).</summary>
     public static readonly Entry[] PlayerUnits = Join(Mechs,
-        new[]
+        !InfantryEnabled ? System.Array.Empty<Entry>() : new[]
         {
             new Entry(InfantryId, "Пехота + силовая броня", "res://scenes/infantry/power_armor.tscn",
                 "Вы на своих двоих с винтовкой; рядом стоит силовая броня: малый лазер, пара ракет ближнего боя, пулемёт и прыжковый ранец. Подойдите и нажмите F.", Kind.Infantry),
@@ -58,21 +63,17 @@ public static class Catalog
 
     public static readonly Entry[] Weapons =
     {
+        new("small_laser", "Малый лазер", "res://scenes/weapons/small_laser.tscn"),
         new("medium_laser", "Средний лазер", "res://scenes/weapons/medium_laser.tscn"),
         new("large_laser", "Большой лазер", "res://scenes/weapons/large_laser.tscn"),
-        new("autocannon", "Автопушка", "res://scenes/weapons/autocannon.tscn"),
-        new("lrm", "Ракеты (10)", "res://scenes/weapons/lrm.tscn"),
+        new("ppc", "Протонная пушка (ППЦ)", "res://scenes/weapons/ppc.tscn"),
         new("machine_gun", "Пулемёт", "res://scenes/weapons/machine_gun.tscn"),
+        new("autocannon", "Автопушка", "res://scenes/weapons/autocannon.tscn"),
+        new("heavy_cannon", "Тяжёлая пушка", "res://scenes/weapons/heavy_cannon.tscn"),
+        new("srm", "Ракеты ближнего боя", "res://scenes/weapons/srm.tscn"),
+        new("lrm", "Ракеты дальнего боя (10)", "res://scenes/weapons/lrm.tscn"),
         new("hatchet", "Топор", "res://scenes/weapons/hatchet.tscn"),
-    };
-
-    public static readonly Entry[] Camos =
-    {
-        new("desert", "Пустынный", "res://materials/camo_desert.tres"),
-        new("winter", "Зимний", "res://materials/camo_winter.tres"),
-        new("forest", "Лесной", "res://materials/camo_forest.tres"),
-        new("urban", "Городской", "res://materials/camo_urban.tres"),
-        new("rust", "Ржавый", "res://materials/camo_rust.tres"),
+        new("bomb_rack", "Бомбы", "res://scenes/weapons/bomb_rack.tscn"),
     };
 
     static Entry[] Join(params Entry[][] lists)

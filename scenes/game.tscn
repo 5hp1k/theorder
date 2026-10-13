@@ -8,6 +8,8 @@
 [ext_resource type="PackedScene" path="res://scenes/infantry/power_armor.tscn" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hud.tscn" id="7"]
 [ext_resource type="Script" uid="uid://cnqwirantwt6o" path="res://scripts/UI/PauseMenu.cs" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/ui/fps_counter.tscn" id="fps_counter"]
+[ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="settings_panel"]
 
 [node name="Game" type="Node3D" unique_id=2107216893]
 process_mode = 3
@@ -87,9 +89,36 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Начать заново"
 
+[node name="BtnSettings" type="Button" parent="Menu/PauseMenu/Center/Box" unique_id=1178185684]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Настройки"
+
 [node name="BtnMenu" type="Button" parent="Menu/PauseMenu/Center/Box" unique_id=1427957952]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 46)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "В главное меню"
+
+[node name="SettingsBox" type="VBoxContainer" parent="Menu/PauseMenu/Center" unique_id=1405661918]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(620, 0)
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Settings" parent="Menu/PauseMenu/Center/SettingsBox" unique_id=802335564 instance=ExtResource("settings_panel")]
+layout_mode = 2
+
+[node name="BtnSettingsBack" type="Button" parent="Menu/PauseMenu/Center/SettingsBox" unique_id=427706203]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 20
+text = "Назад"
+
+[node name="FpsCounter" parent="Menu" unique_id=1613589771 instance=ExtResource("fps_counter")]

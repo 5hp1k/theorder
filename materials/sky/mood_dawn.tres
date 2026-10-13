@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="SkyMood" format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/SkyMood.cs" id="1"]
+
+[resource]
+script = ExtResource("1")
+SunElevation = 9.0
+SunTint = Color(1, 0.72, 0.52, 1)
+SunEnergy = 0.55
+SkyTint = Color(1, 0.82, 0.74, 1)
+SkyEnergy = 0.5
+SkySaturation = 0.85
+Dark = false

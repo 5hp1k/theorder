@@ -15,6 +15,20 @@ public enum WeaponKind
     Melee,
 }
 
+/// <summary>What sort of mounting a weapon needs; a hardpoint takes weapons of its own sort (Omni: any gun).</summary>
+public enum SlotType
+{
+    Beam,
+    Ballistic,
+    Missile,
+    /// <summary>Any beam, ballistic or missile weapon.</summary>
+    Omni,
+    /// <summary>Hand weapons.</summary>
+    Melee,
+    /// <summary>Bomb bays.</summary>
+    Bomb,
+}
+
 /// <summary>
 /// One weapon, placed in the mech scene at its muzzle (it fires towards the mech's aim point).
 /// Optional children: "Beam" (MeshInstance3D, unit-height cylinder, top-level, hidden) for beam weapons,
@@ -25,6 +39,10 @@ public partial class Weapon : Node3D
     [Export] public string DisplayName = "Оружие";
     [Export(PropertyHint.Range, "1,3")] public int Group = 1;
     [Export] public WeaponKind Kind;
+    /// <summary>Which hardpoints it fits.</summary>
+    [Export] public SlotType Slot;
+    /// <summary>How many of a hardpoint's slots it fills.</summary>
+    [Export(PropertyHint.Range, "1,6")] public int Slots = 1;
     /// <summary>Section the weapon is mounted in; it's lost together with the section.</summary>
     [Export] public Section Mount = Section.RightArm;
     /// <summary>Per beam, per shell or per missile.</summary>
@@ -54,6 +72,8 @@ public partial class Weapon : Node3D
     [Export] public int SalvoSize = 10;
     /// <summary>Seconds between missiles of one salvo.</summary>
     [Export] public float SalvoInterval = 0.07f;
+    /// <summary>Size of the rack the salvo leaves from (each projectile from a random tube); zero for a single barrel.</summary>
+    [Export] public Vector2 RackSize = new(1.1f, 0.9f);
 
     public int Ammo { get; set; }
     public bool Destroyed { get; set; }
@@ -99,6 +119,25 @@ public sealed class WeaponSystem
     public uint Mask;
     /// <summary>Velocity of the machine carrying the weapons (bombs inherit it).</summary>
     public Vector3 CarrierVelocity;
+    /// <summary>
+    /// Set while the player looks out of the cockpit: the eye, the way it looks, and how far ahead of it
+    /// the cab ends. Beams, tracers and flashes are only drawn beyond that, so a gun mounted behind or
+    /// beside the pilot doesn't appear to fire through the cab. The shots themselves are unaffected.
+    /// </summary>
+    public (Vector3 eye, Vector3 forward, float depth)? CabClip;
+
+    /// <summary>Where a shot from one point to another first shows.</summary>
+    Vector3 Seen(Vector3 from, Vector3 to, out bool muzzleInView)
+    {
+        muzzleInView = true;
+        if (CabClip is not { } clip) return from;
+        float at = (from - clip.eye).Dot(clip.forward);
+        if (at >= clip.depth) return from;
+        muzzleInView = false;
+        Vector3 dir = (to - from).Normalized();
+        float along = dir.Dot(clip.forward);
+        return along > 0.05f ? from + dir * ((clip.depth - at) / along) : from;
+    }
 
     readonly Node _fxRoot;
     readonly Godot.Collections.Array<Rid> _exclude;
@@ -158,21 +197,23 @@ public sealed class WeaponSystem
         switch (w.Kind)
         {
             case WeaponKind.Beam:
-                Shot(w, from, 0.35f);
+                Seen(from, aimPoint, out bool beamMuzzle);
+                Shot(w, from, beamMuzzle ? 0.35f : 0f);
                 w.BeamLeft = w.BeamTime;
                 UpdateBeam(w, aimPoint, space, 0f);
                 break;
 
             case WeaponKind.Ballistic:
-                Shot(w, from, 0.5f);
                 Vector3 end = Trace(w, from, aimPoint, space, out var hit, out bool didHit);
-                TimedFx.Tracer(_fxRoot, from, end, w.FxColor, 0.06f);
+                Vector3 shown = Seen(from, end, out bool muzzle);
+                Shot(w, from, muzzle ? 0.5f : 0f);
+                TimedFx.Tracer(_fxRoot, shown, end, w.FxColor, 0.06f);
                 Impacts.Water(_fxRoot, from, end, 0.5f + w.CraterSize);
                 if (didHit)
                 {
                     TimedFx.Flash(_fxRoot, end, w.FxColor, 0.6f, 0.12f);
                     Phys.Damage(hit, w.Damage * DamageScale);
-                    Impacts.Ground(_fxRoot, hit, w.CraterSize);
+                    Impacts.Ground(_fxRoot, hit, w.CraterSize, w.CraterSize < 0.5f ? Mark.Bullet : Mark.Blast);
                 }
                 break;
 
@@ -194,7 +235,7 @@ public sealed class WeaponSystem
 
     void Shot(Weapon w, Vector3 from, float flash)
     {
-        TimedFx.Flash(_fxRoot, from, w.FxColor, flash, 0.07f);
+        if (flash > 0f) TimedFx.Flash(_fxRoot, from, w.FxColor, flash, 0.07f);
         PlaySound(w);
     }
 
@@ -243,7 +284,7 @@ public sealed class WeaponSystem
         if (!didHit) return;
         TimedFx.Flash(_fxRoot, end, w.FxColor, 1.6f, 0.18f);
         Phys.Damage(hit, w.Damage * DamageScale);
-        Impacts.Ground(_fxRoot, hit, w.CraterSize);
+        Impacts.Ground(_fxRoot, hit, w.CraterSize, Mark.Bullet);
     }
 
     void Launch(Weapon w, Vector3 aimPoint, ITarget lockTarget)
@@ -252,8 +293,9 @@ public sealed class WeaponSystem
         Vector3 from = w.GlobalPosition;
         // Each missile leaves from a different tube of the rack.
         Basis rack = w.GlobalTransform.Basis.Orthonormalized();
-        from += rack.X * (float)GD.RandRange(-0.55, 0.55) + rack.Y * (float)GD.RandRange(-0.45, 0.45);
-        Shot(w, from, 0.4f);
+        from += rack.X * (float)GD.RandRange(-0.5, 0.5) * w.RackSize.X + rack.Y * (float)GD.RandRange(-0.5, 0.5) * w.RackSize.Y;
+        Seen(from, aimPoint, out bool rackInView);
+        Shot(w, from, rackInView ? 0.4f : 0f);
 
         var projectile = w.ProjectileScene.Instantiate<Projectile>();
         _fxRoot.AddChild(projectile);
@@ -267,14 +309,17 @@ public sealed class WeaponSystem
         if (w.BeamMesh != null)
         {
             w.BeamMesh.Visible = true;
-            Geo.PlaceSegment(w.BeamMesh, from, end, Vector3.Up);
+            Geo.PlaceSegment(w.BeamMesh, Seen(from, end, out _), end, Vector3.Up);
         }
         if (didHit && dt > 0f)
         {
+            // What a beam destroys, it sets alight.
+            Burning.Heat = true;
             Phys.Damage(hit, w.Damage * DamageScale * dt / w.BeamTime);
+            Burning.Heat = false;
             if (GD.Randf() < 0.35f) TimedFx.Flash(_fxRoot, end, w.FxColor, 0.45f, 0.08f);
             // A beam held on the ground scorches a line of marks; on water it boils the surface now and then.
-            if (GD.Randf() < 0.06f) Impacts.Ground(_fxRoot, hit, w.CraterSize);
+            if (GD.Randf() < 0.06f) Impacts.Ground(_fxRoot, hit, w.CraterSize, Mark.Burn);
         }
         if (dt > 0f && GD.Randf() < 0.05f) Impacts.Water(_fxRoot, from, end, 0.6f);
     }

@@ -6,9 +6,28 @@ namespace MechSim;
 /// Wind-blown particles (sand, snow): the emitters ride along with the camera and their density pulses
 /// in gusts. Also the single source of wind for anything else that drifts (tumbleweeds, smoke).
 /// An optional AudioStreamPlayer child named "Loop" gets louder with the gusts.
+/// The weather also has its say on the light and the haze (see <see cref="MapLighting"/>).
+/// The kinds the menu offers are scenes/fx/weather_*.tscn, snowfall.tscn and sand_wind.tscn.
 /// </summary>
 public partial class Weather : Node3D
 {
+    public static readonly string[] Names = { "Как на карте", "Ясно", "Дождь", "Снег", "Туман", "Пыльная буря" };
+    /// <summary>Scene for each of <see cref="Names"/>; the first is whatever the map itself has.</summary>
+    public static readonly string[] Scenes =
+    {
+        "", "res://scenes/fx/weather_clear.tscn", "res://scenes/fx/weather_rain.tscn", "res://scenes/fx/snowfall.tscn",
+        "res://scenes/fx/weather_fog.tscn", "res://scenes/fx/sand_wind.tscn",
+    };
+
+    [ExportGroup("Light and haze")]
+    /// <summary>How many times thicker than the map's own the haze is.</summary>
+    [Export] public float Haze = 1f;
+    /// <summary>Share of the sky's light that gets through (overcast: well under 1).</summary>
+    [Export(PropertyHint.Range, "0,1.5")] public float SkyLight = 1f;
+    /// <summary>Share of the direct sunlight that gets through.</summary>
+    [Export(PropertyHint.Range, "0,1.5")] public float SunLight = 1f;
+
+    [ExportGroup("Wind")]
     /// <summary>Horizontal direction the wind blows towards.</summary>
     [Export] public Vector3 WindDirection = new(1f, 0f, 0.35f);
     [Export] public float WindSpeed = 9f;
@@ -33,6 +52,7 @@ public partial class Weather : Node3D
         // Emitters shoot along local -Z.
         LookAtFromPosition(GlobalPosition, GlobalPosition + Direction, Vector3.Up);
         _loop = GetNodeOrNull<AudioStreamPlayer>("Loop");
+        MapLighting.Instance?.Relight(Haze, SkyLight, SunLight);
     }
 
     public override void _Process(double delta)
@@ -47,7 +67,7 @@ public partial class Weather : Node3D
         if (cam != null) GlobalPosition = cam.GlobalPosition;
 
         // Fewer particles on lower effects quality.
-        float quality = GameConfig.EffectsQuality switch { 0 => 0.3f, 1 => 0.65f, _ => 1f };
+        float quality = Mathf.Clamp(GameConfig.WeatherDensity, 0.1f, 1f);
         foreach (Node child in GetChildren())
             if (child is GpuParticles3D p) p.AmountRatio = Mathf.Lerp(CalmAmount, 1f, Gust) * quality;
         if (_loop != null) _loop.VolumeDb = Mathf.Lerp(QuietDb, LoudDb, Gust);

@@ -18,6 +18,14 @@ public partial class PlayerPilot : MechPilot, ICockpit
     [Export] public float ZoomFov = 22f;
     /// <summary>Chase camera offset from the pivot, in the camera's own space (scaled to the machine).</summary>
     [Export] public Vector3 ChaseOffset = new(0f, 2.5f, 16f);
+    /// <summary>How much of a mech's rocking and bouncing the first-person view cancels out (0 = none, 1 = all).</summary>
+    [Export(PropertyHint.Range, "0,1")] public float HeadSteadiness = 0.8f;
+    /// <summary>How much of the jolts from footfalls and hits reaches the first-person view.</summary>
+    [Export(PropertyHint.Range, "0,1")] public float CockpitShake = 0.2f;
+    /// <summary>How far the pilot's head may move from the seat, metres: keeps the eye inside the cab.</summary>
+    [Export] public float HeadTravel = 0.12f;
+    /// <summary>How far ahead of the eye the cab ends (for a machine of the Ostrich's size): shots are drawn from there on.</summary>
+    [Export] public float CabDepth = 2.4f;
     /// <summary>Seconds the sight must stay on the selected target for a missile lock.</summary>
     [Export] public float LockTime = 1.3f;
     /// <summary>How close to the target the sight must be kept, radians.</summary>
@@ -75,7 +83,8 @@ public partial class PlayerPilot : MechPilot, ICockpit
     Transform3D _aimView = Transform3D.Identity;
     float _lookYaw, _lookPitch;
     float _throttleDetent;   // blocks throttle from crossing zero until W/S is released
-    bool _suppressFire;
+    bool _suppressFire, _eyeSet;
+    float _eyeHeight;
 
     public override void _ExitTree()
     {
@@ -132,6 +141,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
             if (_cockpit != null) _cockpit.Visible = CockpitView;
         }
         else if (@event.IsActionPressed("center_torso")) Unit.TargetYaw = 0f;
+        else if (@event.IsActionPressed("toggle_lights")) Headlight.Toggle(Unit.Body);
         else if (@event.IsActionPressed("zoom")) Zoomed = !Zoomed;
         else if (@event.IsActionPressed("zoom_in")) Zoomed = true;
         else if (@event.IsActionPressed("zoom_out")) Zoomed = false;
@@ -263,6 +273,20 @@ public partial class PlayerPilot : MechPilot, ICockpit
         if (CockpitView)
         {
             _aimView = Unit.AimAnchor.GlobalTransform.Orthonormalized();
+            if (Unit is Mech)
+            {
+                // The pilot's head doesn't ride every lurch of a walking mech: the view keeps to where the
+                // torso is turned, taking only a share of the body's rocking and of its bounce. The cockpit
+                // around it still moves with the machine.
+                Basis level = new Basis(Vector3.Up, Unit.HullYaw + Unit.TorsoYaw) * new Basis(Vector3.Right, Unit.TorsoPitch);
+                Basis steady = level.Slerp(_aimView.Basis, 1f - HeadSteadiness).Orthonormalized();
+                Vector3 seat = _aimView.Origin;
+                _eyeHeight = _eyeSet ? Mathf.Lerp(_eyeHeight, seat.Y, 1f - Mathf.Exp(-5f * dt)) : seat.Y;
+                _eyeSet = true;
+                // …but the head stays inside the cab: never more than a hand's breadth from the seat.
+                seat.Y = Mathf.Clamp(Mathf.Lerp(seat.Y, _eyeHeight, HeadSteadiness), seat.Y - HeadTravel, seat.Y + HeadTravel);
+                _aimView = new Transform3D(steady, seat);
+            }
             Basis look = new Basis(Vector3.Up, _lookYaw) * new Basis(Vector3.Right, _lookPitch);
             Camera.GlobalTransform = new Transform3D(_aimView.Basis * look, _aimView.Origin);
         }
@@ -274,13 +298,25 @@ public partial class PlayerPilot : MechPilot, ICockpit
             _aimView = ChaseView(pivot, worldYaw, pitch);
             // Upper limit keeps the orbiting camera above the ground.
             Camera.GlobalTransform = ChaseView(pivot, worldYaw + _lookYaw, Mathf.Clamp(pitch + _lookPitch, -1.2f, 0.4f));
+            _eyeSet = false;
         }
 
         Unit.Shake = Mathf.Min(Unit.Shake, 0.6f) * Mathf.Exp(-5f * dt);
         // Less shake when zoomed, or aimed shots would be impossible on the move.
-        float s = Unit.Shake * (CockpitView ? 1f : 0.5f) * Camera.Fov / BaseFov;
+        float s = Unit.Shake * (CockpitView ? CockpitShake : 0.5f) * Camera.Fov / BaseFov;
         Vector3 offset = new Vector3(Mathf.Sin(Unit.Time * 41f), Mathf.Sin(Unit.Time * 33f + 1.7f), 0f) * s;
-        Camera.GlobalPosition += Camera.GlobalTransform.Basis * offset;
+        if (CockpitView)
+        {
+            // In the cab the jolt mostly rocks the view; the eye itself barely leaves its place, so it
+            // can't end up outside the canopy.
+            Camera.GlobalPosition += Camera.GlobalTransform.Basis * offset.LimitLength(HeadTravel * 0.5f);
+            Camera.RotateObjectLocal(Vector3.Forward, offset.X * 0.12f);
+            Camera.RotateObjectLocal(Vector3.Right, offset.Y * 0.08f);
+        }
+        else Camera.GlobalPosition += Camera.GlobalTransform.Basis * offset;
+
+        // Shots are drawn from beyond the cab while looking out of it.
+        Unit.Weapons.CabClip = CockpitView ? (Camera.GlobalPosition, -_aimView.Basis.Z, CabDepth * Unit.ChaseScale) : null;
     }
 
     Transform3D ChaseView(Vector3 pivot, float yaw, float pitch)

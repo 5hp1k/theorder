@@ -26,6 +26,10 @@ public partial class Missile : Projectile
     [Export] public float Loft = 0.22f;
     /// <summary>Random spread of the launch direction.</summary>
     [Export] public float Scatter = 0.05f;
+    /// <summary>What the mark looks like: a blast for warheads, a burn for energy bolts.</summary>
+    [Export] public Mark MarkKind = Mark.Blast;
+    /// <summary>Sets fire to what it destroys, as a beam does (energy bolts).</summary>
+    [Export] public bool Burns;
     /// <summary>Spawned where it hits.</summary>
     [Export] public PackedScene ImpactScene;
 
@@ -83,8 +87,10 @@ public partial class Missile : Projectile
         Vector3 to = from + _dir * Speed * dt;
         if (Phys.Ray(GetWorld3D().DirectSpaceState, from, to, _mask, _exclude, out var hit))
         {
+            Burning.Heat = Burns;
             Phys.Damage(hit, _damage);
-            Impacts.Ground(GetParent(), hit, CraterSize);
+            Burning.Heat = false;
+            Impacts.Ground(GetParent(), hit, CraterSize, MarkKind);
             Detonate(hit.Position);
             return;
         }

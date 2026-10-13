@@ -30,7 +30,6 @@
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/LeftTorso_Frame.res" id="x8"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/RightTorso_Armor.res" id="x9"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/RightTorso_Frame.res" id="x10"]
-[ext_resource type="ArrayMesh" path="res://models/mechs/hound/Stripe.res" id="x11"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/Antenna.res" id="x12"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/ArmL_Armor.res" id="x13"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/ArmL_Frame.res" id="x14"]
@@ -61,6 +60,8 @@
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/CockpitFrame.res" id="x38"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/CockpitDash.res" id="x39"]
 [ext_resource type="Script" path="res://scripts/UI/CockpitDisplays.cs" id="x40"]
+[ext_resource type="Script" path="res://scripts/Combat/Hardpoint.cs" id="hardpoint"]
+[ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 1.52
@@ -304,10 +305,6 @@ material_override = ExtResource("2")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0.88, 0.08)
 shape = SubResource("BoxShape3D_13")
 
-[node name="Stripe" type="MeshInstance3D" parent="Hips/Torso"]
-mesh = ExtResource("x11")
-material_override = ExtResource("3")
-
 [node name="Antenna" type="MeshInstance3D" parent="Hips/Torso"]
 mesh = ExtResource("x12")
 material_override = ExtResource("2")
@@ -333,8 +330,14 @@ material_override = ExtResource("2")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.56)
 shape = SubResource("BoxShape3D_19")
 
-[node name="Laser" parent="Hips/Torso/ArmL" instance=ExtResource("13")]
+[node name="HardpointLaser" type="Node3D" parent="Hips/Torso/ArmL"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -2.92)
+script = ExtResource("hardpoint")
+Type = 0
+Slots = 3
+Mount = 4
+
+[node name="Laser" parent="Hips/Torso/ArmL/HardpointLaser" instance=ExtResource("13")]
 Mount = 4
 
 [node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmL"]
@@ -365,8 +368,14 @@ material_override = ExtResource("2")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.56)
 shape = SubResource("BoxShape3D_24")
 
-[node name="Laser" parent="Hips/Torso/ArmR" instance=ExtResource("13")]
+[node name="HardpointLaser" type="Node3D" parent="Hips/Torso/ArmR"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -2.92)
+script = ExtResource("hardpoint")
+Type = 0
+Slots = 3
+Mount = 5
+
+[node name="Laser" parent="Hips/Torso/ArmR/HardpointLaser" instance=ExtResource("13")]
 Mount = 5
 
 [node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmR"]
@@ -376,14 +385,27 @@ cast_shadow = 0
 mesh = SubResource("QuadMesh_25")
 material_override = ExtResource("6")
 
-[node name="NoseLaser" parent="Hips/Torso" instance=ExtResource("13")]
+[node name="HardpointNoseLaser" type="Node3D" parent="Hips/Torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, -3.04)
+script = ExtResource("hardpoint")
+Type = 3
+Slots = 2
 Mount = 1
+
+[node name="NoseLaser" parent="Hips/Torso/HardpointNoseLaser" instance=ExtResource("13")]
+Mount = 1
+
+[node name="HeadlightL" parent="Hips/Torso" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.75, 0.85, -3.69)
+
+[node name="HeadlightR" parent="Hips/Torso" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0.85, -3.69)
 
 [node name="CockpitCam" type="Marker3D" parent="Hips/Torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.4, -3.34)
 
 [node name="Cockpit" type="Node3D" parent="Hips/Torso/CockpitCam"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.36, -0.55)
 visible = false
 script = ExtResource("x40")
 
@@ -436,7 +458,7 @@ mesh = ExtResource("x20")
 material_override = ExtResource("2")
 
 [node name="Insignia" type="MeshInstance3D" parent="LegL/Thigh"]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.433, -0.322, 0)
+transform = Transform3D(0, 0, -1, 0, -1, 0, -1, 0, 0, -0.433, -0.322, 0)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_44")
@@ -537,7 +559,7 @@ mesh = ExtResource("x22")
 material_override = ExtResource("2")
 
 [node name="Insignia" type="MeshInstance3D" parent="LegR/Thigh"]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.433, -0.322, 0)
+transform = Transform3D(0, 0, 1, 0, -1, 0, 1, 0, 0, 0.433, -0.322, 0)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_56")

@@ -14,9 +14,15 @@
 [ext_resource type="ArrayMesh" path="res://models/vehicles/bomber/EngineL.res" id="x6"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/bomber/EngineR.res" id="x7"]
 [ext_resource type="Material" path="res://materials/stealth_grey.tres" id="x1"]
+[ext_resource type="Script" path="res://scripts/Combat/Hardpoint.cs" id="hardpoint"]
+[ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
+[ext_resource type="Material" path="res://materials/insignia.tres" id="insignia"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(4, 2.6, 16)
+
+[sub_resource type="QuadMesh" id="QuadMesh_insignia"]
+size = Vector2(1.6, 1.6)
 
 [node name="Bomber" type="CharacterBody3D"]
 floor_max_angle = 0.87
@@ -66,15 +72,35 @@ material_override = ExtResource("x1")
 mesh = ExtResource("x7")
 material_override = ExtResource("x1")
 
+[node name="HeadlightL" parent="Hull" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.45, 0.35, -11)
+
+[node name="HeadlightR" parent="Hull" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 0.35, -11)
+
 [node name="CockpitCam" type="Marker3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, -10.4)
 
-[node name="NoseGun" parent="Hull" instance=ExtResource("8")]
+[node name="HardpointNoseGun" type="Node3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.7, -10.3)
+script = ExtResource("hardpoint")
+DisplayName = "Корпус"
+Type = 1
+Slots = 3
+Mount = 5
+
+[node name="NoseGun" parent="Hull/HardpointNoseGun" instance=ExtResource("8")]
 Group = 1
 
-[node name="Bombs" parent="Hull" instance=ExtResource("9")]
+[node name="HardpointBombs" type="Node3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, 0)
+script = ExtResource("hardpoint")
+DisplayName = "Корпус"
+Type = 5
+Slots = 2
+Mount = 5
+
+[node name="Bombs" parent="Hull/HardpointBombs" instance=ExtResource("9")]
 
 [node name="Sounds" type="Node3D" parent="."]
 
@@ -83,3 +109,17 @@ stream = ExtResource("10")
 unit_size = 20
 max_distance = 450
 volume_db = -2
+
+[node name="InsigniaL" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, -7.1, 0.25, 1.41)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_insignia")
+material_override = ExtResource("insignia")
+
+[node name="InsigniaR" type="MeshInstance3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 7.1, 0.25, 1.41)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_insignia")
+material_override = ExtResource("insignia")

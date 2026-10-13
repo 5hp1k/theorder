@@ -29,6 +29,10 @@ public partial class CityLayout : Node3D
     [Export] public PackedScene BridgeRailScene;
     /// <summary>A pier under a bridge (origin at its top).</summary>
     [Export] public PackedScene BridgePierScene;
+    /// <summary>Water shallower than this at its deepest is forded, not bridged.</summary>
+    [Export] public float BridgeMinDepth = 1.4f;
+    /// <summary>…and so is water narrower than this.</summary>
+    [Export] public float BridgeMinSpan = 10f;
     /// <summary>What shows under a building where the ground falls away from it.</summary>
     [Export] public Material FoundationMaterial;
 
@@ -318,51 +322,72 @@ public partial class CityLayout : Node3D
         Stand(TrafficLightScene, centre + new Vector3(-corner, 0f, -corner), 0f);
     }
 
-    /// <summary>Walks one street from end to end and throws a bridge over every stretch of water.</summary>
+    /// <summary>
+    /// Walks one street from end to end and throws a bridge over every stretch of water too deep to ford
+    /// (a puddle in a dip is left as a puddle). The deck runs bank to bank, sloping if they differ.
+    /// </summary>
     void Bridges(float line, bool alongX)
     {
         if (BridgeScene == null || _terrain == null || !_terrain.HasWater) return;
         const float step = 2f;
-        float start = float.NaN;
+        float At(float s) => alongX ? Ground(s, line) : Ground(line, s);
+        float start = float.NaN, deepest = 0f;
         for (float s = -_reach; s <= _reach + step; s += step)
         {
-            bool wet = s <= _reach && (alongX ? Wet(s, line) : Wet(line, s));
-            if (wet && float.IsNaN(start)) start = s;
-            if (wet || float.IsNaN(start)) continue;
+            float depth = s <= _reach ? _terrain.WaterLevel - At(s) : -1f;
+            bool wet = depth > 0f;
+            if (wet)
+            {
+                if (float.IsNaN(start)) { start = s; deepest = 0f; }
+                deepest = Mathf.Max(deepest, depth);
+                continue;
+            }
+            if (float.IsNaN(start)) continue;
+
+            float from = start, to = s;
+            start = float.NaN;
+            if (deepest < BridgeMinDepth || to - from < BridgeMinSpan) continue;
 
             // Abutments a few metres back on dry ground each side.
-            float a = Mathf.Max(start - 6f, -_reach), b = Mathf.Min(s + 4f, _reach);
-            start = float.NaN;
-            float top = Mathf.Max(alongX ? Ground(a, line) : Ground(line, a), alongX ? Ground(b, line) : Ground(line, b)) + 0.15f;
+            float a = Mathf.Max(from - 6f, -_reach), b = Mathf.Min(to + 4f, _reach);
             var bridge = BridgeScene.Instantiate<ChunkedBuilding>();
             int across = Mathf.Max(1, Mathf.RoundToInt(RoadWidth / bridge.CellSize));
             int length = Mathf.Max(2, Mathf.CeilToInt((b - a) / bridge.CellSize));
             bridge.Cells = new Vector3I(across, 1, length);
             var size = new Vector3(across, 1, length) * bridge.CellSize;
+            b = a + size.Z;
             if (bridge.GetNodeOrNull<CollisionShape3D>("Collision") is { } shape)
             {
                 shape.Shape = new BoxShape3D { Size = size };
                 shape.Position = new Vector3(0f, size.Y * 0.5f, 0f);
             }
+            // The roadway meets the ground at both ends, so wheels and feet go straight on.
+            float ha = At(a) + 0.03f, hb = At(b) + 0.03f;
+            var basis = new Basis(Vector3.Up, alongX ? Mathf.Pi / 2f : 0f) * new Basis(Vector3.Right, -Mathf.Atan2(hb - ha, size.Z));
             float mid = (a + b) * 0.5f;
-            Vector3 at = alongX ? new Vector3(mid, top - size.Y, line) : new Vector3(line, top - size.Y, mid);
-            bridge.Transform = new Transform3D(new Basis(Vector3.Up, alongX ? Mathf.Pi / 2f : 0f), at);
+            Vector3 top = alongX ? new Vector3(mid, (ha + hb) * 0.5f, line) : new Vector3(line, (ha + hb) * 0.5f, mid);
+            bridge.Transform = new Transform3D(basis, top - basis.Y * size.Y);
             AddChild(bridge);
 
-            // Parapets down both edges, a pair of piers every few blocks: each fixed to its block of the deck.
+            // Parapets where there's a drop beside the deck (never across a side street),
+            // a pair of piers every few blocks: each fixed to its block of the deck.
             float half = bridge.CellSize * 0.5f;
             for (int z = 0; z < length; z++)
             foreach (int x in new[] { 0, across - 1 })
             {
                 float side = x == 0 ? -1f : 1f;
                 Vector3 c = bridge.BlockCentre(x, 0, z);
-                if (BridgeRailScene != null)
+                Vector3 edge = bridge.Transform * (c + new Vector3(side * (half + 1.5f), half, 0f));
+                float along = alongX ? edge.X : edge.Z;
+                bool sideStreet = Mathf.Abs(along - Mathf.Round(along / _pitch) * _pitch) < RoadWidth * 0.5f + Pavement;
+                float drop = edge.Y - Ground(edge.X, edge.Z);
+                if (BridgeRailScene != null && !sideStreet && drop > 0.8f)
                 {
                     var rail = BridgeRailScene.Instantiate<Node3D>();
                     rail.Transform = new Transform3D(new Basis(Vector3.Up, side * Mathf.Pi / 2f), c + new Vector3(side * half, half, 0f));
                     bridge.Attach(rail, x, 0, z);
                 }
-                if (BridgePierScene != null && z % 6 == 3)
+                if (BridgePierScene != null && z % 6 == 3 && drop > 1.5f)
                 {
                     var pier = BridgePierScene.Instantiate<Node3D>();
                     pier.Position = c + new Vector3(-side * half, -half, 0f);

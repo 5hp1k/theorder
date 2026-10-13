@@ -11,7 +11,21 @@ public static class GameConfig
     const string FilePath = "user://settings.cfg";
 
     /// <summary>Actions the player can rebind from the customisation page.</summary>
-    public static readonly string[] BindableActions = { "fire_group_1", "fire_group_2", "fire_group_3" };
+    public static readonly string[] BindableActions =
+    {
+        "throttle_up", "throttle_down", "turn_left", "turn_right", "full_stop", "jump", "descend",
+        "fire_group_1", "fire_group_2", "fire_group_3",
+        "target_nearest", "target_next", "target_reticle", "center_torso", "free_look", "zoom",
+        "toggle_view", "toggle_lights", "radar_mode", "toggle_help", "toggle_fps",
+    };
+    /// <summary>What the actions above are called on the controls page, in the same order.</summary>
+    public static readonly string[] ActionNames =
+    {
+        "Газ вперёд", "Газ назад", "Поворот влево", "Поворот вправо", "Полный стоп", "Прыжок / вверх", "Вниз (вертолёт)",
+        "Огонь: группа 1", "Огонь: группа 2", "Огонь: группа 3",
+        "Цель: ближайшая", "Цель: следующая", "Цель: под прицелом", "Торс по ногам", "Свободный обзор (держать)", "Приближение",
+        "Кабина / внешний вид", "Фары", "Режим радара", "Справка", "Счётчик кадров",
+    };
 
     // ── Battle ──────────────────────────────────────────────────
     public static string MapId = "desert";
@@ -31,14 +45,36 @@ public static class GameConfig
     public static int TimeLimitMinutes;
     /// <summary>A mech's foot coming down on a tank or an armoured car destroys it (and they don't block mechs).</summary>
     public static bool MechsCrush = true;
+    /// <summary>Index into <see cref="MapLighting.TimeIds"/>; 0 = the hour the map was made for.</summary>
+    public static int TimeOfDay;
+    /// <summary>Index into <see cref="Weather.Scenes"/>; 0 = the map's own weather.</summary>
+    public static int WeatherId;
 
     // ── Customisation ───────────────────────────────────────────
-    public static string CamoId = "desert";
+    /// <summary>The colour of the paint, the pattern over it (index into <see cref="PaintJob.PatternNames"/>) and the pattern's two colours.</summary>
+    public static Color PaintBase = new(0.74f, 0.62f, 0.42f);
+    public static int PatternId = 1;
+    public static Color PatternA = new(0.5f, 0.4f, 0.26f), PatternB = new(0.86f, 0.77f, 0.58f);
+    /// <summary>The second colour, for the parts picked out by <see cref="PaintScheme"/>.</summary>
     public static Color StripeColor = new(0.33f, 0.36f, 0.2f);
-    /// <summary>Weapon ids per slot, per mech id. Missing = the mech's stock weapons.</summary>
+    /// <summary>Which parts wear the second colour: index into <see cref="PaintJob.SchemeNames"/>.</summary>
+    public static int PaintScheme;
+    public static Color GlassColor = new(0.02f, 0.045f, 0.06f);
+    public static float Wear = 0.5f, Dirt = 0.35f, Gloss = 0.45f, PatternSize = 1f, InsigniaSize = 1f;
+
+    /// <summary>The player's paint, as chosen in the hangar.</summary>
+    public static PaintJob PlayerPaint() => new()
+    {
+        Base = PaintBase, Pattern = PatternId, PatternA = PatternA, PatternB = PatternB,
+        Second = StripeColor, Scheme = PaintScheme,
+        Wear = Wear, Dirt = Dirt, Gloss = Gloss, PatternSize = PatternSize,
+        Glass = GlassColor, InsigniaSize = InsigniaSize,
+    };
+    /// <summary>
+    /// What is fitted in each hardpoint, per unit id (see <see cref="Hardpoint"/> for the format).
+    /// Missing = the unit's stock weapons.
+    /// </summary>
     public static readonly Dictionary<string, string[]> Loadouts = new();
-    /// <summary>Weapon group (1..3) per slot, per mech id. Missing = each weapon's own group.</summary>
-    public static readonly Dictionary<string, int[]> Groups = new();
     /// <summary>Rebound actions: action name → "k:physical keycode" or "m:mouse button".</summary>
     public static readonly Dictionary<string, string> Bindings = new();
     /// <summary>Picture file the player chose as an emblem; empty = none.</summary>
@@ -48,10 +84,53 @@ public static class GameConfig
     public static float MasterVolume = 0.8f;
     public static float MouseSensitivity = 1f;
     public static float Fov = 75f;
-    public static bool Fullscreen;
     public static bool VSync = true;
-    /// <summary>0 = low, 1 = medium, 2 = high.</summary>
+    /// <summary>0 = a window, 1 = full screen without borders, 2 = exclusive full screen.</summary>
+    public static int WindowMode;
+    public static bool Fullscreen
+    {
+        get => WindowMode != 0;
+        set => WindowMode = value ? 1 : 0;
+    }
+    /// <summary>Size of the window when it is a window; (0, 0) = leave it as it is.</summary>
+    public static Vector2I WindowSize;
+    public static readonly Vector2I[] WindowSizes = { new(0, 0), new(1280, 720), new(1366, 768), new(1600, 900), new(1920, 1080), new(2560, 1440), new(3840, 2160) };
+    /// <summary>Frames per second are held to this; 0 = no limit.</summary>
+    public static int MaxFps;
+    public static readonly int[] FpsLimits = { 0, 30, 60, 75, 90, 120, 144, 165, 240 };
+    /// <summary>The 3D picture is drawn at this share of the window's resolution and stretched to fit (0.5..1).</summary>
+    public static float RenderScale = 1f;
+    /// <summary>Multisampling of edges: 0 = off, 1 = 2×, 2 = 4×, 3 = 8×.</summary>
+    public static int Msaa = 1;
+    /// <summary>Smoothing done on the finished picture (FXAA).</summary>
+    public static bool Fxaa = true;
+    /// <summary>Smoothing over time (TAA): steadier, a little softer.</summary>
+    public static bool Taa;
+    /// <summary>0 = off, 1 = low, 2 = medium, 3 = high.</summary>
+    public static int Shadows = 3;
+    public static bool Ssao = true, Ssil = true, Sdfgi = true, VolumetricFog = true, Glow = true, WaterMirror = true;
+    /// <summary>Share of the weather's particles that are drawn (rain, snow, sand).</summary>
+    public static float WeatherDensity = 1f;
+    /// <summary>Frames per second in a corner of the screen (F3).</summary>
+    public static bool ShowFps;
+    /// <summary>The preset the detailed settings were last filled from: 0 = low, 1 = medium, 2 = high, 3 = the player's own mix.</summary>
     public static int EffectsQuality = 2;
+
+    /// <summary>Fills the detailed graphics settings from a preset (0 low, 1 medium, 2 high).</summary>
+    public static void ApplyPreset(int preset)
+    {
+        EffectsQuality = preset;
+        if (preset > 2) return;
+        Sdfgi = VolumetricFog = Ssil = preset >= 2;
+        Ssao = WaterMirror = preset >= 1;
+        Glow = true;
+        Shadows = preset + 1;
+        Msaa = preset >= 2 ? 1 : 0;
+        Fxaa = true;
+        Taa = false;
+        WeatherDensity = preset switch { 0 => 0.3f, 1 => 0.65f, _ => 1f };
+        RenderScale = preset == 0 ? 0.8f : 1f;
+    }
     /// <summary>Simulation steps per second: 60 is half the work of 120, 120 is smoother on fast screens.</summary>
     public static int SimulationRate = 60;
 
@@ -78,32 +157,95 @@ public static class GameConfig
             BotsFight = (bool)cfg.GetValue("battle", "bots_fight", BotsFight);
             TimeLimitMinutes = (int)cfg.GetValue("battle", "time_limit", TimeLimitMinutes);
             MechsCrush = (bool)cfg.GetValue("battle", "mechs_crush", MechsCrush);
-            CamoId = (string)cfg.GetValue("paint", "camo", CamoId);
+            TimeOfDay = Mathf.Clamp((int)cfg.GetValue("battle", "time_of_day", TimeOfDay), 0, MapLighting.TimeIds.Length - 1);
+            WeatherId = Mathf.Clamp((int)cfg.GetValue("battle", "weather", WeatherId), 0, Weather.Scenes.Length - 1);
+            PaintBase = (Color)cfg.GetValue("paint", "base", PaintBase);
+            PatternId = Mathf.Clamp((int)cfg.GetValue("paint", "pattern", PatternId), 0, PaintJob.PatternNames.Length - 1);
+            PatternA = (Color)cfg.GetValue("paint", "pattern_a", PatternA);
+            PatternB = (Color)cfg.GetValue("paint", "pattern_b", PatternB);
             StripeColor = (Color)cfg.GetValue("paint", "stripe", StripeColor);
             InsigniaPath = (string)cfg.GetValue("paint", "insignia", InsigniaPath);
-            if (cfg.HasSection("loadout"))
-                foreach (string mech in cfg.GetSectionKeys("loadout"))
-                    Loadouts[mech] = (string[])cfg.GetValue("loadout", mech);
-            if (cfg.HasSection("groups"))
-                foreach (string mech in cfg.GetSectionKeys("groups"))
-                    Groups[mech] = (int[])cfg.GetValue("groups", mech);
+            PaintScheme = (int)cfg.GetValue("paint", "scheme", PaintScheme);
+            GlassColor = (Color)cfg.GetValue("paint", "glass", GlassColor);
+            Wear = (float)cfg.GetValue("paint", "wear", Wear);
+            Dirt = (float)cfg.GetValue("paint", "dirt", Dirt);
+            Gloss = (float)cfg.GetValue("paint", "gloss", Gloss);
+            PatternSize = (float)cfg.GetValue("paint", "pattern_size", PatternSize);
+            InsigniaSize = (float)cfg.GetValue("paint", "insignia_size", InsigniaSize);
+            if (cfg.HasSection("hardpoints"))
+                foreach (string unit in cfg.GetSectionKeys("hardpoints"))
+                    Loadouts[unit] = (string[])cfg.GetValue("hardpoints", unit);
             if (cfg.HasSection("bindings"))
                 foreach (string action in cfg.GetSectionKeys("bindings"))
                     Bindings[action] = (string)cfg.GetValue("bindings", action);
             MasterVolume = (float)cfg.GetValue("settings", "volume", MasterVolume);
             MouseSensitivity = (float)cfg.GetValue("settings", "sensitivity", MouseSensitivity);
             Fov = (float)cfg.GetValue("settings", "fov", Fov);
-            Fullscreen = (bool)cfg.GetValue("settings", "fullscreen", Fullscreen);
+            WindowMode = cfg.HasSectionKey("settings", "window_mode") ? (int)cfg.GetValue("settings", "window_mode", 0)
+                       : (bool)cfg.GetValue("settings", "fullscreen", false) ? 1 : 0;
+            WindowSize = (Vector2I)cfg.GetValue("settings", "window_size", WindowSize);
+            MaxFps = (int)cfg.GetValue("settings", "max_fps", MaxFps);
+            ShowFps = (bool)cfg.GetValue("settings", "show_fps", ShowFps);
             VSync = (bool)cfg.GetValue("settings", "vsync", VSync);
             EffectsQuality = (int)cfg.GetValue("settings", "effects", EffectsQuality);
+            // Settings saved before the detailed ones existed carry only the preset.
+            ApplyPreset(Mathf.Clamp(EffectsQuality, 0, 3));
+            RenderScale = Mathf.Clamp((float)cfg.GetValue("graphics", "render_scale", RenderScale), 0.5f, 1f);
+            Msaa = (int)cfg.GetValue("graphics", "msaa", Msaa);
+            Fxaa = (bool)cfg.GetValue("graphics", "fxaa", Fxaa);
+            Taa = (bool)cfg.GetValue("graphics", "taa", Taa);
+            Shadows = (int)cfg.GetValue("graphics", "shadows", Shadows);
+            Ssao = (bool)cfg.GetValue("graphics", "ssao", Ssao);
+            Ssil = (bool)cfg.GetValue("graphics", "ssil", Ssil);
+            Sdfgi = (bool)cfg.GetValue("graphics", "sdfgi", Sdfgi);
+            VolumetricFog = (bool)cfg.GetValue("graphics", "volumetric_fog", VolumetricFog);
+            Glow = (bool)cfg.GetValue("graphics", "glow", Glow);
+            WaterMirror = (bool)cfg.GetValue("graphics", "water_mirror", WaterMirror);
+            WeatherDensity = (float)cfg.GetValue("graphics", "weather_density", WeatherDensity);
             SimulationRate = (int)cfg.GetValue("settings", "simulation_rate", SimulationRate);
         }
+        ApplyQuickBattle();
         ApplySettings();
         foreach (var (action, code) in Bindings) ApplyBinding(action, code);
     }
 
+    /// <summary>
+    /// For testing: the environment variable THEORDER_BATTLE="unit,map,mechs,vehicles[,enemy mech[,time of day[,weather]]]" sets
+    /// up a battle for this run without touching the saved choices (e.g. "tank,city,2,0,ostrich").
+    /// </summary>
+    static void ApplyQuickBattle()
+    {
+        string spec = OS.GetEnvironment("THEORDER_BATTLE");
+        if (string.IsNullOrEmpty(spec)) return;
+        string[] p = spec.Split(',');
+        if (p.Length < 4) return;
+        MechId = p[0];
+        MapId = p[1];
+        int.TryParse(p[2], out EnemyCount);
+        int.TryParse(p[3], out EnemyVehicleCount);
+        EnemyMechId = p.Length > 4 ? p[4] : "random";
+        TimeOfDay = WeatherId = 0;
+        if (p.Length > 5) int.TryParse(p[5], out TimeOfDay);
+        if (p.Length > 6) int.TryParse(p[6], out WeatherId);
+        TimeLimitMinutes = 0;
+        WindowMode = 0;
+        WindowSize = default;
+        Loadouts.Clear();
+        // (THEORDER_LOADOUT: what to fit, hardpoints separated by "|", e.g. "ppc:1|medium_laser:1|autocannon:2")
+        string fit = OS.GetEnvironment("THEORDER_LOADOUT");
+        if (!string.IsNullOrEmpty(fit)) Loadouts[MechId] = fit.Split('|');
+        // (and THEORDER_INSIGNIA: a picture file to wear as the emblem)
+        string emblem = OS.GetEnvironment("THEORDER_INSIGNIA");
+        if (!string.IsNullOrEmpty(emblem)) InsigniaPath = emblem;
+        // Nothing of this is to end up in the settings file.
+        _quick = true;
+    }
+
+    static bool _quick;
+
     public static void Save()
     {
+        if (_quick) return;
         var cfg = new ConfigFile();
         cfg.SetValue("battle", "map", MapId);
         cfg.SetValue("battle", "mech", MechId);
@@ -115,16 +257,42 @@ public static class GameConfig
         cfg.SetValue("battle", "bots_fight", BotsFight);
         cfg.SetValue("battle", "time_limit", TimeLimitMinutes);
         cfg.SetValue("battle", "mechs_crush", MechsCrush);
-        cfg.SetValue("paint", "camo", CamoId);
+        cfg.SetValue("battle", "time_of_day", TimeOfDay);
+        cfg.SetValue("battle", "weather", WeatherId);
+        cfg.SetValue("paint", "base", PaintBase);
+        cfg.SetValue("paint", "pattern", PatternId);
+        cfg.SetValue("paint", "pattern_a", PatternA);
+        cfg.SetValue("paint", "pattern_b", PatternB);
         cfg.SetValue("paint", "stripe", StripeColor);
         cfg.SetValue("paint", "insignia", InsigniaPath);
-        foreach (var (mech, slots) in Loadouts) cfg.SetValue("loadout", mech, slots);
-        foreach (var (mech, groups) in Groups) cfg.SetValue("groups", mech, groups);
+        cfg.SetValue("paint", "scheme", PaintScheme);
+        cfg.SetValue("paint", "glass", GlassColor);
+        cfg.SetValue("paint", "wear", Wear);
+        cfg.SetValue("paint", "dirt", Dirt);
+        cfg.SetValue("paint", "gloss", Gloss);
+        cfg.SetValue("paint", "pattern_size", PatternSize);
+        cfg.SetValue("paint", "insignia_size", InsigniaSize);
+        foreach (var (unit, fit) in Loadouts) cfg.SetValue("hardpoints", unit, fit);
         foreach (var (action, code) in Bindings) cfg.SetValue("bindings", action, code);
         cfg.SetValue("settings", "volume", MasterVolume);
         cfg.SetValue("settings", "sensitivity", MouseSensitivity);
         cfg.SetValue("settings", "fov", Fov);
-        cfg.SetValue("settings", "fullscreen", Fullscreen);
+        cfg.SetValue("settings", "window_mode", WindowMode);
+        cfg.SetValue("settings", "window_size", WindowSize);
+        cfg.SetValue("settings", "max_fps", MaxFps);
+        cfg.SetValue("settings", "show_fps", ShowFps);
+        cfg.SetValue("graphics", "render_scale", RenderScale);
+        cfg.SetValue("graphics", "msaa", Msaa);
+        cfg.SetValue("graphics", "fxaa", Fxaa);
+        cfg.SetValue("graphics", "taa", Taa);
+        cfg.SetValue("graphics", "shadows", Shadows);
+        cfg.SetValue("graphics", "ssao", Ssao);
+        cfg.SetValue("graphics", "ssil", Ssil);
+        cfg.SetValue("graphics", "sdfgi", Sdfgi);
+        cfg.SetValue("graphics", "volumetric_fog", VolumetricFog);
+        cfg.SetValue("graphics", "glow", Glow);
+        cfg.SetValue("graphics", "water_mirror", WaterMirror);
+        cfg.SetValue("graphics", "weather_density", WeatherDensity);
         cfg.SetValue("settings", "vsync", VSync);
         cfg.SetValue("settings", "effects", EffectsQuality);
         cfg.SetValue("settings", "simulation_rate", SimulationRate);
@@ -137,10 +305,42 @@ public static class GameConfig
         AudioServer.SetBusVolumeDb(0, Mathf.LinearToDb(Mathf.Max(MasterVolume, 0.0001f)));
         AudioServer.SetBusMute(0, MasterVolume <= 0.001f);
         Engine.PhysicsTicksPerSecond = SimulationRate >= 120 ? 120 : 60;
+        Engine.MaxFps = MaxFps;
         if (DisplayServer.GetName() == "headless") return;
-        var want = Fullscreen ? DisplayServer.WindowMode.Fullscreen : DisplayServer.WindowMode.Windowed;
+        var want = WindowMode switch
+        {
+            1 => DisplayServer.WindowMode.Fullscreen,
+            2 => DisplayServer.WindowMode.ExclusiveFullscreen,
+            _ => DisplayServer.WindowMode.Windowed,
+        };
         if (DisplayServer.WindowGetMode() != want) DisplayServer.WindowSetMode(want);
+        if (WindowMode == 0 && WindowSize.X > 0 && DisplayServer.WindowGetSize() != WindowSize)
+        {
+            DisplayServer.WindowSetSize(WindowSize);
+            // Back to the middle of the screen it is on.
+            Vector2I screen = DisplayServer.ScreenGetSize(), origin = DisplayServer.ScreenGetPosition();
+            DisplayServer.WindowSetPosition(origin + (screen - WindowSize) / 2);
+        }
         DisplayServer.WindowSetVsyncMode(VSync ? DisplayServer.VSyncMode.Enabled : DisplayServer.VSyncMode.Disabled);
+
+        // The picture itself: resolution of the 3D view and the smoothing of its edges.
+        if (Engine.GetMainLoop() is SceneTree { Root: { } root })
+        {
+            root.Scaling3DMode = Viewport.Scaling3DModeEnum.Bilinear;
+            root.Scaling3DScale = Mathf.Clamp(RenderScale, 0.5f, 1f);
+            root.Msaa3D = (Viewport.Msaa)Mathf.Clamp(Msaa, 0, 3);
+            root.ScreenSpaceAA = Fxaa ? Viewport.ScreenSpaceAAEnum.Fxaa : Viewport.ScreenSpaceAAEnum.Disabled;
+            root.UseTaa = Taa;
+        }
+        // What the map has switched on or off is the map's own business (see MapLighting).
+        MapLighting.Instance?.ApplyGraphics();
+    }
+
+    /// <summary>Puts every key back as the project has it.</summary>
+    public static void ResetBindings()
+    {
+        Bindings.Clear();
+        InputMap.LoadFromProjectSettings();
     }
 
     // ── Key bindings ────────────────────────────────────────────

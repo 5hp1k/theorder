@@ -15,10 +15,26 @@ public partial class MapTerrain : StaticBody3D
 {
     public static MapTerrain Instance { get; private set; }
 
+    /// <summary>How far from the middle of the map units may get (on either axis).</summary>
+    public float PlayHalf => Size * 0.5f - Border - 12f;
+
+    /// <summary>The position, brought back inside the battlefield if it was beyond its edge.</summary>
+    public Vector3 Contain(Vector3 p, out bool wasOutside)
+    {
+        float limit = PlayHalf;
+        wasOutside = Mathf.Abs(p.X) > limit || Mathf.Abs(p.Z) > limit;
+        return wasOutside ? new Vector3(Mathf.Clamp(p.X, -limit, limit), p.Y, Mathf.Clamp(p.Z, -limit, limit)) : p;
+    }
+
     [ExportGroup("Shape")]
     [Export] public int Seed = 1337;
     /// <summary>Side of the square map, metres.</summary>
     [Export] public float Size = 800f;
+    /// <summary>
+    /// Width of the strip along the map's edge that is scenery only: the ground, the plants, the houses
+    /// are all there, but nothing can walk, drive or fly into it. It hides where the battlefield ends.
+    /// </summary>
+    [Export] public float Border = 120f;
     /// <summary>Grid step, metres. Smaller = smoother, more triangles.</summary>
     [Export] public float CellSize = 4f;
     /// <summary>Height of the long ridges (dunes, drifts).</summary>
@@ -47,6 +63,8 @@ public partial class MapTerrain : StaticBody3D
     [ExportGroup("Water")]
     /// <summary>Fills everything below WaterLevel (lakes in the hollows) and cuts a river across the map.</summary>
     [Export] public bool HasWater;
+    /// <summary>Off: only the river (and the sea) hold water — the hollows are filled in to dry land.</summary>
+    [Export] public bool Lakes = true;
     [Export] public float WaterLevel = -4.5f;
     /// <summary>Deepest the water gets; mechs wade, they don't swim.</summary>
     [Export] public float MaxDepth = 3f;
@@ -151,6 +169,22 @@ public partial class MapTerrain : StaticBody3D
     public float HeightAt(float x, float z) => BaseHeightAt(x, z) + DigAt(x, z);
 
     /// <summary>How far the ground here has been dug away by explosions (negative) or heaped up (positive).</summary>
+    /// <summary>
+    /// Height of the drawn surface itself — the triangles of the ground mesh — for things that have to lie
+    /// flush on it (HeightAt is the smooth land, which the mesh only meets at its grid points).
+    /// </summary>
+    public float MeshHeightAt(float x, float z)
+    {
+        if (_dig == null) return HeightAt(x, z);
+        float step = Size / (_grid - 1);
+        float gx = Mathf.Clamp((x + Size * 0.5f) / step, 0f, _grid - 1.001f), gz = Mathf.Clamp((z + Size * 0.5f) / step, 0f, _grid - 1.001f);
+        int i = (int)gx, j = (int)gz, k = j * _grid + i;
+        float fx = gx - i, fz = gz - j;
+        float a = _base[k] + _dig[k], b = _base[k + 1] + _dig[k + 1], c = _base[k + _grid] + _dig[k + _grid], d = _base[k + _grid + 1] + _dig[k + _grid + 1];
+        // Each cell is two triangles split along a–d.
+        return fx >= fz ? a + (b - a) * fx + (d - b) * fz : a + (d - c) * fx + (c - a) * fz;
+    }
+
     float DigAt(float x, float z)
     {
         if (_dig == null) return 0f;
@@ -165,8 +199,11 @@ public partial class MapTerrain : StaticBody3D
     /// <summary>
     /// Digs a crater: a bowl of the given radius and depth with a low rim thrown up around it. The ground
     /// really changes shape — what stands on it sinks in, shots and feet follow the new surface.
-    /// Only craters wider than a grid cell show; smaller hits leave a mark instead (see Impacts).
+    /// Only craters wider than a grid cell show; every hit leaves a mark as well (see Impacts).
     /// </summary>
+    /// <summary>The ground has just changed shape (craters): whatever lies on it should settle again.</summary>
+    public static event System.Action Reshaped;
+
     public void AddCrater(Vector3 center, float radius, float depth)
     {
         if (_dig == null || radius < CellSize * 0.75f) return;
@@ -195,6 +232,7 @@ public partial class MapTerrain : StaticBody3D
         _dirty = false;
         _rebuildWait = 0.35f;
         BuildSurface();
+        Reshaped?.Invoke();
     }
 
     float BaseHeightAt(float x, float z)
@@ -208,6 +246,12 @@ public partial class MapTerrain : StaticBody3D
         float flat = Mathf.SmoothStep(FlatRadius, FlatRadius * 2.5f, new Vector2(x, z).Length());
         float h = (hills + ridges + _detail.GetNoise2D(x, z) * DetailHeight) * flat;
         if (!HasWater) return h;
+        if (!Lakes)
+        {
+            // No standing water in the hollows: they bottom out, gently, a little above the water level.
+            float dry = WaterLevel + 1f;
+            h = dry + 0.8f * Mathf.Log(1f + Mathf.Exp(Mathf.Min((h - dry) / 0.8f, 30f)));
+        }
 
         // The river runs roughly along X, wandering; its bed is cut below the water with sloping banks.
         float centre = RiverOffset + RiverMeander * (Mathf.Sin(x / 140f + Seed) * 0.7f + Mathf.Sin(x / 57f + Seed * 2f) * 0.3f);
@@ -242,7 +286,7 @@ public partial class MapTerrain : StaticBody3D
     public Vector3? RandomSeaSpot(float clearRadius)
     {
         if (!HasSea) return null;
-        float half = Size * 0.5f - 30f - clearRadius;
+        float half = PlayHalf - 18f - clearRadius;
         for (int tries = 0; tries < 300; tries++)
         {
             float x = _spotRng.RandfRange(-half, half), z = _spotRng.RandfRange(SeaStart + 40f, half);

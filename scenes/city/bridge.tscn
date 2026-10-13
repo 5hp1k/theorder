@@ -18,6 +18,7 @@ CellHp = 14
 ChunkFx = ExtResource("2")
 DebrisMaterial = ExtResource("x1")
 BlockCollision = true
+Trample = false
 
 [node name="Chunks" type="MultiMeshInstance3D" parent="."]
 material_override = ExtResource("3")

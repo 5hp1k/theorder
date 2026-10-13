@@ -73,9 +73,9 @@ def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), 
         upper.box(((x0 + x1) / 2, 0.985, z), (x1 - x0 + 0.02, 0.05, 0.16), FRAME, 0)
     # the dark gap behind the wheels
     tr.box((x1 - 0.06, 0.5, 0), (0.1, 0.74, zr - zf - 0.9), RECESS, 0)
-    m.both(tr, "Hull", "TrackL", JOINT)
-    m.both(upper, "Hull/TrackL", "TreadTop", JOINT)
-    m.both(lower, "Hull/TrackL", "TreadBottom", JOINT)
+    # (The belt and its links are no longer modelled: the game lays the track round the wheels itself —
+    # scenes/vehicles/track_belt.tscn, TrackBelt.cs. "TrackL" / "TrackR" stay in the scene as its mounts.)
+    m.removes += ["Hull/TrackL/TreadTop", "Hull/TrackL/TreadBottom", "Hull/TrackR/TreadTop", "Hull/TrackR/TreadBottom"]
 
     count = max(5, int(length / 1.05))
     spots = [(zf + 0.5, 0.62, 0.33)] + [(zf + 1.25 + i * (zr - zf - 2.5) / (count - 1), 0.44, 0.36) for i in range(count)] + [(zr - 0.5, 0.56, 0.33)]

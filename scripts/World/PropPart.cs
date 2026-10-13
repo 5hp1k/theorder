@@ -49,6 +49,7 @@ public partial class PropPart : StaticBody3D, IDamageable
         CollisionLayer = 0;
         Node scene = GetTree().CurrentScene;
         Vector3 at = Center;
+        Burning.Ignite(scene, at, 0.8f);
         if (BreakFx != null)
         {
             var fx = BreakFx.Instantiate<Node3D>();

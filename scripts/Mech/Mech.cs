@@ -247,83 +247,11 @@ public partial class Mech : CharacterBody3D, IDrivable
 
     // ── Setup: paint and weapons ────────────────────────────────
 
-    /// <summary>Repaints the armour with a camouflage material and recolours the stripe.</summary>
-    public void ApplyPaint(Material camo, Color stripe)
-    {
-        Material accent = AccentMaterial;
-        if (AccentMaterial is StandardMaterial3D std)
-        {
-            var copy = (StandardMaterial3D)std.Duplicate();
-            copy.AlbedoColor = stripe;
-            accent = copy;
-        }
-        else if (AccentMaterial is ShaderMaterial painted)
-        {
-            // The armour shader keeps its colour in a parameter.
-            var copy = (ShaderMaterial)painted.Duplicate();
-            copy.SetShaderParameter("paint_color", stripe);
-            accent = copy;
-        }
-        foreach (var mesh in Geo.Collect<MeshInstance3D>(this))
-        {
-            if (mesh.MaterialOverride == ArmorMaterial && camo != null) mesh.MaterialOverride = camo;
-            else if (mesh.MaterialOverride == AccentMaterial) mesh.MaterialOverride = accent;
-        }
-        if (camo != null) ArmorMaterial = camo;
-        AccentMaterial = accent;
-    }
+    /// <summary>Repaints the armour (see <see cref="PaintJob"/>).</summary>
+    public void ApplyPaint(PaintJob paint) => ArmorMaterial = paint.Apply(this, ArmorMaterial);
 
     /// <summary>Shows a picture on the plates named "Insignia…" in the scene, or hides them.</summary>
-    public void ApplyInsignia(Texture2D picture)
-    {
-        foreach (var mesh in Geo.Collect<MeshInstance3D>(this))
-        {
-            if (!mesh.Name.ToString().StartsWith("Insignia")) continue;
-            mesh.Visible = picture != null;
-            if (picture == null || mesh.MaterialOverride is not StandardMaterial3D std) continue;
-            var copy = (StandardMaterial3D)std.Duplicate();
-            copy.AlbedoTexture = picture;
-            mesh.MaterialOverride = copy;
-        }
-    }
-
-    /// <summary>Weapon slots in scene order.</summary>
-    public List<Weapon> GetWeaponSlots() => Geo.Collect<Weapon>(this);
-
-    /// <summary>
-    /// Swaps the weapons in the slots for the given catalog weapons (same order as
-    /// <see cref="GetWeaponSlots"/>). Call before the mech enters the tree.
-    /// </summary>
-    public void ApplyLoadout(string[] weaponIds, int[] groups = null)
-    {
-        if (weaponIds != null) SwapWeapons(weaponIds);
-        if (groups == null) return;
-        // Which trigger each slot is on.
-        var fitted = GetWeaponSlots();
-        for (int i = 0; i < fitted.Count && i < groups.Length; i++)
-            if (groups[i] >= 1 && groups[i] <= 3) fitted[i].Group = groups[i];
-    }
-
-    void SwapWeapons(string[] weaponIds)
-    {
-        var slots = GetWeaponSlots();
-        for (int i = 0; i < slots.Count && i < weaponIds.Length; i++)
-        {
-            Weapon old = slots[i];
-            var entry = Catalog.Find(Catalog.Weapons, weaponIds[i]);
-            if (entry.Id != weaponIds[i] || old.SceneFilePath == entry.Path) continue;
-
-            var weapon = GD.Load<PackedScene>(entry.Path).Instantiate<Weapon>();
-            weapon.Transform = old.Transform;
-            weapon.Mount = old.Mount;
-            Node parent = old.GetParent();
-            int index = old.GetIndex();
-            parent.RemoveChild(old);
-            old.QueueFree();
-            parent.AddChild(weapon);
-            parent.MoveChild(weapon, index);
-        }
-    }
+    public void ApplyInsignia(Texture2D picture) => Units.ApplyInsignia(this, picture);
 
     /// <summary>Shows or hides this mech in the HUD's target window (a dedicated render layer).</summary>
     public void SetPreview(bool on, int layer) => Units.SetPreview(this, on, layer);
@@ -347,6 +275,8 @@ public partial class Mech : CharacterBody3D, IDrivable
 
         var terrain = MapTerrain.Instance;
         WaterDepth = terrain?.WaterDepthAt(GlobalPosition.X, GlobalPosition.Z) ?? 0f;
+        // Crossing by the bridge: over the water, not in it.
+        if (WaterDepth > 0f && GlobalPosition.Y > terrain.WaterLevel) WaterDepth = 0f;
 
         UpdateHeat(dt);
         TurnInput = 0f;
@@ -445,10 +375,8 @@ public partial class Mech : CharacterBody3D, IDrivable
     {
         var terrain = MapTerrain.Instance;
         if (terrain == null) return;
-        float limit = terrain.Size * 0.5f - 12f;
-        Vector3 p = GlobalPosition;
-        if (Mathf.Abs(p.X) > limit || Mathf.Abs(p.Z) > limit)
-            GlobalPosition = new Vector3(Mathf.Clamp(p.X, -limit, limit), p.Y, Mathf.Clamp(p.Z, -limit, limit));
+        Vector3 p = terrain.Contain(GlobalPosition, out bool outside);
+        if (outside) GlobalPosition = p;
     }
 
     void InitLegs()
@@ -574,7 +502,7 @@ public partial class Mech : CharacterBody3D, IDrivable
             _sFoot.Play();
         }
         var terrain = MapTerrain.Instance;
-        bool wet = terrain != null && terrain.WaterDepthAt(leg.Contact.X, leg.Contact.Z) > 0.3f;
+        bool wet = terrain != null && leg.Contact.Y < terrain.WaterLevel && terrain.WaterDepthAt(leg.Contact.X, leg.Contact.Z) > 0.3f;
         var scene = wet ? terrain.SplashScene : terrain?.FootprintScene;
         if (scene == null) return;
         if (wet)

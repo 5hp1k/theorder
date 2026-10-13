@@ -1,0 +1,513 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/UI/SettingsPanel.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/bind_row.tscn" id="2"]
+
+[node name="SettingsPanel" type="VBoxContainer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1
+anchor_bottom = 1
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+script = ExtResource("1")
+BindRowScene = ExtResource("2")
+
+[node name="Heading" type="Label" parent="."]
+layout_mode = 2
+text = "Настройки"
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+
+[node name="Tabs" type="TabContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(0, 470)
+theme_override_font_sizes/font_size = 18
+current_tab = 0
+
+[node name="Game" type="ScrollContainer" parent="Tabs"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+metadata/_tab_name = "Игра"
+
+[node name="Rows" type="VBoxContainer" parent="Tabs/Game"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 9
+
+[node name="VolumeRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Game/Rows/VolumeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Громкость"
+theme_override_font_sizes/font_size = 17
+
+[node name="VolumeSlider" type="HSlider" parent="Tabs/Game/Rows/VolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0
+max_value = 1
+step = 0.01
+unique_name_in_owner = true
+
+[node name="VolumeLabel" type="Label" parent="Tabs/Game/Rows/VolumeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="SensRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Game/Rows/SensRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Чувствительность мыши"
+theme_override_font_sizes/font_size = 17
+
+[node name="SensSlider" type="HSlider" parent="Tabs/Game/Rows/SensRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.2
+max_value = 3
+step = 0.01
+unique_name_in_owner = true
+
+[node name="SensLabel" type="Label" parent="Tabs/Game/Rows/SensRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="FovRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Game/Rows/FovRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Угол обзора"
+theme_override_font_sizes/font_size = 17
+
+[node name="FovSlider" type="HSlider" parent="Tabs/Game/Rows/FovRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 55
+max_value = 110
+step = 1
+unique_name_in_owner = true
+
+[node name="FovLabel" type="Label" parent="Tabs/Game/Rows/FovRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="ShowFpsRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Game/Rows/ShowFpsRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Счётчик кадров (F3)"
+theme_override_font_sizes/font_size = 17
+
+[node name="ShowFpsCheck" type="CheckButton" parent="Tabs/Game/Rows/ShowFpsRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="SimRateRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Game/Rows/SimRateRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Частота симуляции"
+theme_override_font_sizes/font_size = 17
+
+[node name="SimRateOption" type="OptionButton" parent="Tabs/Game/Rows/SimRateRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+item_count = 2
+popup/item_0/text = "60 Гц (быстрее)"
+popup/item_0/id = 0
+popup/item_1/text = "120 Гц (плавнее)"
+popup/item_1/id = 1
+
+[node name="Note" type="Label" parent="Tabs/Game/Rows"]
+layout_mode = 2
+text = "Частота симуляции применяется с началом следующего боя."
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
+
+[node name="Graphics" type="ScrollContainer" parent="Tabs"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+metadata/_tab_name = "Графика"
+
+[node name="Rows" type="VBoxContainer" parent="Tabs/Graphics"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 9
+
+[node name="WindowModeRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/WindowModeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Окно"
+theme_override_font_sizes/font_size = 17
+
+[node name="WindowModeOption" type="OptionButton" parent="Tabs/Graphics/Rows/WindowModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+item_count = 3
+popup/item_0/text = "В окне"
+popup/item_0/id = 0
+popup/item_1/text = "На весь экран (без рамки)"
+popup/item_1/id = 1
+popup/item_2/text = "Полноэкранный режим"
+popup/item_2/id = 2
+
+[node name="WindowSizeRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/WindowSizeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Размер окна"
+theme_override_font_sizes/font_size = 17
+
+[node name="WindowSizeOption" type="OptionButton" parent="Tabs/Graphics/Rows/WindowSizeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="RenderScaleRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/RenderScaleRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Разрешение 3D-картинки"
+theme_override_font_sizes/font_size = 17
+
+[node name="RenderScaleSlider" type="HSlider" parent="Tabs/Graphics/Rows/RenderScaleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.5
+max_value = 1
+step = 0.05
+unique_name_in_owner = true
+
+[node name="RenderScaleLabel" type="Label" parent="Tabs/Graphics/Rows/RenderScaleRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="VSyncRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/VSyncRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Вертикальная синхронизация"
+theme_override_font_sizes/font_size = 17
+
+[node name="VSyncCheck" type="CheckButton" parent="Tabs/Graphics/Rows/VSyncRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="MaxFpsRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/MaxFpsRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Ограничение кадров"
+theme_override_font_sizes/font_size = 17
+
+[node name="MaxFpsOption" type="OptionButton" parent="Tabs/Graphics/Rows/MaxFpsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="EffectsRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/EffectsRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Набор качества"
+theme_override_font_sizes/font_size = 17
+
+[node name="EffectsOption" type="OptionButton" parent="Tabs/Graphics/Rows/EffectsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+item_count = 4
+popup/item_0/text = "Низкое"
+popup/item_0/id = 0
+popup/item_1/text = "Среднее"
+popup/item_1/id = 1
+popup/item_2/text = "Высокое"
+popup/item_2/id = 2
+popup/item_3/text = "Своё"
+popup/item_3/id = 3
+
+[node name="MsaaRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/MsaaRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Сглаживание краёв (MSAA)"
+theme_override_font_sizes/font_size = 17
+
+[node name="MsaaOption" type="OptionButton" parent="Tabs/Graphics/Rows/MsaaRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+item_count = 4
+popup/item_0/text = "Выключено"
+popup/item_0/id = 0
+popup/item_1/text = "2×"
+popup/item_1/id = 1
+popup/item_2/text = "4×"
+popup/item_2/id = 2
+popup/item_3/text = "8×"
+popup/item_3/id = 3
+
+[node name="FxaaRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/FxaaRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Сглаживание картинки (FXAA)"
+theme_override_font_sizes/font_size = 17
+
+[node name="FxaaCheck" type="CheckButton" parent="Tabs/Graphics/Rows/FxaaRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="TaaRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/TaaRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Сглаживание во времени (TAA)"
+theme_override_font_sizes/font_size = 17
+
+[node name="TaaCheck" type="CheckButton" parent="Tabs/Graphics/Rows/TaaRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="ShadowsRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/ShadowsRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Тени"
+theme_override_font_sizes/font_size = 17
+
+[node name="ShadowsOption" type="OptionButton" parent="Tabs/Graphics/Rows/ShadowsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+item_count = 4
+popup/item_0/text = "Выключены"
+popup/item_0/id = 0
+popup/item_1/text = "Низкие"
+popup/item_1/id = 1
+popup/item_2/text = "Средние"
+popup/item_2/id = 2
+popup/item_3/text = "Высокие"
+popup/item_3/id = 3
+
+[node name="SsaoRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/SsaoRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Затенение в углах (SSAO)"
+theme_override_font_sizes/font_size = 17
+
+[node name="SsaoCheck" type="CheckButton" parent="Tabs/Graphics/Rows/SsaoRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="SsilRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/SsilRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Отражённый свет вблизи (SSIL)"
+theme_override_font_sizes/font_size = 17
+
+[node name="SsilCheck" type="CheckButton" parent="Tabs/Graphics/Rows/SsilRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="SdfgiRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/SdfgiRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Отражённый свет (SDFGI)"
+theme_override_font_sizes/font_size = 17
+
+[node name="SdfgiCheck" type="CheckButton" parent="Tabs/Graphics/Rows/SdfgiRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="VolumetricRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/VolumetricRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Лучи света в дымке"
+theme_override_font_sizes/font_size = 17
+
+[node name="VolumetricCheck" type="CheckButton" parent="Tabs/Graphics/Rows/VolumetricRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="GlowRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/GlowRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Свечение ярких мест"
+theme_override_font_sizes/font_size = 17
+
+[node name="GlowCheck" type="CheckButton" parent="Tabs/Graphics/Rows/GlowRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="MirrorRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/MirrorRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Отражения на воде"
+theme_override_font_sizes/font_size = 17
+
+[node name="MirrorCheck" type="CheckButton" parent="Tabs/Graphics/Rows/MirrorRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
+[node name="WeatherRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/WeatherRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Плотность осадков и пыли"
+theme_override_font_sizes/font_size = 17
+
+[node name="WeatherSlider" type="HSlider" parent="Tabs/Graphics/Rows/WeatherRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.1
+max_value = 1
+step = 0.05
+unique_name_in_owner = true
+
+[node name="WeatherLabel" type="Label" parent="Tabs/Graphics/Rows/WeatherRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="Note" type="Label" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+text = "Размер окна действует в оконном режиме; на весь экран картинка рисуется в разрешении экрана, а нагрузку снижает «Разрешение 3D-картинки»."
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
+
+[node name="Controls" type="ScrollContainer" parent="Tabs"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+metadata/_tab_name = "Управление"
+
+[node name="Rows" type="VBoxContainer" parent="Tabs/Controls"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 9
+
+[node name="Hint" type="Label" parent="Tabs/Controls/Rows"]
+layout_mode = 2
+text = "Нажмите на кнопку справа от действия, затем на новую клавишу или кнопку мыши. Esc — отмена."
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
+
+[node name="BindList" type="VBoxContainer" parent="Tabs/Controls/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 4
+unique_name_in_owner = true
+
+[node name="BtnResetBinds" type="Button" parent="Tabs/Controls/Rows"]
+layout_mode = 2
+size_flags_horizontal = 0
+custom_minimum_size = Vector2(300, 38)
+text = "Вернуть клавиши по умолчанию"
+theme_override_font_sizes/font_size = 16
+unique_name_in_owner = true

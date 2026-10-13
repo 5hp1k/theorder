@@ -3,31 +3,47 @@ using Godot;
 
 namespace MechSim;
 
+/// <summary>What made the mark: each has a prefab of its own, scenes/fx/mark_*.tscn.</summary>
+public enum Mark
+{
+    /// <summary>Bullets and blades: a pock with chips round it.</summary>
+    Bullet,
+    /// <summary>Shells, missiles, bombs: char, streaks of soot, thrown earth.</summary>
+    Blast,
+    /// <summary>Beams: a glowing burn.</summary>
+    Burn,
+}
+
 /// <summary>
 /// Marks that weapons leave on the world: craters and scorches on the ground, splashes and ripples on
-/// water. The looks are in scenes/fx/crater.tscn and the map's splash scene.
+/// water. The looks are in scenes/fx/mark_*.tscn and the map's splash scene.
 /// </summary>
 public static class Impacts
 {
-    /// <summary>Most craters kept at once; the oldest goes when a new one arrives.</summary>
+    /// <summary>Most marks kept at once; the oldest goes when a new one arrives.</summary>
     public const int MaxCraters = 140;
 
-    static PackedScene _crater;
+    static readonly PackedScene[] Scenes = new PackedScene[3];
     static readonly Queue<Node3D> Craters = new();
 
-    /// <summary>Leaves a crater if the hit landed on the ground.</summary>
-    public static void Ground(Node parent, in Phys.Hit hit, float radius)
+    /// <summary>Leaves a mark if the hit landed on the ground — and a hole, if it was big enough.</summary>
+    public static void Ground(Node parent, in Phys.Hit hit, float radius, Mark kind = Mark.Blast)
     {
         if (radius <= 0f || hit.Collider is not MapTerrain terrain) return;
         // Big blasts move earth as well as scorching it.
         terrain.AddCrater(hit.Position, radius, radius * 0.3f);
-        // A hole that size needs no painted mark on top of it.
-        if (radius >= terrain.CellSize * 0.75f) return;
-        _crater ??= GD.Load<PackedScene>("res://scenes/fx/crater.tscn");
-        var crater = _crater.Instantiate<Node3D>();
-        // Lying on the slope it hit, turned at random so they don't all look the same.
-        Basis basis = Geo.BasisFromUpForward(hit.Normal, Vector3.Forward.Rotated(Vector3.Up, GD.Randf() * Mathf.Tau));
-        crater.Transform = new Transform3D(basis.Scaled(Vector3.One * radius), hit.Position);
+        // Nothing is painted on a bed under water: the mark would show through the surface.
+        if (terrain.WaterDepthAt(hit.Position.X, hit.Position.Z) > 0.02f) return;
+        Scenes[(int)kind] ??= GD.Load<PackedScene>(kind switch
+        {
+            Mark.Bullet => "res://scenes/fx/mark_bullet.tscn",
+            Mark.Burn => "res://scenes/fx/mark_burn.tscn",
+            _ => "res://scenes/fx/mark_blast.tscn",
+        });
+        var crater = Scenes[(int)kind].Instantiate<Node3D>();
+        // Flat on the map (it drapes itself over the ground), turned at random so no two look the same.
+        var basis = new Basis(Vector3.Up, GD.Randf() * Mathf.Tau).Scaled(Vector3.One * radius * (float)GD.RandRange(0.85, 1.15));
+        crater.Transform = new Transform3D(basis, hit.Position);
         parent.AddChild(crater);
 
         Craters.Enqueue(crater);
@@ -71,5 +87,6 @@ public static class Impacts
     {
         Craters.Clear();
         Debris.Reset();
+        Burning.Reset();
     }
 }

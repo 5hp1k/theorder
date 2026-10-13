@@ -7,7 +7,9 @@ namespace MechSim;
 /// a soldier can climb into with the interact key. Both use this script; the difference is in the
 /// numbers and the weapons set up in the scene (soldier.tscn, power_armor.tscn).
 /// Scene layout: "Head" (pitches with the view) holding "Camera" and the Weapon nodes;
-/// "Body" with optional "LegL", "LegR", "ArmL", "ArmR" that swing while walking;
+/// "Body" holding the figure: either an animated model (anything with an AnimationPlayer under Body —
+/// the clips to play are named in the Animation group) or plain "LegL", "LegR", "ArmL", "ArmR" pivots
+/// that are swung while walking;
 /// optional "Jets" (particles + "Sound") for the jetpack.
 /// </summary>
 public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
@@ -30,6 +32,17 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
     [Export] public Vector3 ChaseOffset = new(0f, 0.8f, 5f);
     /// <summary>Spawned when it's destroyed.</summary>
     [Export] public PackedScene DeathFx;
+
+    [ExportGroup("Animation")]
+    /// <summary>Clips of the model's AnimationPlayer. Leave a name empty to skip that clip.</summary>
+    [Export] public string IdleClip = "CharacterArmature|Idle";
+    [Export] public string RunClip = "CharacterArmature|Run_Gun";
+    [Export] public string AirClip = "CharacterArmature|Jump_Idle";
+    [Export] public string DeathClip = "CharacterArmature|Death";
+    /// <summary>Ground speed the run clip was animated for, m/s: it is played faster or slower to match.</summary>
+    [Export] public float RunClipSpeed = 6f;
+    /// <summary>Nodes of the model to switch off (spare weapons that come with it).</summary>
+    [Export] public Godot.Collections.Array<string> HiddenParts = new();
 
     [ExportGroup("Jetpack")]
     [Export] public bool HasJetpack;
@@ -97,6 +110,8 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
     Transform3D _spawn;
     float _eyeHeight, _pitch, _walkPhase, _forwardSpeed;
     bool _suppressFire;
+    AnimationPlayer _anim;
+    string _clip;
 
     public override void _Ready()
     {
@@ -108,6 +123,16 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
             GetNodeOrNull<Node3D>("Body/LegL"), GetNodeOrNull<Node3D>("Body/LegR"),
             GetNodeOrNull<Node3D>("Body/ArmL"), GetNodeOrNull<Node3D>("Body/ArmR"),
         };
+        var players = Geo.Collect<AnimationPlayer>(_body);
+        if (players.Count > 0)
+        {
+            _anim = players[0];
+            // Standing and running go round and round.
+            foreach (string clip in new[] { IdleClip, RunClip, AirClip })
+                if (!string.IsNullOrEmpty(clip) && _anim.HasAnimation(clip)) _anim.GetAnimation(clip).LoopMode = Animation.LoopModeEnum.Linear;
+        }
+        foreach (string hidden in HiddenParts)
+            if (_body.FindChild(hidden, true, false) is Node3D part) part.Visible = false;
         _jets = GetNodeOrNull<Node3D>("Jets");
         _jetSound = GetNodeOrNull<AudioStreamPlayer3D>("Jets/Sound");
         _eyeHeight = _head.Position.Y;
@@ -268,6 +293,11 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
         Thrusting = burning;
         Velocity = new Vector3(flat.X, v.Y, flat.Z);
         MoveAndSlide();
+        if (MapTerrain.Instance is { } land)
+        {
+            Vector3 kept = land.Contain(GlobalPosition, out bool outside);
+            if (outside) GlobalPosition = kept;
+        }
 
         Animate(dt, flat.Length());
         if (!Controlled) return;
@@ -346,8 +376,28 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
         WaterSurface.AddRipple(GlobalPosition, 0.5f);
     }
 
+    void Play(string clip, float speed = 1f)
+    {
+        if (string.IsNullOrEmpty(clip) || !_anim.HasAnimation(clip)) return;
+        if (_clip != clip)
+        {
+            _clip = clip;
+            _anim.Play(clip, 0.18);
+        }
+        _anim.SpeedScale = speed;
+    }
+
     void Animate(float dt, float speed)
     {
+        if (_anim != null)
+        {
+            if (IsDestroyed) Play(DeathClip);
+            else if (!IsOnFloor()) Play(AirClip);
+            else if (speed > 0.6f) Play(RunClip, Mathf.Clamp(speed / RunClipSpeed, 0.5f, 1.6f));
+            else Play(IdleClip);
+            return;
+        }
+
         // Arms and legs swing in step with the ground covered.
         _walkPhase += speed * dt * 2.2f / Mathf.Max(_eyeHeight, 0.5f);
         float swing = Mathf.Sin(_walkPhase) * Mathf.Clamp(speed / WalkSpeed, 0f, 1f) * 0.6f;
@@ -385,7 +435,8 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
         SetJets(false);
         CollisionLayer = 0;
         _body.Visible = true;
-        _body.Rotation = new Vector3(-1.45f, 0f, 0f); // flat on its back
+        // A figure with no death animation of its own is simply laid flat on its back.
+        if (_anim == null || !_anim.HasAnimation(DeathClip)) _body.Rotation = new Vector3(-1.45f, 0f, 0f);
         ThirdPerson = true;
         if (DeathFx != null)
         {
