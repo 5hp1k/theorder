@@ -11,8 +11,13 @@
 [ext_resource type="Script" path="res://scripts/UI/WeaponList.cs" id="9"]
 [ext_resource type="Script" path="res://scripts/UI/Minimap.cs" id="10"]
 [ext_resource type="Script" path="res://scripts/UI/StatusText.cs" id="11"]
+[ext_resource type="Script" path="res://scripts/UI/NukeWarning.cs" id="nukewarn"]
+[ext_resource type="AudioStream" path="res://audio/siren_loop.wav" id="siren"]
 [ext_resource type="Script" path="res://scripts/UI/DamageDoll.cs" id="12"]
 [ext_resource type="Script" path="res://scripts/UI/TargetPanel.cs" id="13"]
+[ext_resource type="Script" path="res://scripts/UI/SquadCommand.cs" id="squad"]
+[ext_resource type="Script" path="res://scripts/UI/Scoreboard.cs" id="scoreboard"]
+[ext_resource type="Script" path="res://scripts/UI/ChatBox.cs" id="chatbox"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
 shader = ExtResource("3")
@@ -186,6 +191,25 @@ offset_right = 300
 offset_bottom = -50
 mouse_filter = 2
 
+[node name="NukeWarning" type="Control" parent="."]
+script = ExtResource("nukewarn")
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -260
+offset_top = 110
+offset_right = 260
+offset_bottom = 204
+mouse_filter = 2
+DangerRadius = 330.0
+WarnRadius = 1500.0
+ArrowRing = 46.0
+
+[node name="Siren" type="AudioStreamPlayer" parent="NukeWarning"]
+stream = ExtResource("siren")
+volume_db = -8.0
+
 [node name="ArmorLabel" type="Label" parent="."]
 layout_mode = 1
 anchors_preset = -1
@@ -289,23 +313,6 @@ offset_bottom = 144
 mouse_filter = 2
 ShowTarget = true
 
-[node name="KillsLabel" type="Label" parent="."]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 1
-anchor_top = 0
-anchor_right = 1
-anchor_bottom = 0
-offset_left = -240
-offset_top = 10
-offset_right = -20
-offset_bottom = 36
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.45, 1, 0.55, 0.9)
-theme_override_font_sizes/font_size = 18
-text = "Уничтожено: 0"
-horizontal_alignment = 2
-
 [node name="ViewLabel" type="Label" parent="."]
 layout_mode = 1
 anchors_preset = -1
@@ -336,20 +343,19 @@ offset_bottom = 34
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.45, 1, 0.55, 0.35)
 theme_override_font_sizes/font_size = 14
-text = "F1 — управление"
+text = "H — управление"
 
 [node name="HelpPanel" type="PanelContainer" parent="."]
 visible = false
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0
-anchor_top = 0
-anchor_right = 0
-anchor_bottom = 0
-offset_left = 10
-offset_top = 8
-offset_right = 520
-offset_bottom = 350
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 0.14
+anchor_bottom = 0.14
+offset_left = -270
+offset_right = 270
+offset_bottom = 400
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_4")
 
@@ -360,6 +366,7 @@ theme_override_colors/font_color = Color(0.45, 1, 0.55, 0.9)
 theme_override_font_sizes/font_size = 14
 text = "W / S — газ (с остановкой на нуле),  X — полный стоп
 A / D — поворот ног (техника: поворот корпуса, самолёт: крен)
+Самолёт: W / S — нос вниз и вверх, Shift / Ctrl — тяга, мышь — куда лететь, Пробел — осмотреться
 Мышь — торс, башня, прицел
 C — выровнять торс по ногам
 Ctrl (держать) — осмотреться, орудия на месте
@@ -370,6 +377,89 @@ E — ближайшая цель, T — следующая, Q — под при
 Пробел — прыжковые двигатели (вертолёт: вверх),  Shift — вниз
 L — фары,  M — режим радара
 V — кабина / внешний вид
-F3 — счётчик кадров
-Esc — пауза, настройки и управление,  F1 — скрыть справку
+Y — цель из своих,  Tab (держать) — таблица боя
+Enter — чат (в сетевой игре)
+Звено: F1–F8 кому приказ, затем цифра приказа
+F11 — счётчик кадров
+Esc — пауза, настройки и управление,  H — скрыть справку
 Клавиши меняются в настройках, на вкладке «Управление»."
+
+[node name="SquadCommand" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0
+anchor_top = 0
+anchor_right = 0
+anchor_bottom = 0
+offset_left = 14
+offset_top = 44
+offset_right = 404
+offset_bottom = 240
+mouse_filter = 2
+script = ExtResource("squad")
+
+[node name="Scoreboard" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 0.16
+anchor_right = 0.5
+anchor_bottom = 0.16
+offset_left = -380
+offset_right = 380
+offset_bottom = 420
+mouse_filter = 2
+script = ExtResource("scoreboard")
+
+[node name="ChatBox" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0
+anchor_top = 0.5
+anchor_right = 0
+anchor_bottom = 0.5
+offset_left = 14
+offset_top = -40
+offset_right = 474
+offset_bottom = 130
+mouse_filter = 2
+script = ExtResource("chatbox")
+
+[node name="Log" type="Label" parent="ChatBox"]
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1
+anchor_bottom = 1
+offset_bottom = -34
+mouse_filter = 2
+vertical_alignment = 2
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.8, 1, 0.85, 0.95)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.85)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+
+[node name="Edit" type="LineEdit" parent="ChatBox"]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 1
+anchor_right = 1
+anchor_bottom = 1
+offset_top = -30
+placeholder_text = "сообщение всем — Enter отправить, Esc закрыть"
+max_length = 200
+theme_override_font_sizes/font_size = 14
+
+[node name="Hint" type="Label" parent="ChatBox"]
+layout_mode = 1
+anchors_preset = -1
+anchor_top = 1
+anchor_right = 1
+anchor_bottom = 1
+offset_top = -26
+mouse_filter = 2
+text = "Enter — чат"
+theme_override_colors/font_color = Color(0.45, 1, 0.55, 0.45)
+theme_override_font_sizes/font_size = 13

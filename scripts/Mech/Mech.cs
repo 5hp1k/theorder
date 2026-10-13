@@ -68,6 +68,14 @@ public partial class Mech : CharacterBody3D, IDrivable
     [Export] public float LeggedSpeedFactor = 0.35f; // top speed with one leg gone
     /// <summary>Radius within which the mech flattens trees, cars and buildings it walks into.</summary>
     [Export] public float TrampleRadius = 2.6f;
+    [ExportGroup("Hand-to-hand")]
+    /// <summary>How far the striking arm is raised in the wind-up, and how far it follows through, radians.</summary>
+    [Export] public float SwingRaise = 1.25f;
+    [Export] public float SwingFollow = 0.75f;
+    /// <summary>How far the torso twists into a blow, and how far it leans into it, radians.</summary>
+    [Export] public float SwingTwist = 0.45f;
+    [Export] public float SwingLean = 0.16f;
+    [ExportGroup("")]
     [Export] public Material CharredMaterial;
     /// <summary>What a section looks like with its armour shot away: bare structure.</summary>
     [Export] public Material StrippedMaterial;
@@ -130,9 +138,9 @@ public partial class Mech : CharacterBody3D, IDrivable
     public bool Thrusting { get; private set; }
     /// <summary>Depth of water the mech stands in, metres.</summary>
     public float WaterDepth { get; private set; }
-    public bool Offline => IsShutdown || IsDestroyed;
+    public bool Offline => IsShutdown || IsDestroyed || Repairing;
     public float Time { get; private set; }
-    public uint FireMask => Units.FireMask(Team);
+    public uint FireMask => Units.FireMask(Team, Pilot is PlayerPilot);
 
     // ── Commands, set by the pilot each tick ────────────────────
     public float Throttle { get; set; }            // -ReverseFraction..1
@@ -158,6 +166,8 @@ public partial class Mech : CharacterBody3D, IDrivable
     public MechLeg[] Legs { get; private set; }
 
     Node3D[] _arms;
+    int _swingArm = -1;
+    float _swing;
     readonly Gait _gait = new();
     readonly List<HitBox> _hitBoxes = new();
     readonly List<Node> _damageFx = new();
@@ -260,6 +270,13 @@ public partial class Mech : CharacterBody3D, IDrivable
 
     public override void _PhysicsProcess(double delta)
     {
+        long prof = Prof.Now();
+        Tick(delta);
+        Prof.Add(0, prof);
+    }
+
+    void Tick(double delta)
+    {
         float dt = (float)delta;
         Time += dt;
         var space = GetWorld3D().DirectSpaceState;
@@ -278,6 +295,12 @@ public partial class Mech : CharacterBody3D, IDrivable
         // Crossing by the bridge: over the water, not in it.
         if (WaterDepth > 0f && GlobalPosition.Y > terrain.WaterLevel) WaterDepth = 0f;
 
+        if (_repairLeft > 0f)
+        {
+            _repairLeft -= dt;
+            Heat = 0f;
+            if (_repairLeft <= 0f) Mend();
+        }
         UpdateHeat(dt);
         TurnInput = 0f;
         Fire1 = Fire2 = Fire3 = Jump = Descend = false;
@@ -322,7 +345,9 @@ public partial class Mech : CharacterBody3D, IDrivable
         KeepOnMap();
 
         bool wasAirborne = Airborne;
-        Airborne = !IsOnFloor() && (Thrusting || wasAirborne || HeightAboveGround() > 2f);
+        // (Falling fast counts too, wherever it is: off a bridge, into a crater. Otherwise the feet stay
+        // planted where they were while the body drops away under them.)
+        Airborne = !IsOnFloor() && (Thrusting || wasAirborne || HeightAboveGround() > 2f || Velocity.Y < -3.5f);
         if (wasAirborne && !Airborne) OnTouchdown();
 
         // Anything flimsy in the way gets flattened; buildings get a mech-sized hole.
@@ -465,8 +490,26 @@ public partial class Mech : CharacterBody3D, IDrivable
             TargetYaw = _yaw;
             TargetPitch = _pitch;
         }
+        // A blow with a hand weapon is thrown with the whole body: the torso winds back from the striking
+        // side and dips, then whips round into the blow.
+        _swingArm = -1;
+        float swingYaw = 0f, swingPitch = 0f;
+        foreach (var w in Weapons.Weapons)
+        {
+            if (w.Kind != WeaponKind.Melee || w.SwingLeft <= 0f) continue;
+            float k = w.SwingPhase;
+            _swingArm = w.Mount == Section.LeftArm ? 0 : 1;
+            float side = _swingArm == 0 ? 1f : -1f;
+            // -1 at the top of the wind-up, +1 as the blow lands, back to 0.
+            _swing = k < Weapon.WindUp ? -Mathf.SmoothStep(0f, 1f, k / Weapon.WindUp)
+                   : k < Weapon.Strike ? Mathf.Lerp(-1f, 1f, Mathf.SmoothStep(0f, 1f, (k - Weapon.WindUp) / (Weapon.Strike - Weapon.WindUp)))
+                   : 1f - Mathf.SmoothStep(0f, 1f, (k - Weapon.Strike) / (1f - Weapon.Strike));
+            swingYaw = -_swing * side * SwingTwist;
+            swingPitch = -Mathf.Max(_swing, 0f) * SwingLean + Mathf.Max(-_swing, 0f) * SwingLean * 0.4f;
+            break;
+        }
         // The pelvis swings with the stride (see UpdateHips); the torso cancels it to stay on aim.
-        Torso.Rotation = new Vector3(_pitch, _yaw - _twist, 0f);
+        Torso.Rotation = new Vector3(_pitch + swingPitch, _yaw - _twist + swingYaw, 0f);
     }
 
     void OnFootfall(MechLeg leg)
@@ -638,6 +681,9 @@ public partial class Mech : CharacterBody3D, IDrivable
             if (_tornArms[i] != null) continue;
             if (arm.GlobalPosition.DistanceSquaredTo(AimPoint) > 4f)
                 arm.LookAt(AimPoint, Vector3.Up);
+            // The striking arm goes up and back, then comes down through the target.
+            if (i == _swingArm)
+                arm.RotateObjectLocal(Vector3.Right, _swing < 0f ? -_swing * SwingRaise : -_swing * SwingFollow);
         }
     }
 
@@ -742,6 +788,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         _ragdoll?.Activate(this, Velocity);
         Pilot?.OnKilled();
         if (Team == Team.Enemy) Game.Kills++;
+        Score.Killed(this);
     }
 
     void UpdateDead(float dt)
@@ -780,9 +827,10 @@ public partial class Mech : CharacterBody3D, IDrivable
         Shake += 0.6f;
     }
 
-    void Respawn()
+    /// <summary>Puts back everything that was shot off, mends every section and refills the magazines.</summary>
+    void Mend()
     {
-        _ragdoll?.Deactivate();
+        Impacts.CleanUnit(this);
         for (int i = 0; i < _tornArms.Length; i++)
         {
             _tornArms[i]?.Restore();
@@ -799,6 +847,53 @@ public partial class Mech : CharacterBody3D, IDrivable
         CollisionLayer = _bodyLayer;
         CollisionMask = _bodyMask;
 
+    }
+
+    /// <summary>Being worked on at a repair bay: powered down until it is done.</summary>
+    public bool Repairing => _repairLeft > 0f;
+    /// <summary>Seconds of repair still to go.</summary>
+    public float RepairLeft => _repairLeft;
+    float _repairLeft;
+    /// <summary>Anything to mend or reload.</summary>
+    public bool NeedsRepair => !IsDestroyed && (Damage.TotalFraction < 0.995f || Weapons.NeedsAmmo);
+
+    /// <summary>Starts a repair: the machine is shut down for this long, then comes back whole and rearmed.</summary>
+    public void BeginRepair(float seconds)
+    {
+        if (IsDestroyed || Repairing) return;
+        _repairLeft = seconds;
+        Throttle = 0f;
+        Weapons.CancelBeams();
+    }
+
+    // ── Network ─────────────────────────────────────────────────
+
+    /// <summary>Where the host says this machine is. Others' machines follow it closely; the player's own is only pulled back when it has strayed.</summary>
+    public void NetCorrect(Vector3 position, float yaw, float speed, bool own)
+    {
+        if (IsDestroyed) return;
+        float off = GlobalPosition.DistanceTo(position);
+        if (off > (own ? 12f : 25f)) GlobalPosition = position;
+        else if (off > (own ? 2.5f : 0.3f)) GlobalPosition = GlobalPosition.Lerp(position, own ? 0.08f : 0.25f);
+        if (!own)
+        {
+            Rotation = new Vector3(Rotation.X, Mathf.LerpAngle(Rotation.Y, yaw, 0.35f), Rotation.Z);
+            Speed = Mathf.Lerp(Speed, speed, 0.5f);
+        }
+    }
+
+    /// <summary>The host has put this machine back on the field.</summary>
+    public void NetRespawn(Transform3D at)
+    {
+        _spawn = at;
+        Respawn();
+    }
+
+    void Respawn()
+    {
+        _ragdoll?.Deactivate();
+        _repairLeft = 0f;
+        Mend();
         GlobalTransform = _spawn;
         Velocity = Vector3.Zero;
         Speed = 0f;
@@ -815,6 +910,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         Torso.Rotation = Vector3.Zero;
         _legsInitialized = false;
         Pilot?.OnRespawn();
+        NetLink.I?.HostRespawned(this);
     }
 
     // ── Helpers ─────────────────────────────────────────────────

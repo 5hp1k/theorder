@@ -15,16 +15,16 @@ public static class GameConfig
     {
         "throttle_up", "throttle_down", "turn_left", "turn_right", "full_stop", "jump", "descend",
         "fire_group_1", "fire_group_2", "fire_group_3",
-        "target_nearest", "target_next", "target_reticle", "center_torso", "free_look", "zoom",
-        "toggle_view", "toggle_lights", "radar_mode", "toggle_help", "toggle_fps",
+        "target_nearest", "target_next", "target_reticle", "target_friendly", "center_torso", "free_look", "zoom",
+        "toggle_view", "toggle_lights", "radar_mode", "scoreboard", "toggle_help", "toggle_fps",
     };
     /// <summary>What the actions above are called on the controls page, in the same order.</summary>
     public static readonly string[] ActionNames =
     {
         "Газ вперёд", "Газ назад", "Поворот влево", "Поворот вправо", "Полный стоп", "Прыжок / вверх", "Вниз (вертолёт)",
         "Огонь: группа 1", "Огонь: группа 2", "Огонь: группа 3",
-        "Цель: ближайшая", "Цель: следующая", "Цель: под прицелом", "Торс по ногам", "Свободный обзор (держать)", "Приближение",
-        "Кабина / внешний вид", "Фары", "Режим радара", "Справка", "Счётчик кадров",
+        "Цель: ближайшая", "Цель: следующая", "Цель: под прицелом", "Цель: свой (следующий)", "Торс по ногам", "Свободный обзор (держать)", "Приближение",
+        "Кабина / внешний вид", "Фары", "Режим радара", "Таблица боя (держать)", "Справка", "Счётчик кадров",
     };
 
     // ── Battle ──────────────────────────────────────────────────
@@ -41,14 +41,25 @@ public static class GameConfig
     public static int Difficulty = 1;
     /// <summary>Free-for-all: the bots also shoot each other.</summary>
     public static bool BotsFight;
+    /// <summary>Whether computer pilots may drop the nuclear bomb (once a battle, on a cluster of targets).</summary>
+    public static bool BotNukes;
     /// <summary>Battle length in minutes; 0 = no limit.</summary>
     public static int TimeLimitMinutes;
     /// <summary>A mech's foot coming down on a tank or an armoured car destroys it (and they don't block mechs).</summary>
     public static bool MechsCrush = true;
+    /// <summary>Mechs of the player's own squad, 0..8.</summary>
+    public static int SquadSize = 2;
+    /// <summary>A mech id for the squad, "same" (as the player's) or "random".</summary>
+    public static string SquadMechId = "random";
     /// <summary>Index into <see cref="MapLighting.TimeIds"/>; 0 = the hour the map was made for.</summary>
     public static int TimeOfDay;
     /// <summary>Index into <see cref="Weather.Scenes"/>; 0 = the map's own weather.</summary>
     public static int WeatherId;
+
+    // ── Network game ────────────────────────────────────────────
+    public static string PlayerName = "Пилот";
+    public static string NetAddress = "127.0.0.1";
+    public static int NetPort = Net.DefaultPort;
 
     // ── Customisation ───────────────────────────────────────────
     /// <summary>The colour of the paint, the pattern over it (index into <see cref="PaintJob.PatternNames"/>) and the pattern's two colours.</summary>
@@ -81,6 +92,8 @@ public static class GameConfig
     public static string InsigniaPath = "";
 
     // ── Settings ────────────────────────────────────────────────
+    /// <summary>"ru" or "en" (see <see cref="Loc"/>). Until the player chooses: Russian on a Russian system, English elsewhere.</summary>
+    public static string Language = OS.GetLocaleLanguage() == "ru" ? "ru" : "en";
     public static float MasterVolume = 0.8f;
     public static float MouseSensitivity = 1f;
     public static float Fov = 75f;
@@ -111,6 +124,8 @@ public static class GameConfig
     public static bool Ssao = true, Ssil = true, Sdfgi = true, VolumetricFog = true, Glow = true, WaterMirror = true;
     /// <summary>Share of the weather's particles that are drawn (rain, snow, sand).</summary>
     public static float WeatherDensity = 1f;
+    /// <summary>How far small things are drawn, as a multiple of the usual (see <see cref="Lod"/>). Takes effect with the next battle.</summary>
+    public static float DrawDistance = 1f;
     /// <summary>Frames per second in a corner of the screen (F3).</summary>
     public static bool ShowFps;
     /// <summary>The preset the detailed settings were last filled from: 0 = low, 1 = medium, 2 = high, 3 = the player's own mix.</summary>
@@ -130,6 +145,7 @@ public static class GameConfig
         Taa = false;
         WeatherDensity = preset switch { 0 => 0.3f, 1 => 0.65f, _ => 1f };
         RenderScale = preset == 0 ? 0.8f : 1f;
+        DrawDistance = preset switch { 0 => 0.7f, 1 => 1f, _ => 1.4f };
     }
     /// <summary>Simulation steps per second: 60 is half the work of 120, 120 is smoother on fast screens.</summary>
     public static int SimulationRate = 60;
@@ -155,10 +171,18 @@ public static class GameConfig
             EnemyMechId = (string)cfg.GetValue("battle", "enemy_mech", EnemyMechId);
             Difficulty = (int)cfg.GetValue("battle", "difficulty", Difficulty);
             BotsFight = (bool)cfg.GetValue("battle", "bots_fight", BotsFight);
+            BotNukes = (bool)cfg.GetValue("battle", "bot_nukes", BotNukes);
             TimeLimitMinutes = (int)cfg.GetValue("battle", "time_limit", TimeLimitMinutes);
             MechsCrush = (bool)cfg.GetValue("battle", "mechs_crush", MechsCrush);
+            SquadSize = Mathf.Clamp((int)cfg.GetValue("battle", "squad_size", SquadSize), 0, 8);
+            SquadMechId = (string)cfg.GetValue("battle", "squad_mech", SquadMechId);
             TimeOfDay = Mathf.Clamp((int)cfg.GetValue("battle", "time_of_day", TimeOfDay), 0, MapLighting.TimeIds.Length - 1);
             WeatherId = Mathf.Clamp((int)cfg.GetValue("battle", "weather", WeatherId), 0, Weather.Scenes.Length - 1);
+            PlayerName = (string)cfg.GetValue("net", "name", PlayerName);
+            NetAddress = (string)cfg.GetValue("net", "address", NetAddress);
+            NetPort = (int)cfg.GetValue("net", "port", NetPort);
+            Net.Mode = (Net.GameMode)Mathf.Clamp((int)cfg.GetValue("net", "mode", (int)Net.Mode), 0, 2);
+            Net.Respawns = (bool)cfg.GetValue("net", "respawns", Net.Respawns);
             PaintBase = (Color)cfg.GetValue("paint", "base", PaintBase);
             PatternId = Mathf.Clamp((int)cfg.GetValue("paint", "pattern", PatternId), 0, PaintJob.PatternNames.Length - 1);
             PatternA = (Color)cfg.GetValue("paint", "pattern_a", PatternA);
@@ -178,6 +202,7 @@ public static class GameConfig
             if (cfg.HasSection("bindings"))
                 foreach (string action in cfg.GetSectionKeys("bindings"))
                     Bindings[action] = (string)cfg.GetValue("bindings", action);
+            Language = (string)cfg.GetValue("settings", "language", Language) == "en" ? "en" : "ru";
             MasterVolume = (float)cfg.GetValue("settings", "volume", MasterVolume);
             MouseSensitivity = (float)cfg.GetValue("settings", "sensitivity", MouseSensitivity);
             Fov = (float)cfg.GetValue("settings", "fov", Fov);
@@ -202,6 +227,7 @@ public static class GameConfig
             Glow = (bool)cfg.GetValue("graphics", "glow", Glow);
             WaterMirror = (bool)cfg.GetValue("graphics", "water_mirror", WaterMirror);
             WeatherDensity = (float)cfg.GetValue("graphics", "weather_density", WeatherDensity);
+            DrawDistance = (float)cfg.GetValue("graphics", "draw_distance", DrawDistance);
             SimulationRate = (int)cfg.GetValue("settings", "simulation_rate", SimulationRate);
         }
         ApplyQuickBattle();
@@ -225,6 +251,35 @@ public static class GameConfig
         int.TryParse(p[3], out EnemyVehicleCount);
         EnemyMechId = p.Length > 4 ? p[4] : "random";
         TimeOfDay = WeatherId = 0;
+        BotsFight = OS.GetEnvironment("THEORDER_FFA") == "1";
+        // (THEORDER_LANG: "ru" or "en")
+        string lang = OS.GetEnvironment("THEORDER_LANG");
+        if (lang is "ru" or "en") Language = lang;
+        // (THEORDER_SQUAD: how many mechs in the player's squad)
+        SquadSize = 0;
+        int.TryParse(OS.GetEnvironment("THEORDER_SQUAD"), out SquadSize);
+        SquadMechId = "random";
+        MaxFps = 0;
+        VSync = false;
+        // (THEORDER_GFX: a quality preset 0..2, then optional switches to turn off, e.g. "2,-sdfgi,-mirror")
+        string gfx = OS.GetEnvironment("THEORDER_GFX");
+        if (!string.IsNullOrEmpty(gfx))
+        {
+            string[] g = gfx.Split(',');
+            if (int.TryParse(g[0], out int preset)) ApplyPreset(preset);
+            foreach (string off in g)
+                switch (off)
+                {
+                    case "-sdfgi": Sdfgi = false; break;
+                    case "-fog": VolumetricFog = false; break;
+                    case "-ssil": Ssil = false; break;
+                    case "-ssao": Ssao = false; break;
+                    case "-mirror": WaterMirror = false; break;
+                    case "-msaa": Msaa = 0; break;
+                    case "-shadows": Shadows = 1; break;
+                    case "-glow": Glow = false; break;
+                }
+        }
         if (p.Length > 5) int.TryParse(p[5], out TimeOfDay);
         if (p.Length > 6) int.TryParse(p[6], out WeatherId);
         TimeLimitMinutes = 0;
@@ -255,10 +310,18 @@ public static class GameConfig
         cfg.SetValue("battle", "enemy_mech", EnemyMechId);
         cfg.SetValue("battle", "difficulty", Difficulty);
         cfg.SetValue("battle", "bots_fight", BotsFight);
+        cfg.SetValue("battle", "bot_nukes", BotNukes);
         cfg.SetValue("battle", "time_limit", TimeLimitMinutes);
         cfg.SetValue("battle", "mechs_crush", MechsCrush);
+        cfg.SetValue("battle", "squad_size", SquadSize);
+        cfg.SetValue("battle", "squad_mech", SquadMechId);
         cfg.SetValue("battle", "time_of_day", TimeOfDay);
         cfg.SetValue("battle", "weather", WeatherId);
+        cfg.SetValue("net", "name", PlayerName);
+        cfg.SetValue("net", "address", NetAddress);
+        cfg.SetValue("net", "port", NetPort);
+        cfg.SetValue("net", "mode", (int)Net.Mode);
+        cfg.SetValue("net", "respawns", Net.Respawns);
         cfg.SetValue("paint", "base", PaintBase);
         cfg.SetValue("paint", "pattern", PatternId);
         cfg.SetValue("paint", "pattern_a", PatternA);
@@ -274,6 +337,7 @@ public static class GameConfig
         cfg.SetValue("paint", "insignia_size", InsigniaSize);
         foreach (var (unit, fit) in Loadouts) cfg.SetValue("hardpoints", unit, fit);
         foreach (var (action, code) in Bindings) cfg.SetValue("bindings", action, code);
+        cfg.SetValue("settings", "language", Language);
         cfg.SetValue("settings", "volume", MasterVolume);
         cfg.SetValue("settings", "sensitivity", MouseSensitivity);
         cfg.SetValue("settings", "fov", Fov);
@@ -293,6 +357,7 @@ public static class GameConfig
         cfg.SetValue("graphics", "glow", Glow);
         cfg.SetValue("graphics", "water_mirror", WaterMirror);
         cfg.SetValue("graphics", "weather_density", WeatherDensity);
+        cfg.SetValue("graphics", "draw_distance", DrawDistance);
         cfg.SetValue("settings", "vsync", VSync);
         cfg.SetValue("settings", "effects", EffectsQuality);
         cfg.SetValue("settings", "simulation_rate", SimulationRate);
@@ -380,6 +445,29 @@ public static class GameConfig
     }
 
     // ── Emblem ──────────────────────────────────────────────────
+
+    /// <summary>The player's emblem as a small PNG (128 pixels a side at most), to send to the other players; empty if there is none.</summary>
+    public static byte[] InsigniaBytes()
+    {
+        Image image = Insignia?.GetImage();
+        if (image == null) return System.Array.Empty<byte>();
+        image = (Image)image.Duplicate();
+        if (image.IsCompressed()) image.Decompress();
+        image.ClearMipmaps();
+        int side = Mathf.Max(image.GetWidth(), image.GetHeight());
+        if (side > 128) image.Resize(Mathf.Max(1, image.GetWidth() * 128 / side), Mathf.Max(1, image.GetHeight() * 128 / side));
+        return image.SavePngToBuffer();
+    }
+
+    /// <summary>An emblem received from another player.</summary>
+    public static Texture2D InsigniaFrom(byte[] png)
+    {
+        if (png == null || png.Length == 0 || png.Length > 200_000) return null;
+        var image = new Image();
+        if (image.LoadPngFromBuffer(png) != Error.Ok) return null;
+        image.GenerateMipmaps();
+        return ImageTexture.CreateFromImage(image);
+    }
 
     /// <summary>The player's emblem picture, or null if none is set or the file can't be read.</summary>
     public static Texture2D Insignia

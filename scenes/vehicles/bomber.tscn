@@ -8,6 +8,7 @@
 [ext_resource type="PackedScene" path="res://scenes/weapons/autocannon.tscn" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/bomb_rack.tscn" id="9"]
 [ext_resource type="AudioStream" path="res://audio/jet_loop.wav" id="10"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/nuke_rack.tscn" id="11"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/bomber/Fuselage.res" id="x3"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/bomber/Canopy.res" id="x4"]
 [ext_resource type="Material" path="res://materials/mech_canopy.tres" id="x5"]
@@ -19,7 +20,7 @@
 [ext_resource type="Material" path="res://materials/insignia.tres" id="insignia"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
-size = Vector3(4, 2.6, 16)
+size = Vector3(3, 2, 12)
 
 [sub_resource type="QuadMesh" id="QuadMesh_insignia"]
 size = Vector2(1.6, 1.6)
@@ -55,6 +56,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 shape = SubResource("BoxShape3D_1")
 
 [node name="Hull" type="Node3D" parent="."]
+transform = Transform3D(0.72, 0, 0, 0, 0.72, 0, 0, 0, 0.72, 0, 0, 0)
 
 [node name="Fuselage" type="MeshInstance3D" parent="Hull"]
 mesh = ExtResource("x3")
@@ -101,6 +103,16 @@ Slots = 2
 Mount = 5
 
 [node name="Bombs" parent="Hull/HardpointBombs" instance=ExtResource("9")]
+
+[node name="HardpointNuke" type="Node3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, 3.2)
+script = ExtResource("hardpoint")
+DisplayName = "Спецотсек"
+Type = 5
+Slots = 2
+Mount = 5
+
+[node name="Nuke" parent="Hull/HardpointNuke" instance=ExtResource("11")]
 
 [node name="Sounds" type="Node3D" parent="."]
 

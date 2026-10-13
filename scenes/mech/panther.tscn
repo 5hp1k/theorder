@@ -1,0 +1,660 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://materials/camo_desert.tres" id="1"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
+[ext_resource type="Material" path="res://materials/mech_accent.tres" id="3"]
+[ext_resource type="Material" path="res://materials/mech_canopy.tres" id="4"]
+[ext_resource type="Script" path="res://scripts/Combat/HitBox.cs" id="5"]
+[ext_resource type="Material" path="res://materials/insignia.tres" id="6"]
+[ext_resource type="Script" path="res://scripts/Mech/Mech.cs" id="7"]
+[ext_resource type="Material" path="res://materials/mech_charred.tres" id="8"]
+[ext_resource type="Material" path="res://materials/mech_stripped.tres" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/fx/damage_smoke.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/fx/wreck_fire.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/medium_laser.tscn" id="13"]
+[ext_resource type="Material" path="res://materials/cockpit_panel.tres" id="16"]
+[ext_resource type="Script" path="res://scripts/Mech/MechLeg.cs" id="19"]
+[ext_resource type="Script" path="res://scripts/Mech/MechRagdoll.cs" id="20"]
+[ext_resource type="AudioStream" path="res://audio/footstep.wav" id="21"]
+[ext_resource type="AudioStream" path="res://audio/reactor_loop.wav" id="22"]
+[ext_resource type="AudioStream" path="res://audio/hit.wav" id="23"]
+[ext_resource type="AudioStream" path="res://audio/alarm.wav" id="24"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/CenterTorso_Armor.res" id="x3"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/CenterTorso_Frame.res" id="x4"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/Head_Armor.res" id="x5"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/Head_Glass.res" id="x6"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/LeftTorso_Armor.res" id="x7"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/LeftTorso_Frame.res" id="x8"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/RightTorso_Armor.res" id="x9"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/RightTorso_Frame.res" id="x10"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/Antenna.res" id="x12"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ArmL_Armor.res" id="x13"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ArmL_Frame.res" id="x14"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ArmR_Armor.res" id="x15"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ArmR_Frame.res" id="x16"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/Pelvis.res" id="x17"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/PelvisArmor.res" id="x18"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ThighL_Armor.res" id="x19"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ThighL_Frame.res" id="x20"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ThighR_Armor.res" id="x21"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ThighR_Frame.res" id="x22"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ShinL_Armor.res" id="x23"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ShinL_Frame.res" id="x24"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ShinR_Armor.res" id="x25"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/ShinR_Frame.res" id="x26"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/MetaL.res" id="x27"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/MetaR.res" id="x28"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/FootL_Plate.res" id="x29"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/FootL_Toes.res" id="x30"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/FootL_Spur.res" id="x31"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/FootR_Plate.res" id="x32"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/FootR_Toes.res" id="x33"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/FootR_Spur.res" id="x34"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/HipJoint.res" id="x35"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/KneeJoint.res" id="x36"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/HeelJoint.res" id="x37"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/Footprint.res" id="x2"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/CockpitFrame.res" id="x38"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/CockpitDash.res" id="x39"]
+[ext_resource type="Script" path="res://scripts/UI/CockpitDisplays.cs" id="x40"]
+[ext_resource type="Script" path="res://scripts/Combat/Hardpoint.cs" id="hardpoint"]
+[ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/large_laser.tscn" id="w_large_laser"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/lrm.tscn" id="w_lrm"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/machine_gun.tscn" id="w_machine_gun"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/LeftTorso_Rack.res" id="x1"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/LeftTorso_RackFace.res" id="x11"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/RightTorso_Rack.res" id="x41"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/panther/RightTorso_RackFace.res" id="x42"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 1.9
+height = 8.8
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6"]
+size = Vector3(1.4, 2, 3.6)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(2, 1.2, 1.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_9"]
+size = Vector3(1.5, 0.6, 0.9)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_11"]
+size = Vector3(1.1, 2, 3.6)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_13"]
+size = Vector3(1.1, 2, 3.6)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_19"]
+size = Vector3(1, 1.1, 2.8)
+
+[sub_resource type="QuadMesh" id="QuadMesh_20"]
+size = Vector2(0.8, 0.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_24"]
+size = Vector3(1, 1.1, 2.8)
+
+[sub_resource type="QuadMesh" id="QuadMesh_25"]
+size = Vector2(0.8, 0.8)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_41"]
+size = Vector3(0.95, 2.7, 1.15)
+
+[sub_resource type="QuadMesh" id="QuadMesh_43"]
+size = Vector2(0.75, 0.75)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_44"]
+size = Vector3(0.75, 2.9, 0.85)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_53"]
+size = Vector3(0.95, 2.7, 1.15)
+
+[sub_resource type="QuadMesh" id="QuadMesh_55"]
+size = Vector2(0.75, 0.75)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_56"]
+size = Vector3(0.75, 2.9, 0.85)
+
+[node name="Panther" type="CharacterBody3D"]
+floor_max_angle = 0.69813
+floor_snap_length = 1.2
+script = ExtResource("7")
+DisplayName = "Пантера"
+HipHeight = 5.6
+CharredMaterial = ExtResource("8")
+StrippedMaterial = ExtResource("9")
+DamageSmokeScene = ExtResource("10")
+ExplosionScene = ExtResource("11")
+WreckFireScene = ExtResource("12")
+ArmorMaterial = ExtResource("1")
+AccentMaterial = ExtResource("3")
+TrampleRadius = 2.6
+MaxForwardSpeed = 12.5
+Acceleration = 3.8
+Deceleration = 6.5
+TurnRateStanding = 0.95
+TurnRateFull = 0.6
+StepLength = 5.2
+StepHeight = 1
+RunSwing = 0.46
+BodySway = 0.4
+ArmorScale = 1.6
+HeatDissipation = 0.11
+FootprintMesh = ExtResource("x2")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4, 0)
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="Hips" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.6, 0)
+
+[node name="Pelvis" type="MeshInstance3D" parent="Hips"]
+mesh = ExtResource("x17")
+material_override = ExtResource("2")
+
+[node name="PelvisArmor" type="MeshInstance3D" parent="Hips"]
+mesh = ExtResource("x18")
+material_override = ExtResource("1")
+
+[node name="HipL" type="Marker3D" parent="Hips"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.35, -0.2, 0)
+
+[node name="HipR" type="Marker3D" parent="Hips"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.35, -0.2, 0)
+
+[node name="Torso" type="Node3D" parent="Hips"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.7, 0)
+
+[node name="CenterTorso" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 1
+
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
+mesh = ExtResource("x3")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
+mesh = ExtResource("x4")
+material_override = ExtResource("2")
+
+[node name="ShapeHull" type="CollisionShape3D" parent="Hips/Torso/CenterTorso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0.1)
+shape = SubResource("BoxShape3D_6")
+
+[node name="ShapeNose" type="CollisionShape3D" parent="Hips/Torso/CenterTorso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, -2.3)
+shape = SubResource("BoxShape3D_7")
+
+[node name="Head" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 0
+
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/Head"]
+mesh = ExtResource("x5")
+material_override = ExtResource("1")
+
+[node name="Canopy" type="MeshInstance3D" parent="Hips/Torso/Head"]
+mesh = ExtResource("x6")
+material_override = ExtResource("4")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.85, -2.65)
+shape = SubResource("BoxShape3D_9")
+
+[node name="LeftTorso" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 2
+
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/LeftTorso"]
+mesh = ExtResource("x7")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/LeftTorso"]
+mesh = ExtResource("x8")
+material_override = ExtResource("2")
+
+[node name="Rack" type="MeshInstance3D" parent="Hips/Torso/LeftTorso"]
+mesh = ExtResource("x1")
+material_override = ExtResource("1")
+
+[node name="RackFace" type="MeshInstance3D" parent="Hips/Torso/LeftTorso"]
+mesh = ExtResource("x11")
+material_override = ExtResource("2")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/LeftTorso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.25, 1.1, 0.1)
+shape = SubResource("BoxShape3D_11")
+
+[node name="RightTorso" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 3
+
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/RightTorso"]
+mesh = ExtResource("x9")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/RightTorso"]
+mesh = ExtResource("x10")
+material_override = ExtResource("2")
+
+[node name="Rack" type="MeshInstance3D" parent="Hips/Torso/RightTorso"]
+mesh = ExtResource("x41")
+material_override = ExtResource("1")
+
+[node name="RackFace" type="MeshInstance3D" parent="Hips/Torso/RightTorso"]
+mesh = ExtResource("x42")
+material_override = ExtResource("2")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/RightTorso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.25, 1.1, 0.1)
+shape = SubResource("BoxShape3D_13")
+
+[node name="Antenna" type="MeshInstance3D" parent="Hips/Torso"]
+mesh = ExtResource("x12")
+material_override = ExtResource("2")
+
+[node name="ArmL" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.35, 1, -0.3)
+
+[node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmL"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 4
+
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/ArmL/Hit"]
+mesh = ExtResource("x13")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/ArmL/Hit"]
+mesh = ExtResource("x14")
+material_override = ExtResource("2")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/ArmL/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.7)
+shape = SubResource("BoxShape3D_19")
+
+[node name="HardpointLaser" type="Node3D" parent="Hips/Torso/ArmL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, -4.1)
+script = ExtResource("hardpoint")
+Type = 0
+Slots = 4
+Spacing = Vector3(0, -0.6, 0)
+Mount = 4
+
+[node name="LargeLaser" parent="Hips/Torso/ArmL/HardpointLaser" instance=ExtResource("w_large_laser")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+Mount = 4
+
+[node name="Laser" parent="Hips/Torso/ArmL/HardpointLaser" instance=ExtResource("13")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.67, 0.35)
+Mount = 4
+
+[node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmL"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.535, 0, -0.4)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_20")
+material_override = ExtResource("6")
+
+[node name="ArmR" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.35, 1, -0.3)
+
+[node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmR"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 5
+
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/ArmR/Hit"]
+mesh = ExtResource("x15")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/ArmR/Hit"]
+mesh = ExtResource("x16")
+material_override = ExtResource("2")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/ArmR/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.7)
+shape = SubResource("BoxShape3D_24")
+
+[node name="HardpointLaser" type="Node3D" parent="Hips/Torso/ArmR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, -4.1)
+script = ExtResource("hardpoint")
+Type = 0
+Slots = 4
+Spacing = Vector3(0, -0.6, 0)
+Mount = 5
+
+[node name="LargeLaser" parent="Hips/Torso/ArmR/HardpointLaser" instance=ExtResource("w_large_laser")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+Mount = 5
+
+[node name="Laser" parent="Hips/Torso/ArmR/HardpointLaser" instance=ExtResource("13")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.67, 0.35)
+Mount = 5
+
+[node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmR"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.535, 0, -0.4)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_25")
+material_override = ExtResource("6")
+
+[node name="HardpointRackL" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3, 2.6, -1.75)
+script = ExtResource("hardpoint")
+Type = 2
+Slots = 3
+Mount = 2
+
+[node name="Rack" parent="Hips/Torso/HardpointRackL" instance=ExtResource("w_lrm")]
+Mount = 2
+
+[node name="HardpointRackR" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.3, 2.6, -1.75)
+script = ExtResource("hardpoint")
+Type = 2
+Slots = 3
+Mount = 3
+
+[node name="Rack" parent="Hips/Torso/HardpointRackR" instance=ExtResource("w_lrm")]
+Mount = 3
+
+[node name="HardpointNose" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.85, -3.7)
+script = ExtResource("hardpoint")
+Type = 3
+Slots = 2
+Mount = 1
+Spacing = Vector3(1.2, 0, 0)
+
+[node name="MachineGunL" parent="Hips/Torso/HardpointNose" instance=ExtResource("w_machine_gun")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, 0, 0)
+Mount = 1
+
+[node name="MachineGunR" parent="Hips/Torso/HardpointNose" instance=ExtResource("w_machine_gun")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, 0, 0)
+Mount = 1
+
+[node name="HeadlightL" parent="Hips/Torso" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.75, 1.2, -4.3)
+
+[node name="HeadlightR" parent="Hips/Torso" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 1.2, -4.3)
+
+[node name="CockpitCam" type="Marker3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.75, -3.95)
+
+[node name="Cockpit" type="Node3D" parent="Hips/Torso/CockpitCam"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.36, -0.55)
+visible = false
+script = ExtResource("x40")
+
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+mesh = ExtResource("x38")
+material_override = ExtResource("16")
+
+[node name="Dash" type="Node3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 0.882948, 0.469472, 0, -0.469472, 0.882948, 0, -0.43, -0.98)
+
+[node name="Console" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+mesh = ExtResource("x39")
+material_override = ExtResource("16")
+cast_shadow = 0
+
+[node name="HomeL" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0, -0.6)
+
+[node name="LegL" type="Node3D" parent="."]
+script = ExtResource("19")
+Side = -1
+HipMarker = NodePath("../Hips/HipL")
+HomeMarker = NodePath("../HomeL")
+ThighLength = 2.7
+ShinLength = 2.9
+MetaLength = 1.6
+AnkleHeight = 0.35
+MetaRestAngle = 0.62
+MetaSwingAngle = 0.55
+
+[node name="Thigh" type="Node3D" parent="LegL"]
+transform = Transform3D(0.99889, -0.0471, 0, -0.0333, -0.70615, 0.70728, -0.03332, -0.70649, -0.70694, -1.41359, 4.44669, -0.95376)
+
+[node name="Hit" type="AnimatableBody3D" parent="LegL/Thigh"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 6
+
+[node name="Shape" type="CollisionShape3D" parent="LegL/Thigh/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_41")
+
+[node name="Mesh" type="MeshInstance3D" parent="LegL/Thigh/Hit"]
+mesh = ExtResource("x19")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegL/Thigh/Hit"]
+mesh = ExtResource("x20")
+material_override = ExtResource("2")
+
+[node name="Insignia" type="MeshInstance3D" parent="LegL/Thigh"]
+transform = Transform3D(0, 0, -1, 0, -1, 0, -1, 0, 0, -0.596316, -0.35, 0)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_43")
+material_override = ExtResource("6")
+
+[node name="Shin" type="Node3D" parent="LegL"]
+transform = Transform3D(0.9991, -0.04235, 0, -0.02691, -0.63489, -0.77213, 0.0327, 0.77144, -0.63546, -1.53859, 2.5728, -0.78893)
+
+[node name="Hit" type="AnimatableBody3D" parent="LegL/Shin"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 6
+
+[node name="Shape" type="CollisionShape3D" parent="LegL/Shin/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_44")
+
+[node name="Mesh" type="MeshInstance3D" parent="LegL/Shin/Hit"]
+mesh = ExtResource("x23")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegL/Shin/Hit"]
+mesh = ExtResource("x24")
+material_override = ExtResource("2")
+
+[node name="Meta" type="Node3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, -0.81388, 0.58104, 0, -0.58104, -0.81388, -1.6, 1.0011, -0.13517)
+
+[node name="Mesh" type="MeshInstance3D" parent="LegL/Meta"]
+mesh = ExtResource("x27")
+material_override = ExtResource("2")
+
+[node name="Foot" type="Node3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 0.175, -0.6)
+
+[node name="Plate" type="MeshInstance3D" parent="LegL/Foot"]
+mesh = ExtResource("x29")
+material_override = ExtResource("1")
+
+[node name="Spur" type="MeshInstance3D" parent="LegL/Foot"]
+mesh = ExtResource("x31")
+material_override = ExtResource("2")
+
+[node name="Toes" type="MeshInstance3D" parent="LegL/Foot"]
+mesh = ExtResource("x30")
+material_override = ExtResource("2")
+
+[node name="HipJoint" type="MeshInstance3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.35, 5.4, 0)
+mesh = ExtResource("x35")
+material_override = ExtResource("2")
+
+[node name="KneeJoint" type="MeshInstance3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.47718, 3.49339, -1.90752)
+mesh = ExtResource("x36")
+material_override = ExtResource("2")
+
+[node name="HeelJoint" type="MeshInstance3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.6, 1.65221, 0.32966)
+mesh = ExtResource("x37")
+material_override = ExtResource("2")
+
+[node name="HomeR" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0, -0.6)
+
+[node name="LegR" type="Node3D" parent="."]
+script = ExtResource("19")
+Side = 1
+HipMarker = NodePath("../Hips/HipR")
+HomeMarker = NodePath("../HomeR")
+ThighLength = 2.7
+ShinLength = 2.9
+MetaLength = 1.6
+AnkleHeight = 0.35
+MetaRestAngle = 0.62
+MetaSwingAngle = 0.55
+
+[node name="Thigh" type="Node3D" parent="LegR"]
+transform = Transform3D(0.99889, 0.0471, 0, 0.0333, -0.70615, 0.70728, 0.03332, -0.70649, -0.70694, 1.41359, 4.44669, -0.95376)
+
+[node name="Hit" type="AnimatableBody3D" parent="LegR/Thigh"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 7
+
+[node name="Shape" type="CollisionShape3D" parent="LegR/Thigh/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_53")
+
+[node name="Mesh" type="MeshInstance3D" parent="LegR/Thigh/Hit"]
+mesh = ExtResource("x21")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegR/Thigh/Hit"]
+mesh = ExtResource("x22")
+material_override = ExtResource("2")
+
+[node name="Insignia" type="MeshInstance3D" parent="LegR/Thigh"]
+transform = Transform3D(0, 0, 1, 0, -1, 0, 1, 0, 0, 0.596316, -0.35, 0)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_55")
+material_override = ExtResource("6")
+
+[node name="Shin" type="Node3D" parent="LegR"]
+transform = Transform3D(0.9991, 0.04235, 0, 0.02691, -0.63489, -0.77213, -0.0327, 0.77144, -0.63546, 1.53859, 2.5728, -0.78893)
+
+[node name="Hit" type="AnimatableBody3D" parent="LegR/Shin"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 7
+
+[node name="Shape" type="CollisionShape3D" parent="LegR/Shin/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_56")
+
+[node name="Mesh" type="MeshInstance3D" parent="LegR/Shin/Hit"]
+mesh = ExtResource("x25")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegR/Shin/Hit"]
+mesh = ExtResource("x26")
+material_override = ExtResource("2")
+
+[node name="Meta" type="Node3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, -0.81388, 0.58104, 0, -0.58104, -0.81388, 1.6, 1.0011, -0.13517)
+
+[node name="Mesh" type="MeshInstance3D" parent="LegR/Meta"]
+mesh = ExtResource("x28")
+material_override = ExtResource("2")
+
+[node name="Foot" type="Node3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 0.175, -0.6)
+
+[node name="Plate" type="MeshInstance3D" parent="LegR/Foot"]
+mesh = ExtResource("x32")
+material_override = ExtResource("1")
+
+[node name="Spur" type="MeshInstance3D" parent="LegR/Foot"]
+mesh = ExtResource("x34")
+material_override = ExtResource("2")
+
+[node name="Toes" type="MeshInstance3D" parent="LegR/Foot"]
+mesh = ExtResource("x33")
+material_override = ExtResource("2")
+
+[node name="HipJoint" type="MeshInstance3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.35, 5.4, 0)
+mesh = ExtResource("x35")
+material_override = ExtResource("2")
+
+[node name="KneeJoint" type="MeshInstance3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.47718, 3.49339, -1.90752)
+mesh = ExtResource("x36")
+material_override = ExtResource("2")
+
+[node name="HeelJoint" type="MeshInstance3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.6, 1.65221, 0.32966)
+mesh = ExtResource("x37")
+material_override = ExtResource("2")
+
+[node name="Ragdoll" type="Node" parent="."]
+script = ExtResource("20")
+TotalMass = 50000
+
+[node name="Sounds" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.6, 0)
+
+[node name="Footstep" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("21")
+unit_size = 22
+max_distance = 350
+volume_db = 2
+max_polyphony = 2
+
+[node name="Reactor" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("22")
+unit_size = 7
+max_distance = 120
+volume_db = -10
+
+[node name="Hit" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("23")
+unit_size = 16
+max_distance = 300
+volume_db = -2
+max_polyphony = 3
+
+[node name="Alarm" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("24")
+unit_size = 6
+max_distance = 40
+volume_db = -8

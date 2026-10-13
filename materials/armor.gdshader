@@ -18,7 +18,8 @@ uniform float paint_metallic : hint_range(0.0, 1.0) = 0.1;
 group_uniforms pattern;
 // A pattern drawn over the paint, in three tones: paint_color, pattern_a, pattern_b.
 // 0 = none (the paint is paint_color times paint_tex), 1 = blotches, 2 = digital, 3 = tiger stripes,
-// 4 = splinter, 5 = slanting bands, 6 = flecks.
+// 4 = splinter, 5 = slanting bands, 6 = flecks, 7 = chequers, 8 = two tones, 9 = waves, 10 = brush
+// strokes, 11 = spots, 12 = cracked.
 uniform int pattern = 0;
 uniform vec3 pattern_a : source_color = vec3(0.2, 0.25, 0.12);
 uniform vec3 pattern_b : source_color = vec3(0.1, 0.1, 0.08);
@@ -94,6 +95,27 @@ float pattern_tone(vec3 p) {
 		float drift = noise3(p * 1.0) * 0.6;
 		if (noise3(p * 5.0) + drift > 0.98) return 1.0;
 		return noise3(p * 5.0 + 17.0) + drift > 1.02 ? 2.0 : 0.0;
+	} else if (pattern == 7) {     // chequers
+		vec3 c = floor(p * 1.6);
+		return mod(c.x + c.y + c.z, 2.0);
+	} else if (pattern == 8) {     // two tones: dark below a wavering line, a stripe of the third along it
+		float line = p.y + (noise3(p * vec3(0.9, 0.0, 0.9)) - 0.5) * 0.9;
+		return line > 0.12 ? 0.0 : (line > -0.02 ? 2.0 : 1.0);
+	} else if (pattern == 9) {     // waves running along the part
+		float s = sin(p.y * 6.0 + sin(p.z * 2.2 + p.x * 1.1) * 2.2);
+		return s > 0.35 ? 1.0 : (s < -0.7 ? 2.0 : 0.0);
+	} else if (pattern == 10) {    // brush strokes: long streaks laid on at a slant
+		vec3 q = vec3(dot(p, vec3(0.8, 0.6, 0.0)) * 0.45, dot(p, vec3(-0.6, 0.8, 0.0)) * 2.6, p.z * 1.2);
+		float n = fbm3(q);
+		return n < 0.46 ? 0.0 : (n < 0.58 ? 1.0 : 2.0);
+	} else if (pattern == 11) {    // spots: round dots in rows, every other one in the third tone
+		vec3 cell = floor(p * 1.8);
+		float d = length(fract(p * 1.8) - 0.5);
+		if (d > 0.3) return 0.0;
+		return mod(cell.x + cell.y * 2.0 + cell.z, 3.0) < 1.5 ? 1.0 : 2.0;
+	} else if (pattern == 12) {    // cracked: thin dark veins between plates of the base colour
+		float a = abs(noise3(p * 1.7) - 0.5), b = abs(noise3(p * 1.7 + 31.0) - 0.5);
+		return min(a, b) < 0.022 ? 1.0 : (noise3(p * 0.6 + 7.0) > 0.68 ? 2.0 : 0.0);
 	}
 	return 0.0;
 }

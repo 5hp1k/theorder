@@ -24,6 +24,16 @@ public partial class PlayerPilot : MechPilot, ICockpit
     [Export(PropertyHint.Range, "0,1")] public float CockpitShake = 0.2f;
     /// <summary>How far the pilot's head may move from the seat, metres: keeps the eye inside the cab.</summary>
     [Export] public float HeadTravel = 0.12f;
+    [ExportGroup("Aircraft")]
+    /// <summary>How fast W/S lower and raise the nose, rad/s (it comes back level at the same rate when they are let go).</summary>
+    [Export] public float StickPitchRate = 0.7f;
+    /// <summary>W raises the nose instead of lowering it.</summary>
+    [Export] public bool WClimbs;
+    /// <summary>How far off its heading the mouse can ask the aircraft to turn at once, radians.</summary>
+    [Export] public float MaxLead = 1.2f;
+    /// <summary>How hard it banks for a given turn asked of it: full bank at 1/LeadGain radians off.</summary>
+    [Export] public float LeadGain = 3f;
+    [ExportGroup("")]
     /// <summary>How far ahead of the eye the cab ends (for a machine of the Ostrich's size): shots are drawn from there on.</summary>
     [Export] public float CabDepth = 2.4f;
     /// <summary>Seconds the sight must stay on the selected target for a missile lock.</summary>
@@ -73,8 +83,15 @@ public partial class PlayerPilot : MechPilot, ICockpit
     public Vector3 AimPoint => Unit.AimPoint;
     public GodotObject AimCollider => Unit.AimCollider;
     public bool CanLock => true;
+    /// <summary>Whether an electromagnetic pulse has knocked the machine's electronics out.</summary>
+    public bool Jammed => Emp.Jammed(Unit);
     public float LockProgress { get; private set; }
-    public string Prompt => null;
+    public string Prompt => Spectating ? $"НАБЛЮДЕНИЕ: {_watched?.DisplayName ?? "—"}   ·   огонь — следующий" : Unit switch
+    {
+        Mech { Repairing: true } m => $"РЕМОНТ И ПЕРЕЗАРЯДКА… {Mathf.CeilToInt(m.RepairLeft)} с",
+        Vehicle { Repairing: true } v => $"РЕМОНТ И ПЕРЕЗАРЯДКА… {Mathf.CeilToInt(v.RepairLeft)} с",
+        _ => null,
+    };
 
     float BaseFov => GameConfig.Fov;
 
@@ -82,12 +99,31 @@ public partial class PlayerPilot : MechPilot, ICockpit
     AudioStreamPlayer _lockSound;
     Transform3D _aimView = Transform3D.Identity;
     float _lookYaw, _lookPitch;
+    // Aircraft: how far left of the nose the mouse has asked it to turn; whether W/S hold the nose off level.
+    float _lead, _lastYaw;
+    bool _keyPitch;
+
+    bool IsPlane => Unit is Vehicle { Kind: Vehicle.MoveKind.Plane };
+    /// <summary>The key held to look around. An aircraft has its throttle on Shift/Ctrl, so there it is the jump key.</summary>
+    string LookAction => IsPlane ? "jump" : "free_look";
     float _throttleDetent;   // blocks throttle from crossing zero until W/S is released
     bool _suppressFire, _eyeSet;
     float _eyeHeight;
 
+    AudioStreamPlayer _friendlyFire;
+    float _lastWarning;
+
+    /// <summary>A shot of ours has hit one of our own: the warning tone (not more than twice a second).</summary>
+    void OnFriendlyFire()
+    {
+        if (_friendlyFire == null || Unit == null || Unit.Time - _lastWarning < 0.5f) return;
+        _lastWarning = Unit.Time;
+        _friendlyFire.Play();
+    }
+
     public override void _ExitTree()
     {
+        Score.FriendlyFire -= OnFriendlyFire;
         if (Game.Cockpit == this) Game.Cockpit = null;
     }
 
@@ -100,6 +136,8 @@ public partial class PlayerPilot : MechPilot, ICockpit
         Camera.Fov = BaseFov;
         Camera.MakeCurrent();
         _lockSound = GetNodeOrNull<AudioStreamPlayer>("LockSound");
+        _friendlyFire = GetNodeOrNull<AudioStreamPlayer>("FriendlyFireSound");
+        Score.FriendlyFire += OnFriendlyFire;
         _cockpit = unit.CockpitInterior;
         if (_cockpit != null) _cockpit.Visible = CockpitView;
         _aimView = unit.AimAnchor.GlobalTransform.Orthonormalized();
@@ -120,12 +158,19 @@ public partial class PlayerPilot : MechPilot, ICockpit
         {
             // Finer control when zoomed in.
             float sens = MouseSensitivity * GameConfig.MouseSensitivity * Camera.Fov / BaseFov;
-            if (Input.IsActionPressed("free_look"))
+            if (Input.IsActionPressed(LookAction))
             {
                 // Head only: the turret and the weapons stay where they were pointing.
                 float limit = Mathf.Min(Unit.MaxTwist, 1.75f);
                 _lookYaw = Mathf.Clamp(_lookYaw - motion.Relative.X * sens, -limit, limit);
                 _lookPitch = Mathf.Clamp(_lookPitch - motion.Relative.Y * sens, -MaxLookPitch, MaxLookPitch);
+            }
+            else if (IsPlane)
+            {
+                // The mouse points where to fly: the aircraft banks round to that heading and holds that climb.
+                _lead = Mathf.Clamp(_lead - motion.Relative.X * sens, -MaxLead, MaxLead);
+                Unit.TargetPitch = Mathf.Clamp(Unit.TargetPitch - motion.Relative.Y * sens, Unit.MinPitch, Unit.MaxPitch);
+                if (motion.Relative.Y != 0f) _keyPitch = false;
             }
             else
             {
@@ -145,6 +190,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
         else if (@event.IsActionPressed("zoom")) Zoomed = !Zoomed;
         else if (@event.IsActionPressed("zoom_in")) Zoomed = true;
         else if (@event.IsActionPressed("zoom_out")) Zoomed = false;
+        else if (Jammed) return;
         else if (@event.IsActionPressed("target_nearest"))
         {
             var list = TargetsByDistance();
@@ -153,6 +199,14 @@ public partial class PlayerPilot : MechPilot, ICockpit
         else if (@event.IsActionPressed("target_next"))
         {
             var list = TargetsByDistance();
+            SetTarget(list.Count > 0 ? list[(list.IndexOf(Target) + 1) % list.Count] : null);
+        }
+        else if (@event.IsActionPressed("target_friendly"))
+        {
+            // One's own side, nearest first: to see how a lancemate is holding up.
+            var list = Units.All.FindAll(t => t != Unit && t.Team == Unit.Team && !t.IsDestroyed);
+            Vector3 me = Unit.GlobalPosition;
+            list.Sort((a, b) => a.GlobalPosition.DistanceSquaredTo(me).CompareTo(b.GlobalPosition.DistanceSquaredTo(me)));
             SetTarget(list.Count > 0 ? list[(list.IndexOf(Target) + 1) % list.Count] : null);
         }
         else if (@event.IsActionPressed("target_reticle"))
@@ -167,6 +221,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
 
     public override void Think(float dt)
     {
+        if (Game.Typing) return;
         if (Target != null && (Target is not Node node || !IsInstanceValid(node) || Target.IsDestroyed)) SetTarget(null);
 
         bool g1 = Input.IsActionPressed("fire_group_1");
@@ -182,7 +237,43 @@ public partial class PlayerPilot : MechPilot, ICockpit
         UpdateLock(dt);
         if (Unit.Offline) return;
         Unit.TurnInput = Input.GetAxis("turn_right", "turn_left");
+        if (IsPlane)
+        {
+            FlyPlane(dt);
+            return;
+        }
         UpdateThrottle(dt);
+    }
+
+    /// <summary>
+    /// An aircraft: A/D bank it into a turn, W/S lower and raise the nose (let go and it levels out),
+    /// Shift/Ctrl are the throttle. Or the mouse alone: sweep it to where the aircraft should go.
+    /// </summary>
+    void FlyPlane(float dt)
+    {
+        // What it has turned since the last tick is that much less left to turn.
+        float yaw = Unit.HullYaw, turned = Mathf.AngleDifference(_lastYaw, yaw);
+        _lastYaw = yaw;
+        // (A jump in heading is no turn: the aircraft has just been put somewhere — at the start, or back in the fight.)
+        if (Mathf.Abs(turned) > 0.3f) _lead = turned = 0f;
+        // (Used up, not overshot: once round to the heading asked for, it levels out and stays there.)
+        float left = _lead - turned;
+        _lead = _lead == 0f || Mathf.Sign(left) != Mathf.Sign(_lead) ? 0f : left;
+        float keys = Input.GetAxis("turn_right", "turn_left");
+        if (keys != 0f) _lead = 0f;
+        Unit.TurnInput = Mathf.Clamp(keys + _lead * LeadGain, -1f, 1f);
+
+        float nose = Input.GetAxis("throttle_up", "throttle_down") * (WClimbs ? -1f : 1f);
+        if (nose != 0f)
+        {
+            Unit.TargetPitch = Mathf.Clamp(Unit.TargetPitch + nose * StickPitchRate * dt, Unit.MinPitch, Unit.MaxPitch);
+            _keyPitch = true;
+        }
+        else if (_keyPitch) Unit.TargetPitch = Mathf.MoveToward(Unit.TargetPitch, 0f, StickPitchRate * dt);
+
+        // A plain lever, idle to full: no reverse and no stop at zero for something that can't stand still.
+        float lever = (Input.IsActionPressed("descend") ? 1f : 0f) - (Input.IsActionPressed("free_look") ? 1f : 0f);
+        Unit.Throttle = Mathf.Clamp(Unit.Throttle + lever * Unit.ThrottleRate * dt, 0f, 1f);
     }
 
     void UpdateThrottle(float dt)
@@ -219,10 +310,13 @@ public partial class PlayerPilot : MechPilot, ICockpit
     void UpdateLock(float dt)
     {
         bool onTarget = false;
+        // Electronics burnt out by a pulse: the target is lost and none can be picked until they recover.
+        if (Jammed) SetTarget(null);
         if (Target != null && !Unit.Offline)
         {
             Vector3 to = Target.AimCenter - _aimView.Origin;
-            onTarget = to.Length() < LockRange && (-_aimView.Basis.Z).AngleTo(to) < LockCone;
+            // (No missile lock on one's own side.)
+            onTarget = Target.Team != Unit.Team && to.Length() < LockRange && (-_aimView.Basis.Z).AngleTo(to) < LockCone;
         }
         bool was = LockProgress >= 1f;
         LockProgress = Mathf.Clamp(LockProgress + (onTarget ? dt / LockTime : -dt * 1.5f), 0f, 1f);
@@ -257,10 +351,36 @@ public partial class PlayerPilot : MechPilot, ICockpit
 
     // ── Camera ──────────────────────────────────────────────────
 
+    ITarget _watched;
+
+    /// <summary>Out of a network battle without respawns: the camera follows those still fighting (fire to change whom).</summary>
+    bool Spectating => Unit.IsDestroyed && Net.Online && !Net.Respawns;
+
+    void Spectate()
+    {
+        bool gone = _watched is not Node node || !IsInstanceValid(node) || _watched.IsDestroyed;
+        if (gone || Input.IsActionJustPressed("fire_group_1"))
+        {
+            var alive = Units.All.FindAll(t => !t.IsDestroyed && t != Unit);
+            _watched = alive.Count == 0 ? null : alive[(alive.IndexOf(_watched) + 1) % alive.Count];
+        }
+        if (_watched == null) return;
+        float yaw = _watched is IDrivable machine ? machine.HullYaw : 0f;
+        Vector3 centre = _watched.AimCenter;
+        Camera.GlobalPosition = centre + new Basis(Vector3.Up, yaw) * new Vector3(0f, 7f, 22f);
+        Camera.LookAt(centre, Vector3.Up);
+    }
+
     public override void UpdateView(float dt)
     {
+        if (Spectating)
+        {
+            if (_cockpit != null) _cockpit.Visible = false;
+            Spectate();
+            return;
+        }
         // Free look springs back as soon as the key is released.
-        if (!Input.IsActionPressed("free_look") || Input.MouseMode != Input.MouseModeEnum.Captured)
+        if (!Input.IsActionPressed(LookAction) || Input.MouseMode != Input.MouseModeEnum.Captured)
         {
             float k = Mathf.Exp(-12f * dt);
             _lookYaw *= k;

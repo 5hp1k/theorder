@@ -99,7 +99,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     public float Hp { get; private set; }
     public float Speed { get; private set; }
     public bool IsDestroyed => Hp <= 0f;
-    public bool Offline => IsDestroyed;
+    public bool Offline => IsDestroyed || Repairing;
     public float Integrity => Mathf.Clamp(Hp / MaxHp, 0f, 1f);
     public DamageModel Damage => null;
     public float RespawnLeft { get; private set; }
@@ -145,6 +145,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     public float Shake { get; set; }
 
     Node3D _hull, _turret, _gun;
+    Vector3 _turretRest; // where the turret ring is on the hull
     readonly List<Node3D> _rotors = new();
     // Wheels: the node, its radius, and how far forward it sits (1 = front axle, 0 = middle and back).
     readonly List<(Node3D node, float radius, float front)> _wheels = new();
@@ -293,6 +294,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         _hull = GetNodeOrNull<Node3D>("Hull");
         _turret = GetNodeOrNull<Node3D>("Turret");
         _gun = GetNodeOrNull<Node3D>("Turret/Gun");
+        if (_turret != null) _turretRest = _turret.Position;
         AimAnchor = GetNodeOrNull<Node3D>("Turret/Gun/CockpitCam") ?? GetNodeOrNull<Node3D>("Hull/CockpitCam") ?? GetNode<Node3D>("CockpitCam");
         _engine = GetNodeOrNull<AudioStreamPlayer3D>("Sounds/Engine");
         foreach (var node in Geo.Collect<Node3D>(this))
@@ -321,7 +323,12 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         PlaceOnMap();
         _spawn = GlobalTransform;
         Hp = MaxHp;
-        if (Kind == MoveKind.Plane) Speed = MaxForwardSpeed * 0.8f;
+        // (An aircraft starts in the air, at cruising speed with the throttle set to hold it.)
+        if (Kind == MoveKind.Plane)
+        {
+            Speed = MaxForwardSpeed * 0.8f;
+            Throttle = 0.7f;
+        }
         _exclude.Add(GetRid());
         Weapons = new WeaponSystem(this, GetParent(), _exclude);
 
@@ -368,6 +375,13 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 
     public override void _PhysicsProcess(double delta)
     {
+        long prof = Prof.Now();
+        Tick(delta);
+        Prof.Add(1, prof);
+    }
+
+    void Tick(double delta)
+    {
         float dt = (float)delta;
         Time += dt;
         var space = GetWorld3D().DirectSpaceState;
@@ -383,6 +397,14 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         TurnInput = 0f;
         Fire1 = Fire2 = Fire3 = Jump = Descend = false;
         Pilot?.Think(dt);
+        if (_repairLeft > 0f)
+        {
+            // In the bay: switched off until the work is done.
+            _repairLeft -= dt;
+            Throttle = TurnInput = 0f;
+            Fire1 = Fire2 = Fire3 = false;
+            if (_repairLeft <= 0f) Mend();
+        }
         Throttle = Mathf.Clamp(Throttle, -ReverseFraction, 1f);
         Blocked = false;
 
@@ -396,15 +418,16 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         KeepOnMap();
 
         UpdateTurret(dt);
-        foreach (var rotor in _rotors) rotor.RotateY(28f * dt);
+        // Each about its own mast (the tail rotor's lies across the boom).
+        foreach (var rotor in _rotors) rotor.RotateObjectLocal(Vector3.Up, 28f * dt);
         TurnWheels(dt);
         Pilot?.UpdateView(dt);
         UpdateAim(space);
 
         Weapons.DamageScale = DamageDealtScale;
-        Weapons.Mask = Units.FireMask(Team);
+        Weapons.Mask = Units.FireMask(Team, Pilot is PlayerPilot);
         Weapons.CarrierVelocity = Velocity;
-        if (Pilot?.CanFire ?? false)
+        if (!Repairing && (Pilot?.CanFire ?? false))
         {
             if (Fire1) Weapons.FireGroup(1, AimPoint, space);
             if (Fire2) Weapons.FireGroup(2, AimPoint, space);
@@ -645,7 +668,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     /// <summary>Flew into something: the aircraft is destroyed there and then, and what it hit feels it.</summary>
     void Crash(Vector3 at, GodotObject into)
     {
-        if (IsDestroyed) return;
+        if (IsDestroyed || !Net.Authority) return;
         var space = GetWorld3D().DirectSpaceState;
         float height = GlobalPosition.Y - SurfaceAt(GlobalPosition.X, GlobalPosition.Z);
         TakeDamage(MaxHp * 4f, at);
@@ -710,8 +733,22 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         }
         else _yaw = Mathf.MoveToward(_yaw, Mathf.Clamp(TargetYaw, -MaxTwist, MaxTwist), TwistRate * dt);
         _pitch = Mathf.MoveToward(_pitch, Mathf.Clamp(TargetPitch, MinPitch, MaxPitch), PitchRate * dt);
-        _turret.Rotation = new Vector3(0f, _yaw, 0f);
-        if (_gun != null) _gun.Rotation = new Vector3(_pitch, 0f, 0f);
+        if (_hull == null || _turret.GetParent() != this)
+        {
+            _turret.Rotation = new Vector3(0f, _yaw, 0f);
+            if (_gun != null) _gun.Rotation = new Vector3(_pitch, 0f, 0f);
+            return;
+        }
+        // The turret sits on the hull and leans with it — over bumps, on slopes, banking in the air —
+        // while the gun is stabilised: it keeps pointing where the gunner aims, so the traverse and the
+        // elevation are worked out afresh in the leaning turret ring.
+        Transform3D lean = _hull.Transform;
+        Vector3 aim = new Basis(Vector3.Up, _yaw) * new Basis(Vector3.Right, _pitch) * Vector3.Forward;
+        Vector3 local = lean.Basis.Orthonormalized().Inverse() * aim;
+        float traverse = Mathf.Atan2(-local.X, -local.Z);
+        float elevation = Mathf.Atan2(local.Y, new Vector2(local.X, local.Z).Length());
+        _turret.Transform = lean * new Transform3D(new Basis(Vector3.Up, traverse), _turretRest);
+        if (_gun != null) _gun.Rotation = new Vector3(elevation, 0f, 0f);
     }
 
     void UpdateAim(PhysicsDirectSpaceState3D space)
@@ -728,7 +765,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         float start = Mathf.Max(0f, (ViewPivot - origin).Dot(dir));
         Vector3 from = origin + dir * start;
         Vector3 to = origin + dir * (player ? 1500f : 700f);
-        if (Phys.Ray(space, from, to, Units.FireMask(Team), _exclude, out var hit))
+        if (Phys.Ray(space, from, to, Units.FireMask(Team, Pilot is PlayerPilot), _exclude, out var hit))
         {
             AimPoint = hit.Position;
             AimCollider = hit.Collider;
@@ -745,6 +782,8 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     public void TakeDamage(float amount, Vector3 point)
     {
         if (IsDestroyed) return;
+        Score.Hit(this);
+        NetLink.I?.QueueHurt(this, -1, amount);
         Hp -= amount;
         Shake += 0.1f;
         Pilot?.OnHit();
@@ -786,6 +825,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         }
         Pilot?.OnKilled();
         if (Team == Team.Enemy) Game.Kills++;
+        Score.Killed(this);
     }
 
     void Explode()
@@ -821,10 +861,10 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         if (RespawnLeft <= 0f) Respawn();
     }
 
-    void Respawn()
+    /// <summary>Puts back everything that was shot off, restores the hull and refills the magazines.</summary>
+    void Mend()
     {
-        if (IsInstanceValid(_wreckFx)) _wreckFx.QueueFree();
-        _wreckFx = null;
+        Impacts.CleanUnit(this);
         // Everything that came off goes back on.
         for (int i = _torn.Count - 1; i >= 0; i--)
         {
@@ -836,16 +876,61 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         for (int i = 0; i < _meshes.Count; i++) _meshes[i].MaterialOverride = _original[i];
         Hp = MaxHp;
         Weapons.Rearm();
+    }
+
+    /// <summary>Being worked on at a repair bay: switched off until it is done.</summary>
+    public bool Repairing => _repairLeft > 0f;
+    public float RepairLeft => _repairLeft;
+    float _repairLeft;
+    public bool NeedsRepair => !IsDestroyed && (Hp < MaxHp * 0.995f || Weapons.NeedsAmmo);
+
+    public void BeginRepair(float seconds)
+    {
+        if (IsDestroyed || Repairing || IsAircraft) return;
+        _repairLeft = seconds;
+        Throttle = 0f;
+        Weapons.CancelBeams();
+    }
+
+    // ── Network ─────────────────────────────────────────────────
+
+    /// <summary>Where the host says this machine is. Others' machines follow it closely; the player's own is only pulled back when it has strayed.</summary>
+    public void NetCorrect(Vector3 position, float yaw, float speed, bool own)
+    {
+        if (IsDestroyed) return;
+        float off = GlobalPosition.DistanceTo(position);
+        if (off > (own ? 12f : 25f)) GlobalPosition = position;
+        else if (off > (own ? 2.5f : 0.3f)) GlobalPosition = GlobalPosition.Lerp(position, own ? 0.08f : 0.25f);
+        if (!own)
+        {
+            Rotation = new Vector3(Rotation.X, Mathf.LerpAngle(Rotation.Y, yaw, 0.35f), Rotation.Z);
+            Speed = Mathf.Lerp(Speed, speed, 0.5f);
+        }
+    }
+
+    /// <summary>The host has put this machine back on the field.</summary>
+    public void NetRespawn(Transform3D at)
+    {
+        _spawn = at;
+        Respawn();
+    }
+
+    void Respawn()
+    {
+        if (IsInstanceValid(_wreckFx)) _wreckFx.QueueFree();
+        _wreckFx = null;
+        Mend();
         CollisionLayer = _layer;
         GlobalTransform = _spawn;
         Velocity = Vector3.Zero;
         Speed = Kind == MoveKind.Plane ? MaxForwardSpeed * 0.8f : 0f;
-        Throttle = 0f;
+        Throttle = Kind == MoveKind.Plane ? 0.7f : 0f;
         _yaw = _pitch = _climb = _roll = _tilt = _yawRate = _sink = _squat = 0f;
         _avoiding = false;
         TargetYaw = TargetPitch = 0f;
         _falling = false;
         if (_hull != null) _hull.Rotation = Vector3.Zero;
         Pilot?.OnRespawn();
+        NetLink.I?.HostRespawned(this);
     }
 }

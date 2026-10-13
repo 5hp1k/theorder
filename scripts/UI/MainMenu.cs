@@ -52,6 +52,7 @@ public partial class MainMenu : Control
     Label _summary, _mechInfo, _mapInfo, _enemyCountLabel;
     VBoxContainer _slotList;
     HardpointDrop _shelf;
+    float _handTurned;
     AudioStreamPlayer _click;
     Label _vehicleCountLabel;
     TextureRect _insigniaPreview;
@@ -73,12 +74,22 @@ public partial class MainMenu : Control
         _insigniaPreview = GetNode<TextureRect>("%InsigniaPreview");
         _insigniaDialog = GetNode<FileDialog>("%InsigniaDialog");
 
-        _pages = new[] { GetNode<Control>("%PageMech"), GetNode<Control>("%PageCustom"), GetNode<Control>("%PageBattle"), GetNode<Control>("%PageSettings"), GetNode<Control>("%PageHangar") };
-        GetNode<Button>("%BtnHangar").Pressed += () => ShowPage(4);
+        // The hangar is the first page: the choice of machine and what it carries.
+        // (The second place was the paint page; paint is now a tab of the hangar.)
+        _pages = new[] { GetNode<Control>("%PageHangar"), null, GetNode<Control>("%PageBattle"), GetNode<Control>("%PageSettings"), GetNode<Control>("%PageNet") };
+        SetupHangarTabs();
+        // The stand can be turned by hand: drag over the picture.
+        GetNode<Node3D>("%PreviewPivot").GetParent().GetParent<Control>().GuiInput += @event =>
+        {
+            if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } drag) return;
+            _pivot.RotateY(drag.Relative.X * 0.012f);
+            _handTurned = 5f;
+        };
+        GetNode<Button>("%BtnHangar").Pressed += () => ShowPage(0);
+        GetNode<Button>("%BtnNet").Pressed += () => ShowPage(4);
+        SetupNetPage();
         _shelf = GetNode<HardpointDrop>("%Shelf");
         GetNode<Button>("%BtnPlay").Pressed += StartBattle;
-        GetNode<Button>("%BtnMech").Pressed += () => ShowPage(0);
-        GetNode<Button>("%BtnCustom").Pressed += () => ShowPage(1);
         GetNode<Button>("%BtnBattle").Pressed += () => ShowPage(2);
         GetNode<Button>("%BtnSettings").Pressed += () => ShowPage(3);
         GetNode<Button>("%BtnQuit").Pressed += () =>
@@ -98,12 +109,36 @@ public partial class MainMenu : Control
 
     public override void _Process(double delta)
     {
-        _pivot.RotateY(PreviewTurnSpeed * (float)delta);
+        // It turns by itself, except for a few seconds after the player has turned it.
+        _handTurned -= (float)delta;
+        if (_handTurned <= 0f) _pivot.RotateY(PreviewTurnSpeed * (float)delta);
+    }
+
+    /// <summary>
+    /// The battle settings (map, hour, weather, bots, time limit…) are one set of controls: they sit on
+    /// the "map and enemies" page, and move onto the network page while that one is open, so that a
+    /// host sets the game up right there.
+    /// </summary>
+    void PlaceBattleSettings(bool onNetPage)
+    {
+        Control home = GetNode<Control>("%PageBattle"), slot = GetNode<Control>("%NetBattleSlot");
+        Control from = onNetPage ? home : slot, to = onNetPage ? slot : home;
+        foreach (Node child in from.GetChildren())
+        {
+            // The page's own heading stays where it is.
+            if (from == home && child.Name == "Heading") continue;
+            from.RemoveChild(child);
+            to.AddChild(child);
+        }
     }
 
     void ShowPage(int index)
     {
-        for (int i = 0; i < _pages.Length; i++) _pages[i].Visible = i == index;
+        PlaceBattleSettings(index == 4);
+        for (int i = 0; i < _pages.Length; i++)
+            if (_pages[i] != null) _pages[i].Visible = i == index;
+        if (index == 4)
+            GetNode<Label>("%NetUnit").Text = Loc.T("Ваша машина: ") + Loc.T(Catalog.Find(Catalog.PlayerUnits, GameConfig.MechId).Name) + Loc.T(" (меняется в ангаре)");
         _click?.Play();
     }
 
@@ -116,7 +151,7 @@ public partial class MainMenu : Control
     static void Fill(OptionButton option, Catalog.Entry[] entries, string selectedId)
     {
         option.Clear();
-        foreach (var e in entries) option.AddItem(e.Name);
+        foreach (var e in entries) option.AddItem(Loc.T(e.Name));
         option.Selected = Catalog.IndexOf(entries, selectedId);
     }
 
@@ -126,7 +161,7 @@ public partial class MainMenu : Control
     {
         var list = GetNode<ItemList>("%MechList");
         list.Clear();
-        foreach (var e in Catalog.PlayerUnits) list.AddItem(e.Name);
+        foreach (var e in Catalog.PlayerUnits) list.AddItem(Loc.T(e.Name));
         list.Select(Catalog.IndexOf(Catalog.PlayerUnits, GameConfig.MechId));
         list.ItemSelected += index =>
         {
@@ -138,6 +173,25 @@ public partial class MainMenu : Control
         };
     }
 
+    /// <summary>The hangar's two tabs: what the machine carries, and how it is painted.</summary>
+    void SetupHangarTabs()
+    {
+        var weapons = GetNode<Button>("%BtnTabWeapons");
+        var paint = GetNode<Button>("%BtnTabPaint");
+        Control hint = GetNode<Control>("%PageHangar").GetNode<Control>("Hint"), bench = GetNode<Control>("%PageHangar").GetNode<Control>("Bench");
+        Control stock = GetNode<Control>("%BtnStock"), page = GetNode<Control>("%PageCustom");
+        void Show(bool painting)
+        {
+            weapons.SetPressedNoSignal(!painting);
+            paint.SetPressedNoSignal(painting);
+            hint.Visible = bench.Visible = stock.Visible = !painting;
+            page.Visible = painting;
+            _click?.Play();
+        }
+        weapons.Pressed += () => Show(false);
+        paint.Pressed += () => Show(true);
+    }
+
     void SetupCustomPage()
     {
         // Ready-made schemes: choosing one fills in the colours and the pattern below.
@@ -147,8 +201,8 @@ public partial class MainMenu : Control
         var aPick = GetNode<ColorPickerButton>("%PatternAPicker");
         var bPick = GetNode<ColorPickerButton>("%PatternBPicker");
         preset.Clear();
-        preset.AddItem("— свои цвета —");
-        foreach (var scheme0 in PaintJob.Presets) preset.AddItem(scheme0.Name);
+        preset.AddItem(Loc.T("— свои цвета —"));
+        foreach (var scheme0 in PaintJob.Presets) preset.AddItem(Loc.T(scheme0.Name));
         preset.ItemSelected += index =>
         {
             if (index < 1) return;
@@ -160,7 +214,7 @@ public partial class MainMenu : Control
             RebuildPreview();
         };
         pattern.Clear();
-        foreach (string name in PaintJob.PatternNames) pattern.AddItem(name);
+        foreach (string name in PaintJob.PatternNames) pattern.AddItem(Loc.T(name));
         pattern.Selected = GameConfig.PatternId;
         pattern.ItemSelected += index =>
         {
@@ -182,7 +236,7 @@ public partial class MainMenu : Control
 
         var scheme = GetNode<OptionButton>("%SchemeOption");
         scheme.Clear();
-        foreach (string name in PaintJob.SchemeNames) scheme.AddItem(name);
+        foreach (string name in PaintJob.SchemeNames) scheme.AddItem(Loc.T(name));
         scheme.Selected = GameConfig.PaintScheme;
         scheme.ItemSelected += index =>
         {
@@ -239,6 +293,101 @@ public partial class MainMenu : Control
         RebuildPreview();
     }
 
+    /// <summary>Network game: who you are, what kind of battle, and either open one or join one.</summary>
+    void SetupNetPage()
+    {
+        var name = GetNode<LineEdit>("%NetNameEdit");
+        name.Text = Loc.T(GameConfig.PlayerName);
+        name.TextChanged += text => GameConfig.PlayerName = text.Trim() == "" ? "Пилот" : text.Trim();
+        var mode = GetNode<OptionButton>("%NetModeOption");
+        mode.Clear();
+        foreach (string title in Net.ModeNames) mode.AddItem(Loc.T(title));
+        mode.Selected = (int)Net.Mode;
+        mode.ItemSelected += index => Net.Mode = (Net.GameMode)index;
+        var respawn = GetNode<CheckButton>("%NetRespawnCheck");
+        respawn.ButtonPressed = Net.Respawns;
+        respawn.Toggled += on => Net.Respawns = on;
+        var address = GetNode<LineEdit>("%NetAddressEdit");
+        address.Text = Loc.T(GameConfig.NetAddress);
+        address.TextChanged += text => GameConfig.NetAddress = text.Trim();
+        var port = GetNode<SpinBox>("%NetPortSpin");
+        port.Value = GameConfig.NetPort;
+        port.ValueChanged += value => GameConfig.NetPort = (int)value;
+        var status = GetNode<Label>("%NetStatus");
+        status.Text = Loc.T(NetLink.I.Status);
+        void Show() => status.Text = NetLink.I.Status;
+        NetLink.I.StatusChanged += Show;
+        TreeExiting += () => NetLink.I.StatusChanged -= Show;
+        GetNode<Button>("%BtnHost").Pressed += () =>
+        {
+            GameConfig.Save();
+            NetLink.I.Stop();
+            NetLink.I.StartHost(GameConfig.PlayerName, GameConfig.NetPort);
+        };
+        GetNode<Button>("%BtnJoin").Pressed += () =>
+        {
+            GameConfig.Save();
+            NetLink.I.Stop();
+            NetLink.I.StartJoin(GameConfig.PlayerName, GameConfig.NetAddress, GameConfig.NetPort);
+        };
+
+        // The lobby: who is here, the chat, and (for the host) the button that starts the battle.
+        var lobby = GetNode<Control>("%LobbyBox");
+        var roster = GetNode<Label>("%LobbyList");
+        var start = GetNode<Button>("%BtnStartNet");
+        var chatLog = GetNode<Label>("%ChatLog");
+        var chatEdit = GetNode<LineEdit>("%ChatEdit");
+        void ShowLobby()
+        {
+            lobby.Visible = Net.Online;
+            start.Visible = Net.IsHost;
+            roster.Text = Loc.T("В лобби: " + string.Join(", ", NetLink.I.Roster));
+        }
+        void ShowChat()
+        {
+            var lines = NetLink.I.ChatLines;
+            chatLog.Text = Loc.T(string.Join("\n", lines.GetRange(Mathf.Max(0, lines.Count - 5), Mathf.Min(5, lines.Count))));
+        }
+        NetLink.I.RosterChanged += ShowLobby;
+        NetLink.I.ChatChanged += ShowChat;
+        start.Pressed += () => NetLink.I.BeginBattle();
+        GetNode<Button>("%BtnLeaveNet").Pressed += () => NetLink.I.Stop();
+        chatEdit.TextSubmitted += text =>
+        {
+            NetLink.I.Chat(text);
+            chatEdit.Text = "";
+        };
+        ShowLobby();
+        ShowChat();
+
+        // Games heard on the local network.
+        var lan = GetNode<ItemList>("%LanList");
+        void ShowLan()
+        {
+            lan.Clear();
+            foreach (var (found, game) in NetLink.I.LanGames)
+            {
+                lan.AddItem(Loc.T($"{found}:{game.port}  —  {game.text}"));
+                lan.SetItemMetadata(lan.ItemCount - 1, found + "|" + game.port);
+            }
+        }
+        lan.ItemSelected += index =>
+        {
+            string[] part = ((string)lan.GetItemMetadata((int)index)).Split('|');
+            address.Text = Loc.T(GameConfig.NetAddress = part[0]);
+            port.Value = int.Parse(part[1]);
+        };
+        NetLink.I.LanChanged += ShowLan;
+        NetLink.I.Listen(true);
+        TreeExiting += () =>
+        {
+            NetLink.I.RosterChanged -= ShowLobby;
+            NetLink.I.ChatChanged -= ShowChat;
+            NetLink.I.LanChanged -= ShowLan;
+            NetLink.I.Listen(false);
+        };
+    }
+
     void SetupBattlePage()
     {
         var map = GetNode<OptionButton>("%MapOption");
@@ -251,15 +400,32 @@ public partial class MainMenu : Control
 
         var day = GetNode<OptionButton>("%TimeOfDayOption");
         day.Clear();
-        foreach (string name in MapLighting.TimeNames) day.AddItem(name);
+        foreach (string name in MapLighting.TimeNames) day.AddItem(Loc.T(name));
         day.Selected = GameConfig.TimeOfDay;
         day.ItemSelected += index => GameConfig.TimeOfDay = (int)index;
 
         var weather = GetNode<OptionButton>("%WeatherOption");
         weather.Clear();
-        foreach (string name in Weather.Names) weather.AddItem(name);
+        foreach (string name in Weather.Names) weather.AddItem(Loc.T(name));
         weather.Selected = GameConfig.WeatherId;
         weather.ItemSelected += index => GameConfig.WeatherId = (int)index;
+
+        var squad = GetNode<HSlider>("%SquadCount");
+        var squadLabel = GetNode<Label>("%SquadCountLabel");
+        squad.Value = GameConfig.SquadSize;
+        squadLabel.Text = Loc.T(GameConfig.SquadSize.ToString());
+        squad.ValueChanged += value =>
+        {
+            GameConfig.SquadSize = (int)value;
+            squadLabel.Text = Loc.T(GameConfig.SquadSize.ToString());
+        };
+        var squadType = GetNode<OptionButton>("%SquadTypeOption");
+        squadType.Clear();
+        squadType.AddItem(Loc.T("Случайные"));
+        squadType.AddItem(Loc.T("Как у меня"));
+        foreach (var e in Catalog.Mechs) squadType.AddItem(Loc.T(e.Name));
+        squadType.Selected = GameConfig.SquadMechId switch { "random" => 0, "same" => 1, _ => Catalog.IndexOf(Catalog.Mechs, GameConfig.SquadMechId) + 2 };
+        squadType.ItemSelected += index => GameConfig.SquadMechId = index == 0 ? "random" : index == 1 ? "same" : Catalog.Mechs[index - 2].Id;
 
         var count = GetNode<HSlider>("%EnemyCount");
         count.Value = GameConfig.EnemyCount;
@@ -271,8 +437,8 @@ public partial class MainMenu : Control
 
         var type = GetNode<OptionButton>("%EnemyTypeOption");
         type.Clear();
-        type.AddItem("Случайные");
-        foreach (var e in Catalog.Mechs) type.AddItem(e.Name);
+        type.AddItem(Loc.T("Случайные"));
+        foreach (var e in Catalog.Mechs) type.AddItem(Loc.T(e.Name));
         type.Selected = GameConfig.EnemyMechId == "random" ? 0 : Catalog.IndexOf(Catalog.Mechs, GameConfig.EnemyMechId) + 1;
         type.ItemSelected += index => GameConfig.EnemyMechId = index == 0 ? "random" : Catalog.Mechs[index - 1].Id;
 
@@ -291,6 +457,9 @@ public partial class MainMenu : Control
         var botsFight = GetNode<CheckButton>("%BotsFightCheck");
         botsFight.ButtonPressed = GameConfig.BotsFight;
         botsFight.Toggled += on => GameConfig.BotsFight = on;
+        var botNukes = GetNode<CheckButton>("%BotNukesCheck");
+        botNukes.ButtonPressed = GameConfig.BotNukes;
+        botNukes.Toggled += on => GameConfig.BotNukes = on;
 
         // Battle length: the list's items are minutes, 0 = no limit.
         var time = GetNode<OptionButton>("%TimeLimitOption");
@@ -311,11 +480,11 @@ public partial class MainMenu : Control
     {
         var mech = Catalog.Find(Catalog.PlayerUnits, GameConfig.MechId);
         var map = Catalog.Find(Catalog.Maps, GameConfig.MapId);
-        _mechInfo.Text = mech.Description;
-        _mapInfo.Text = map.Description;
-        _enemyCountLabel.Text = GameConfig.EnemyCount.ToString();
-        _vehicleCountLabel.Text = GameConfig.EnemyVehicleCount.ToString();
-        _summary.Text = $"{mech.Name}  ·  {map.Name}  ·  мехов: {GameConfig.EnemyCount}, техники: {GameConfig.EnemyVehicleCount}";
+        _mechInfo.Text = Loc.T(mech.Description);
+        _mapInfo.Text = Loc.T(map.Description);
+        _enemyCountLabel.Text = Loc.T(GameConfig.EnemyCount.ToString());
+        _vehicleCountLabel.Text = Loc.T(GameConfig.EnemyVehicleCount.ToString());
+        _summary.Text = Loc.T($"{mech.Name}  ·  {map.Name}  ·  мехов: {GameConfig.EnemyCount}, техники: {GameConfig.EnemyVehicleCount}");
     }
 
     // ── Mech preview and weapon slots ───────────────────────────
@@ -434,10 +603,10 @@ public partial class MainMenu : Control
             Tint(row, colour);
             row.GetNode<Label>("Column/Header/Name").Text = hp.Title;
             var type = row.GetNode<Label>("Column/Header/Type");
-            type.Text = SlotNames[(int)hp.Type];
+            type.Text = Loc.T(SlotNames[(int)hp.Type]);
             type.AddThemeColorOverride("font_color", colour);
             var pips = row.GetNode<Label>("Column/Header/Pips");
-            pips.Text = Pips(used, hp.Slots - used);
+            pips.Text = Loc.T(Pips(used, hp.Slots - used));
             pips.AddThemeColorOverride("font_color", colour);
             row.GetNode<Control>("Column/Empty").Visible = fits[i].Count == 0;
 
@@ -507,7 +676,7 @@ public partial class MainMenu : Control
         chip.WeaponId = id;
         chip.GetNode<Label>("Row/Name").Text = info?.Name ?? id;
         var size = chip.GetNode<Label>("Row/Size");
-        size.Text = Pips(info?.Slots ?? 1, 0);
+        size.Text = Loc.T(Pips(info?.Slots ?? 1, 0));
         if (info == null) return;
         Color colour = SlotColors[(int)info.Slot];
         size.AddThemeColorOverride("font_color", colour);

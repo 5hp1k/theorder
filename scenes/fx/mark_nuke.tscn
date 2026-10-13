@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/Crater.cs" id="1"]
+[ext_resource type="Material" path="res://materials/mark_nuke.tres" id="2"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1"]
+size = Vector2(2, 2)
+subdivide_width = 40
+subdivide_depth = 40
+
+[node name="MarkNuke" type="Node3D"]
+script = ExtResource("1")
+Lifetime = 600
+FadeTime = 30
+GlowTime = 25
+Lift = 0.15
+
+[node name="Mark" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+material_override = ExtResource("2")
+mesh = SubResource("PlaneMesh_1")

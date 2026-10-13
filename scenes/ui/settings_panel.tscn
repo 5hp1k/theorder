@@ -37,6 +37,22 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 9
 
+[node name="LanguageRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Game/Rows/LanguageRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Язык / Language"
+theme_override_font_sizes/font_size = 17
+
+[node name="LanguageOption" type="OptionButton" parent="Tabs/Game/Rows/LanguageRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
 [node name="VolumeRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
 layout_mode = 2
 theme_override_constants/separation = 12
@@ -475,9 +491,35 @@ horizontal_alignment = 2
 theme_override_font_sizes/font_size = 17
 unique_name_in_owner = true
 
+[node name="DrawDistanceRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/DrawDistanceRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Дальность прорисовки мелочей"
+theme_override_font_sizes/font_size = 17
+
+[node name="DrawDistanceSlider" type="HSlider" parent="Tabs/Graphics/Rows/DrawDistanceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.5
+max_value = 2.5
+step = 0.1
+unique_name_in_owner = true
+
+[node name="DrawDistanceLabel" type="Label" parent="Tabs/Graphics/Rows/DrawDistanceRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
 [node name="Note" type="Label" parent="Tabs/Graphics/Rows"]
 layout_mode = 2
-text = "Размер окна действует в оконном режиме; на весь экран картинка рисуется в разрешении экрана, а нагрузку снижает «Разрешение 3D-картинки»."
+text = "Дальность прорисовки мелочей (уличная мебель, машины, оборудование домов, растения) сильнее всего влияет на частоту кадров и применяется с началом следующего боя. Размер окна действует в оконном режиме; на весь экран картинка рисуется в разрешении экрана, а нагрузку снижает «Разрешение 3D-картинки»."
 autowrap_mode = 3
 theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)

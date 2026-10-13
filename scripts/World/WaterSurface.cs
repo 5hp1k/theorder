@@ -14,6 +14,8 @@ public partial class WaterSurface : MeshInstance3D
 
     /// <summary>Size of the mirror image relative to the screen: smaller is cheaper and blurrier.</summary>
     [Export(PropertyHint.Range, "0.2,1")] public float ReflectionScale = 0.5f;
+    /// <summary>How far the mirror image reaches, metres.</summary>
+    [Export] public float MirrorReach = 700f;
 
     static WaterSurface _instance;
 
@@ -88,6 +90,8 @@ public partial class WaterSurface : MeshInstance3D
         _mirrorCamera.GlobalTransform = new Transform3D(basis, new Vector3(t.Origin.X, 2f * level - t.Origin.Y, t.Origin.Z));
         _mirrorCamera.Fov = eye.Fov;
         _mirrorCamera.Near = eye.Near;
-        _mirrorCamera.Far = eye.Far;
+        // The mirror shows the land, the buildings and the machines, not every bench (see Lod), and not to the horizon.
+        _mirrorCamera.Far = Mathf.Min(eye.Far, MirrorReach);
+        _mirrorCamera.CullMask = 1;
     }
 }

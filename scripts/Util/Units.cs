@@ -142,12 +142,14 @@ public static class Units
     public static readonly List<ITarget> All = new();
 
     public static bool Hostile(ITarget a, ITarget b)
-        => a != b && (a.Team != b.Team || (a.Team == Team.Enemy && GameConfig.BotsFight));
+        => a != b && (Net.FreeForAll || a.Team != b.Team || (a.Team == Team.Enemy && GameConfig.BotsFight));
 
     /// <summary>What a unit's shots can hit. Its own hit boxes must be on its exclude list.</summary>
-    public static uint FireMask(Team team)
+    /// <param name="human">The player's own guns can hit their own side too (computer pilots of the squad never do).</param>
+    public static uint FireMask(Team team, bool human = false)
     {
-        if (team == Team.Player) return Phys.MaskPlayerFire;
+        if (Net.FreeForAll) return Phys.MaskPlayerFire | Phys.MaskEnemyFire | Phys.LayerHitPlayer | Phys.LayerHitEnemy;
+        if (team == Team.Player) return human ? Phys.MaskPlayerFire | Phys.LayerHitPlayer : Phys.MaskPlayerFire;
         return GameConfig.BotsFight ? Phys.MaskEnemyFire | Phys.LayerHitEnemy : Phys.MaskEnemyFire;
     }
 

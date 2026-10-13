@@ -24,6 +24,8 @@ public static class Phys
     {
         public Vector3 Position;
         public Vector3 Normal;
+        /// <summary>Where the ray that found it set out from.</summary>
+        public Vector3 From;
         public GodotObject Collider;
         /// <summary>Which piece of the collider was hit, for things made of pieces (a building's block).</summary>
         public int Part;
@@ -43,6 +45,7 @@ public static class Phys
                            Godot.Collections.Array<Rid> exclude, out Hit hit)
     {
         hit = default;
+        hit.From = from;
         // A shot can pass through several broken-open things in a row; each one is skipped in turn.
         for (int pass = 0; pass < 6; pass++)
         {
@@ -64,6 +67,8 @@ public static class Phys
     /// <summary>Delivers a hit to whatever a ray found: the block of a building, or the thing as a whole.</summary>
     public static void Damage(in Hit hit, float amount)
     {
+        // On a client of a network game nothing is hurt locally: the host says what was.
+        if (!Net.Authority) return;
         // The masonry flies back out towards the shooter, off the face that was hit.
         if (hit.Collider is ChunkedBuilding building && hit.Part >= 0) building.DamageCell(hit.Part, amount, hit.Normal * 7f);
         else (hit.Collider as IDamageable)?.TakeDamage(amount, hit.Position);
@@ -73,6 +78,7 @@ public static class Phys
     public static void Blast(PhysicsDirectSpaceState3D space, Vector3 center, float radius, float damage, uint mask,
                              Godot.Collections.Array<Rid> exclude)
     {
+        if (!Net.Authority) return;
         var query = new PhysicsShapeQueryParameters3D
         {
             Shape = new SphereShape3D { Radius = radius },

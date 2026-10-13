@@ -15,7 +15,7 @@ public partial class SettingsPanel : Control
     /// <summary>One line of the controls tab: the action's name and the button showing its key.</summary>
     [Export] public PackedScene BindRowScene;
 
-    Label _volumeLabel, _sensLabel, _fovLabel, _scaleLabel, _weatherLabel;
+    Label _volumeLabel, _sensLabel, _fovLabel, _scaleLabel, _weatherLabel, _drawLabel;
     OptionButton _preset;
     Button[] _bindButtons = Array.Empty<Button>();
     int _rebinding = -1;
@@ -29,12 +29,24 @@ public partial class SettingsPanel : Control
         _fovLabel = GetNode<Label>("%FovLabel");
         _scaleLabel = GetNode<Label>("%RenderScaleLabel");
         _weatherLabel = GetNode<Label>("%WeatherLabel");
+        _drawLabel = GetNode<Label>("%DrawDistanceLabel");
         _preset = GetNode<OptionButton>("%EffectsOption");
 
         var window = GetNode<OptionButton>("%WindowSizeOption");
-        foreach (Vector2I size in GameConfig.WindowSizes) window.AddItem(size.X == 0 ? "Как есть" : $"{size.X} × {size.Y}");
+        foreach (Vector2I size in GameConfig.WindowSizes) window.AddItem(Loc.T(size.X == 0 ? "Как есть" : $"{size.X} × {size.Y}"));
         var limit = GetNode<OptionButton>("%MaxFpsOption");
-        foreach (int fps in GameConfig.FpsLimits) limit.AddItem(fps == 0 ? "Без ограничения" : $"{fps} к/с");
+        foreach (int fps in GameConfig.FpsLimits) limit.AddItem(Loc.T(fps == 0 ? "Без ограничения" : $"{fps} к/с"));
+
+        var language = GetNode<OptionButton>("%LanguageOption");
+        foreach (string name in Loc.LanguageNames) language.AddItem(name);
+        language.Selected = Mathf.Max(0, Array.IndexOf(Loc.Languages, GameConfig.Language));
+        language.ItemSelected += index =>
+        {
+            GameConfig.Language = Loc.Languages[index];
+            GameConfig.Save();
+            // The menu is redrawn in the new language at once; a battle in progress, from its next start.
+            if (GetTree().CurrentScene is MainMenu) GetTree().ReloadCurrentScene();
+        };
 
         // The game.
         Slide("%VolumeSlider", () => GameConfig.MasterVolume, v => GameConfig.MasterVolume = v);
@@ -62,6 +74,7 @@ public partial class SettingsPanel : Control
         Check("%GlowCheck", () => GameConfig.Glow, v => GameConfig.Glow = v, true);
         Check("%MirrorCheck", () => GameConfig.WaterMirror, v => GameConfig.WaterMirror = v, true);
         Slide("%WeatherSlider", () => GameConfig.WeatherDensity, v => GameConfig.WeatherDensity = v, true);
+        Slide("%DrawDistanceSlider", () => GameConfig.DrawDistance, v => GameConfig.DrawDistance = v, true);
 
         _preset.ItemSelected += index =>
         {
@@ -147,11 +160,12 @@ public partial class SettingsPanel : Control
 
     void Labels()
     {
-        _volumeLabel.Text = $"{Mathf.RoundToInt(GameConfig.MasterVolume * 100f)}%";
-        _sensLabel.Text = $"×{GameConfig.MouseSensitivity:0.00}";
-        _fovLabel.Text = $"{Mathf.RoundToInt(GameConfig.Fov)}°";
-        _scaleLabel.Text = $"{Mathf.RoundToInt(GameConfig.RenderScale * 100f)}%";
-        _weatherLabel.Text = $"{Mathf.RoundToInt(GameConfig.WeatherDensity * 100f)}%";
+        _volumeLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.MasterVolume * 100f)}%");
+        _sensLabel.Text = Loc.T($"×{GameConfig.MouseSensitivity:0.00}");
+        _fovLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.Fov)}°");
+        _scaleLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.RenderScale * 100f)}%");
+        _weatherLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.WeatherDensity * 100f)}%");
+        _drawLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.DrawDistance * 100f)}%");
         _preset.Selected = Mathf.Clamp(GameConfig.EffectsQuality, 0, 3);
     }
 
@@ -180,7 +194,7 @@ public partial class SettingsPanel : Control
     void RefreshBindings()
     {
         for (int i = 0; i < _bindButtons.Length; i++)
-            _bindButtons[i].Text = i == _rebinding ? "нажмите клавишу или кнопку мыши…" : GameConfig.BindingText(GameConfig.BindableActions[i]);
+            _bindButtons[i].Text = Loc.T(i == _rebinding ? "нажмите клавишу или кнопку мыши…" : GameConfig.BindingText(GameConfig.BindableActions[i]));
     }
 
     public override void _Input(InputEvent @event)

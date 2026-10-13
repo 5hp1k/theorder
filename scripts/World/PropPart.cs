@@ -47,6 +47,7 @@ public partial class PropPart : StaticBody3D, IDamageable
         if (Broken) return;
         Broken = true;
         CollisionLayer = 0;
+        if (GetParent() is Destructible owner) NetLink.I?.World(2, Destructible.Everyone.IndexOf(owner), GetIndex(), default, 0f);
         Node scene = GetTree().CurrentScene;
         Vector3 at = Center;
         Burning.Ignite(scene, at, 0.8f);

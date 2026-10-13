@@ -12,6 +12,7 @@
 [ext_resource type="Material" path="res://materials/terrain_winter.tres" id="10"]
 [ext_resource type="Material" path="res://materials/ice.tres" id="11"]
 [ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="12"]
+[ext_resource type="PackedScene" path="res://scenes/props/repair_bay.tscn" id="repair_bay"]
 
 [node name="Winter_Terrain" type="StaticBody3D"]
 collision_layer = 1
@@ -20,6 +21,8 @@ script = ExtResource("1")
 Seed = 4242
 Size = 1040
 Border = 120
+RepairBayScene = ExtResource("repair_bay")
+RepairBaySpots = PackedVector2Array()
 CellSize = 4
 RidgeHeight = 4
 RidgeLength = 70

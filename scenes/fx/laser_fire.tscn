@@ -80,14 +80,14 @@ BurnTime = 120.0
 DieTime = 12.0
 
 [node name="Flames" type="GPUParticles3D" parent="."]
-amount = 22
+amount = 33
 lifetime = 1
 cast_shadow = 0
 process_material = SubResource("ParticleProcessMaterial_5")
 draw_pass_1 = SubResource("QuadMesh_6")
 
 [node name="SmokeColumn" type="GPUParticles3D" parent="."]
-amount = 36
+amount = 54
 lifetime = 6
 cast_shadow = 0
 process_material = SubResource("ParticleProcessMaterial_11")

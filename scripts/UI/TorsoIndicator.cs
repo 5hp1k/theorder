@@ -17,7 +17,9 @@ public partial class TorsoIndicator : HudWidget
             DrawLine(new Vector2(x, y - 5f), new Vector2(x, y + 5f), Dim, 1f);
         }
         DrawLine(new Vector2(mid, y - 12f), new Vector2(mid, y + 12f), Green, 2f);
-        Text($"КУРС {Mathf.RoundToInt(Seat.HeadingDeg):000}°", new Vector2(mid - 60f, y - 8f), 14, Green, HorizontalAlignment.Center, 120f);
+        // (The compass goes with the rest of the electronics when a pulse hits.)
+        if (Jam > 0f) Text("КУРС ---°", new Vector2(mid - 60f, y - 8f), 14, Red, HorizontalAlignment.Center, 120f);
+        else Text($"КУРС {Mathf.RoundToInt(Seat.HeadingDeg):000}°", new Vector2(mid - 60f, y - 8f), 14, Green, HorizontalAlignment.Center, 120f);
 
         if (Seat.MaxTwist <= 0.01f) return;
         // Turret turned right (yaw < 0) means the hull points to the left of the view.

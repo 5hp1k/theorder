@@ -24,7 +24,7 @@ public partial class TargetPanel : HudWidget
     Control _doll;
     int _frame;
 
-    ITarget Target => Hud?.Seat is { CanLock: true } seat ? seat.Target : null;
+    ITarget Target => Jam <= 0f && Hud?.Seat is { CanLock: true } seat ? seat.Target : null;
 
     public override void _Ready()
     {
@@ -63,6 +63,13 @@ public partial class TargetPanel : HudWidget
     {
         if (!Seat.CanLock) return;
         var t = Target;
+        if (Jam > 0f)
+        {
+            DrawRect(new Rect2(0f, 0f, Size.X, 30f), Panel);
+            Static(new Rect2(0f, 0f, Size.X, 30f), 24);
+            Text("ПОМЕХИ — ЦЕЛЬ ПОТЕРЯНА", new Vector2(10f, 20f), 13, Red);
+            return;
+        }
         if (t == null)
         {
             DrawRect(new Rect2(0f, 0f, Size.X, 30f), Panel);

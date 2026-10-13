@@ -412,6 +412,7 @@ public partial class CityLayout : Node3D
         if (tilt) basis = Geo.BasisFromUpForward(Slope(at.X, at.Z), -basis.Z);
         // Placed before it enters the tree, so the prop knows where it stands when it wakes up.
         node.Transform = new Transform3D(basis, new Vector3(at.X, Ground(at.X, at.Z) + lift, at.Z));
+        Lod.Apply(node);
         AddChild(node);
     }
 }

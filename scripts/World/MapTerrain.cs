@@ -100,6 +100,10 @@ public partial class MapTerrain : StaticBody3D
     [Export] public PackedScene[] WaterPropScenes = System.Array.Empty<PackedScene>();
     [Export] public int WaterPropCount;
 
+    /// <summary>Field repair bays: the prefab, and where on the map they stand (x, z).</summary>
+    [Export] public PackedScene RepairBayScene;
+    [Export] public Vector2[] RepairBaySpots = System.Array.Empty<Vector2>();
+
     [ExportGroup("Effects")]
     /// <summary>Mark a mech's foot leaves on this ground.</summary>
     [Export] public PackedScene FootprintScene;
@@ -204,9 +208,12 @@ public partial class MapTerrain : StaticBody3D
     /// <summary>The ground has just changed shape (craters): whatever lies on it should settle again.</summary>
     public static event System.Action Reshaped;
 
-    public void AddCrater(Vector3 center, float radius, float depth)
+    /// <param name="fromHost">The host of a network game says so (on a client nothing digs by itself).</param>
+    public void AddCrater(Vector3 center, float radius, float depth, bool fromHost = false)
     {
         if (_dig == null || radius < CellSize * 0.75f) return;
+        if (!Net.Authority && !fromHost) return;
+        NetLink.I?.World(3, 0, 0, center, radius, depth);
         float step = Size / (_grid - 1), half = Size * 0.5f, reach = radius * 1.5f;
         int i0 = Mathf.Max(0, Mathf.FloorToInt((center.X - reach + half) / step)), i1 = Mathf.Min(_grid - 1, Mathf.CeilToInt((center.X + reach + half) / step));
         int j0 = Mathf.Max(0, Mathf.FloorToInt((center.Z - reach + half) / step)), j1 = Mathf.Min(_grid - 1, Mathf.CeilToInt((center.Z + reach + half) / step));
@@ -231,7 +238,9 @@ public partial class MapTerrain : StaticBody3D
         if (!_dirty || _rebuildWait > 0f) return;
         _dirty = false;
         _rebuildWait = 0.35f;
+        long prof = Prof.Now();
         BuildSurface();
+        Prof.Add(3, prof);
         Reshaped?.Invoke();
     }
 
@@ -534,8 +543,23 @@ public partial class MapTerrain : StaticBody3D
             // Placed before it enters the tree, so the prop knows where it stands when it wakes up.
             float size = 1f + rng.RandfRange(-SizeVariety, SizeVariety);
             node.Transform = new Transform3D(basis.Scaled(Vector3.One * size), pos);
+            // Plants and rocks are landmarks: they stay in sight further than street furniture does.
+            Lod.Apply(node, 70f, 260f, 900f);
             parent.AddChild(node);
         }
+
+        if (RepairBayScene != null)
+            foreach (Vector2 spot in RepairBaySpots)
+            {
+                // Level, on the highest ground under the pad so that no corner is buried.
+                float top = float.MinValue;
+                for (int i = -1; i <= 1; i++)
+                for (int j = -1; j <= 1; j++)
+                    top = Mathf.Max(top, HeightAt(spot.X + i * 8f, spot.Y + j * 8f));
+                var bay = RepairBayScene.Instantiate<Node3D>();
+                bay.Position = new Vector3(spot.X, top, spot.Y);
+                parent.AddChild(bay);
+            }
 
         if (SolidScenes.Length > 0)
             for (int i = 0; i < SolidCount; i++)

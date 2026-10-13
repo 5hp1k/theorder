@@ -10,6 +10,9 @@ namespace MechSim;
 /// </summary>
 public partial class Minimap : HudWidget
 {
+    /// <summary>Colour of one's own side on the radar.</summary>
+    [Export] public Color Friend = new(0.35f, 0.65f, 1f, 0.95f);
+
     public enum Mode { Radar, Relief, Satellite, Off }
 
     /// <summary>World distance from the centre to the rim, metres.</summary>
@@ -58,7 +61,7 @@ public partial class Minimap : HudWidget
     public override void _Process(double delta)
     {
         base._Process(delta);
-        bool live = Current == Mode.Satellite && Viewer(out Vector3 pos, out Basis basis, out _);
+        bool live = Current == Mode.Satellite && Jam <= 0f && Viewer(out Vector3 pos, out Basis basis, out _);
         _view.RenderTargetUpdateMode = live && _frame++ % UpdateEvery == 0 ? SubViewport.UpdateMode.Once : SubViewport.UpdateMode.Disabled;
         if (!live) return;
         // Straight down, with the top of the picture towards where the player faces.
@@ -74,6 +77,14 @@ public partial class Minimap : HudWidget
         float r = Mathf.Min(c.X, c.Y) - 12f;
 
         DrawCircle(c, r, Panel);
+        if (Jam > 0f)
+        {
+            // Burnt out by a pulse: nothing but snow until the set comes back.
+            DrawArc(c, r, 0f, Mathf.Tau, 48, Dim, 1.5f, true);
+            Static(new Rect2(c - Vector2.One * r * 0.7f, Vector2.One * r * 1.4f));
+            if (Mathf.PosMod(Clock, 0.8f) < 0.5f) Text("НЕТ СИГНАЛА", new Vector2(c.X - 80f, c.Y + 5f), 14, Red, HorizontalAlignment.Center, 160f);
+            return;
+        }
         DrawMap(c, r, pos, basis);
         DrawArc(c, r, 0f, Mathf.Tau, 48, Dim, 1.5f, true);
         DrawArc(c, r * 0.5f, 0f, Mathf.Tau, 32, new Color(Dim, 0.2f), 1f, true);
@@ -109,9 +120,27 @@ public partial class Minimap : HudWidget
         Text("С", c + new Vector2(n.X, n.Z).Normalized() * (r + 2f) + new Vector2(-5f, 5f), 12, Green);
 
         ITarget target = Seat.CanLock ? Seat.Target : null;
+        // Repair bays: a green cross.
+        foreach (var bay in RepairBay.All)
+        {
+            Vector2 p = Map(bay.GlobalPosition, out bool near);
+            if (!near) continue;
+            DrawLine(p + new Vector2(-5f, 0f), p + new Vector2(5f, 0f), Green, 2f);
+            DrawLine(p + new Vector2(0f, -5f), p + new Vector2(0f, 5f), Green, 2f);
+        }
+        // Our own side: blue.
         foreach (var e in Units.All)
         {
-            if (e.Team != Team.Enemy || e.IsDestroyed) continue;
+            if (e.IsDestroyed || e == Game.PlayerUnit || Game.PlayerUnit == null || Units.Hostile(Game.PlayerUnit, e)) continue;
+            Vector2 p = Map(e.GlobalPosition, out bool inRange);
+            if (inRange) DrawRect(new Rect2(p - new Vector2(3f, 3f), new Vector2(6f, 6f)), Friend);
+            else DrawArc(p, 3f, 0f, Mathf.Tau, 12, Friend, 1f, true);
+            if (e == target)
+                DrawRect(new Rect2(p - new Vector2(7f, 7f), new Vector2(14f, 14f)), Amber, false, 1.5f);
+        }
+        foreach (var e in Units.All)
+        {
+            if (e.IsDestroyed || (Game.PlayerUnit != null ? !Units.Hostile(Game.PlayerUnit, e) : e.Team != Team.Enemy)) continue;
             Vector2 p = Map(e.GlobalPosition, out bool inRange);
             if (inRange) DrawCircle(p, 3.5f, Red);
             else DrawArc(p, 3f, 0f, Mathf.Tau, 12, Red, 1f, true);

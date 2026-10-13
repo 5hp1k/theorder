@@ -158,6 +158,31 @@ def hatchet():
     return m
 
 
+def mace():
+    """A flanged mace at mech scale; held like the axe (the haft runs from the fist out along -Z)."""
+    m = Model("mace", "scenes/weapons/mace.tscn")
+    f = Part("Grip")
+    f.stations("z", [(0.35, 0.3, 0.3, 0, 0, 0.06), (-0.3, 0.3, 0.3, 0, 0, 0.06)], kind=FRAME)
+    m.add(f, ".", "Fist", JOINT)
+    h = Part("Haft")
+    h.lathe((0, 0, 0.7), (0, 0, -3.6), [(0.0, 0.05), (0.015, 0.16), (0.06, 0.17), (0.1, 0.11), (0.6, 0.105), (1.0, 0.13)], segs=12, kind=FRAME)
+    z = -0.42
+    while z > -1.5:
+        h.cyl((0, 0, z), (0, 0, z - 0.075), 0.13, segs=12, kind=SOFT, bevel=0.012)
+        z -= 0.095
+    m.add(h, ".", "Handle", JOINT)
+    head = Part("Head")
+    head.lathe((0, 0, -2.75), (0, 0, -4.15), [(0.0, 0.2), (0.1, 0.34), (0.5, 0.4), (0.9, 0.34), (1.0, 0.12)], segs=12, kind=FRAME)
+    # six flanges, each a thick blade with a point
+    for i in range(6):
+        r = Matrix.Rotation(i * math.pi / 3, 3, "Z")
+        outline = [(-2.85, 0.3), (-3.15, 0.78), (-3.45, 0.9), (-3.75, 0.78), (-4.05, 0.3)]
+        head.loft([[tuple(r @ Vector((x, y, z))) for z, y in outline] for x in (-0.06, 0.06)], kind=FRAME, bevel=0.01)
+    head.lathe((0, 0, -4.15), (0, 0, -4.6), [(0.0, 0.12), (0.2, 0.14), (1.0, 0.005)], segs=8, kind=FRAME)
+    m.add(head, ".", "Head", "street_steel")
+    return m
+
+
 def missile():
     m = Model("missile", "scenes/fx/missile.tscn")
     b = Part("Body")
@@ -305,7 +330,7 @@ def oil_rig():
     return m
 
 
-ALL = {"soldier": soldier, "power_armor": power_armor, "hatchet": hatchet, "missile": missile, "bomb": bomb, "tumbleweed": tumbleweed, "oil_rig": oil_rig}
+ALL = {"soldier": soldier, "power_armor": power_armor, "hatchet": hatchet, "mace": mace, "missile": missile, "bomb": bomb, "tumbleweed": tumbleweed, "oil_rig": oil_rig}
 for name, make in ALL.items():
     if ARGS[1] in ("all", name):
         make().finish([ARGS[0]] + ARGS[2:])

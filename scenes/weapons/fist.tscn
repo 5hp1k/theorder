@@ -1,0 +1,28 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="AudioStream" path="res://audio/swing.wav" id="2"]
+
+[node name="Fist" type="Node3D"]
+script = ExtResource("1")
+DisplayName = "Кулак"
+Group = 3
+Kind = 3
+Slot = 4
+Slots = 1
+Damage = 16
+Heat = 0
+Cooldown = 1.5
+Range = 9
+MaxAmmo = -1
+FxColor = Color(1, 0.8, 0.5, 1)
+SwingTime = 0.7
+SwingAngle = 0.0
+CraterSize = 0.9
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("2")
+unit_size = 12
+max_distance = 160
+volume_db = -3
+pitch_scale = 1.25

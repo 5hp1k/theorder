@@ -1,0 +1,90 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/NukeBlast.cs" id="1"]
+[ext_resource type="Material" path="res://materials/fx/nuke_cloud.tres" id="2"]
+[ext_resource type="Material" path="res://materials/fx/nuke_puff.tres" id="3"]
+[ext_resource type="Material" path="res://materials/fx/nuke_fireball.tres" id="4"]
+[ext_resource type="Material" path="res://materials/fx/nuke_shock.tres" id="5"]
+[ext_resource type="AudioStream" path="res://audio/nuke.wav" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/fx/mark_nuke.tscn" id="7"]
+
+[sub_resource type="QuadMesh" id="QuadMesh_puff"]
+size = Vector2(2, 2)
+material = ExtResource("3")
+
+[sub_resource type="SphereMesh" id="SphereMesh_ball"]
+radius = 1.0
+height = 2.0
+radial_segments = 48
+rings = 24
+
+[node name="NukeExplosion" type="Node3D"]
+script = ExtResource("1")
+Damage = 400.0
+InnerRadius = 70.0
+Radius = 320.0
+WaveSpeed = 170.0
+BurnReach = 0.55
+Crater = Vector2(34, 5)
+ScorchScene = ExtResource("7")
+ScorchRadius = 60.0
+EmpRadius = 900.0
+EmpTime = 30.0
+Lifetime = 64.0
+FireballRadius = 62.0
+FireballTime = 5.0
+BlindTime = 1.1
+FlashTime = 0.9
+GlowTime = 9.0
+ShakeTime = 3.5
+
+[node name="Cloud" type="GPUParticles3D" parent="."]
+cast_shadow = 0
+amount = 300
+lifetime = 63.0
+one_shot = true
+explosiveness = 1.0
+local_coords = true
+draw_order = 3
+visibility_aabb = AABB(-900, -80, -900, 1800, 1200, 1800)
+process_material = ExtResource("2")
+draw_pass_1 = SubResource("QuadMesh_puff")
+
+[node name="Fireball" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("SphereMesh_ball")
+material_override = ExtResource("4")
+
+[node name="Shock" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("SphereMesh_ball")
+material_override = ExtResource("5")
+
+[node name="Flash" type="OmniLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 40, 0)
+light_color = Color(1, 0.93, 0.8, 1)
+light_energy = 400.0
+omni_range = 2500.0
+omni_attenuation = 0.6
+
+[node name="Glow" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.5, 0.18, 1)
+light_energy = 60.0
+omni_range = 900.0
+omni_attenuation = 0.8
+
+[node name="Blind" type="CanvasLayer" parent="."]
+layer = 50
+
+[node name="White" type="ColorRect" parent="Blind"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 0.98, 0.94, 1)
+
+[node name="Boom" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6")
+volume_db = 6.0

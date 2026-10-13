@@ -19,7 +19,7 @@ public partial class Hud : Control
     public ICockpit Seat => Game.Cockpit;
     public float Time { get; private set; }
 
-    Label _kills, _view, _timer, _unit;
+    Label _view, _timer, _unit;
     // Instruments that a cockpit shows on its own screens; hidden here while it does.
     static readonly string[] PanelInstruments = { "Minimap", "HeatGauge", "ThrottleGauge", "JumpGauge", "WeaponList", "PlayerDoll", "ArmorLabel" };
     readonly System.Collections.Generic.List<Control> _panel = new();
@@ -27,7 +27,6 @@ public partial class Hud : Control
 
     public override void _Ready()
     {
-        _kills = GetNode<Label>("KillsLabel");
         _view = GetNode<Label>("ViewLabel");
         _timer = GetNode<Label>("TimerLabel");
         _unit = GetNode<Label>("ArmorLabel");
@@ -48,14 +47,13 @@ public partial class Hud : Control
     public override void _Process(double delta)
     {
         Time += (float)delta;
-        _kills.Text = $"Уничтожено: {Game.Kills}";
 
         var game = Game.Instance;
         _timer.Visible = game != null && game.TimeLimited;
         if (_timer.Visible)
         {
             int left = Mathf.CeilToInt(game.TimeLeft);
-            _timer.Text = $"{left / 60}:{left % 60:00}";
+            _timer.Text = Loc.T($"{left / 60}:{left % 60:00}");
         }
 
         bool overlay = !CockpitDisplays.Active;
@@ -63,7 +61,7 @@ public partial class Hud : Control
 
         var seat = Seat;
         if (seat == null) return;
-        _unit.Text = seat.UnitName.ToUpper();
-        _view.Text = seat.FirstPerson ? "ОТ ПЕРВОГО ЛИЦА" : "ВНЕШНИЙ ВИД";
+        _unit.Text = Loc.T(seat.UnitName).ToUpper();
+        _view.Text = Loc.T(seat.FirstPerson ? "ОТ ПЕРВОГО ЛИЦА" : "ВНЕШНИЙ ВИД");
     }
 }

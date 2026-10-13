@@ -1,18 +1,22 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://bklnegdx1vv6f"]
 
-[ext_resource type="Script" path="res://scripts/Mech/PlayerPilot.cs" id="1"]
-[ext_resource type="AudioStream" path="res://audio/lock.wav" id="2"]
+[ext_resource type="Script" uid="uid://cn4rqb0yj33of" path="res://scripts/Mech/PlayerPilot.cs" id="1"]
+[ext_resource type="AudioStream" uid="uid://i586k4kdv5oh" path="res://audio/lock.wav" id="2"]
+[ext_resource type="AudioStream" uid="uid://bio08h4gox10m" path="res://audio/alarm.wav" id="ff_alarm"]
 
-[node name="PlayerPilot" type="Node3D"]
+[node name="PlayerPilot" type="Node3D" unique_id=1110326241]
 script = ExtResource("1")
 
-[node name="Camera" type="Camera3D" parent="."]
+[node name="Camera" type="Camera3D" parent="." unique_id=683214397]
 top_level = true
 current = true
-fov = 75
-near = 0.05
-far = 8000
+far = 8000.0
 
-[node name="LockSound" type="AudioStreamPlayer" parent="."]
+[node name="LockSound" type="AudioStreamPlayer" parent="." unique_id=735957067]
 stream = ExtResource("2")
-volume_db = -8
+volume_db = -8.0
+
+[node name="FriendlyFireSound" type="AudioStreamPlayer" parent="." unique_id=1543979674]
+stream = ExtResource("ff_alarm")
+volume_db = -6.0
+pitch_scale = 1.5

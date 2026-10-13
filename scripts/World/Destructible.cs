@@ -42,13 +42,19 @@ public partial class Destructible : StaticBody3D, IDamageable
     static readonly Dictionary<long, List<Destructible>> Grid = new();
     static readonly List<Destructible> Found = new();
 
+    /// <summary>Set while something is flattening props by the hundred, so that they go without their effects.</summary>
+    public static bool Quiet;
+
     Rect2 _area;
     bool _destroyed;
+    /// <summary>Every destructible thing on the map, in the order they were made (the same on every computer of a network game).</summary>
+    public static readonly List<Destructible> Everyone = new();
 
     static long Key(int cx, int cz) => ((long)cx << 32) ^ (uint)cz;
 
     public override void _Ready()
     {
+        Everyone.Add(this);
         // Props stand at right angles (or are round enough), so an axis-aligned rectangle will do.
         Vector3 p = GlobalPosition;
         bool turned = Mathf.Abs(GlobalTransform.Basis.X.Z) > 0.7f;
@@ -59,6 +65,7 @@ public partial class Destructible : StaticBody3D, IDamageable
 
     public override void _ExitTree()
     {
+        Everyone.Remove(this);
         if (Trample) ForEachCell(_area, list => list.Remove(this));
     }
 
@@ -103,6 +110,7 @@ public partial class Destructible : StaticBody3D, IDamageable
     void Destroy(Vector3 direction)
     {
         if (_destroyed) return;
+        NetLink.I?.World(1, Everyone.IndexOf(this), 0, direction, 0f);
         _destroyed = true;
         CollisionLayer = 0;
         foreach (Node child in GetChildren())
@@ -110,7 +118,7 @@ public partial class Destructible : StaticBody3D, IDamageable
 
         // Burnt down by a beam: what's left of it goes on burning.
         Burning.Ignite(GetParent(), GlobalPosition + Vector3.Up * 0.3f, Mathf.Clamp(Mathf.Max(Footprint.X, Footprint.Y) * 0.6f, 0.7f, 1.6f));
-        if (DestroyFx != null)
+        if (DestroyFx != null && !Quiet)
         {
             var fx = DestroyFx.Instantiate<Node3D>();
             GetParent().AddChild(fx);

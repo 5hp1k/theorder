@@ -8,6 +8,9 @@ namespace MechSim;
 /// </summary>
 public partial class Reticle : HudWidget
 {
+    /// <summary>Colour of the sight over a machine of one's own side.</summary>
+    [Export] public Color FriendColor = new(0.35f, 0.65f, 1f, 0.95f);
+
     protected override void Paint()
     {
         Vector2 sz = Size;
@@ -32,9 +35,18 @@ public partial class Reticle : HudWidget
             Text(Seat.Prompt, new Vector2(0f, c.Y + 110f), 18, Amber, HorizontalAlignment.Center, sz.X);
         if (!aimVisible || Seat.IsDestroyed) return;
 
-        ITarget aimed = Units.FromCollider(Seat.AimCollider);
-        bool onTarget = aimed is { IsDestroyed: false } && aimed.Team == Team.Enemy;
-        Color col = onTarget ? Red : Green;
+        // Electronics dead (a pulse): a bare sight — it no longer tells friend from foe, nor the range.
+        ITarget aimed = Jam > 0f ? null : Units.FromCollider(Seat.AimCollider);
+        bool onTarget = aimed is { IsDestroyed: false } && Game.PlayerUnit != null && Units.Hostile(Game.PlayerUnit, aimed);
+        // One of our own under the sight: blue, and struck through.
+        bool friend = aimed is { IsDestroyed: false } && aimed != Game.PlayerUnit && !onTarget;
+        Color col = onTarget ? Red : friend ? FriendColor : Green;
+        if (friend)
+        {
+            DrawLine(aim + new Vector2(-24, -24), aim + new Vector2(24, 24), col, 2.5f);
+            DrawLine(aim + new Vector2(-24, 24), aim + new Vector2(24, -24), col, 2.5f);
+            Text($"{aimed.DisplayName}   СВОЙ   {Mathf.RoundToInt(aimed.Integrity * 100f)}%", aim + new Vector2(-200f, 70f), 15, col, HorizontalAlignment.Center, 400f);
+        }
         DrawArc(aim, 18f, 0f, Mathf.Tau, 32, col, 1.5f, true);
         DrawLine(aim + new Vector2(-30, 0), aim + new Vector2(-20, 0), col, 2f);
         DrawLine(aim + new Vector2(20, 0), aim + new Vector2(30, 0), col, 2f);
@@ -58,7 +70,7 @@ public partial class Reticle : HudWidget
     /// <summary>Brackets around the locked target, or an arrow pointing towards it when it's off-screen.</summary>
     void DrawTargetMarker(Camera3D cam, Vector2 sz)
     {
-        var t = Seat.CanLock ? Seat.Target : null;
+        var t = Seat.CanLock && Jam <= 0f ? Seat.Target : null;
         if (t == null || cam == null) return;
         Vector3 center = t.AimCenter;
         Vector2 c = sz / 2f;

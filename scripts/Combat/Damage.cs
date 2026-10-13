@@ -65,6 +65,8 @@ public sealed class DamageModel
     }
 
     public bool IsDestroyed(Section s) => _structure[(int)s] <= 0f;
+    /// <summary>Armour and structure the section has lost so far.</summary>
+    public float Lost(Section s) => _maxArmor[(int)s] + _maxStructure[(int)s] - _armor[(int)s] - _structure[(int)s];
     public float ArmorFraction(Section s) => _armor[(int)s] / _maxArmor[(int)s];
     public float StructureFraction(Section s) => _structure[(int)s] / _maxStructure[(int)s];
     /// <summary>Armour + structure left in the section, 0..1.</summary>

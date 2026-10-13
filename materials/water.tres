@@ -29,6 +29,7 @@ bump_strength = 6
 noise = SubResource("FastNoiseLite_3")
 
 [resource]
+render_priority = -20
 shader = ExtResource("1")
 shader_parameter/normal_a = SubResource("NoiseTexture2D_2")
 shader_parameter/normal_b = SubResource("NoiseTexture2D_4")

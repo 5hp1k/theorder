@@ -17,6 +17,8 @@ public partial class Game : Node3D
     public static ITarget PlayerUnit;
     /// <summary>The seat the HUD shows.</summary>
     public static ICockpit Cockpit;
+    /// <summary>The player is typing a chat message: the keys are not commands.</summary>
+    public static bool Typing;
 
     [Export] public PackedScene PlayerPilotScene;
     [Export] public PackedScene AiPilotScene;
@@ -26,11 +28,13 @@ public partial class Game : Node3D
     [Export] public int EnemyScheme = 1;
     [Export] public float PlayerRespawnTime = 7f;
     [Export] public float EnemyRespawnTime = 14f;
+    /// <summary>Distance between neighbours in the player's squad formation, metres.</summary>
+    [Export] public float SquadSpacing = 16f;
     [Export] public PackedScene SoldierScene;
     [Export] public PackedScene SuitScene;
     [Export(PropertyHint.File, "*.tscn")] public string MenuScene = "res://scenes/ui/main_menu.tscn";
 
-    public bool Paused => GetTree().Paused;
+    public bool Paused => _pauseMenu != null && _pauseMenu.Visible;
     /// <summary>True once every enemy is down in a battle without respawns.</summary>
     public bool Victory { get; private set; }
     public bool TimeLimited { get; private set; }
@@ -61,6 +65,8 @@ public partial class Game : Node3D
         Cockpit = null;
         Units.All.Clear();
         Impacts.Reset();
+        Net.Reset();
+        Score.Reset();
         _pauseMenu = GetNode<Control>("Menu/PauseMenu");
         _pauseMenu.Visible = false;
         TimeLimited = GameConfig.TimeLimitMinutes > 0;
@@ -91,8 +97,20 @@ public partial class Game : Node3D
             (_spawns[i], _spawns[j]) = (_spawns[j], _spawns[i]);
         }
 
-        SpawnPlayer();
-        SpawnEnemies();
+        if (Net.Online && !Net.IsHost)
+        {
+            // A client of a network game: the host says what is on the field.
+            TimeLeft = Net.ClientTimeLeft;
+            NetLink.I.ClientSceneReady();
+        }
+        else
+        {
+            SpawnPlayer();
+            // One's own lance only when playing alone or together against the computer.
+            if (!Net.Online || Net.Mode == Net.GameMode.Pve) SpawnSquad();
+            SpawnEnemies();
+            if (Net.Online) NetLink.I.HostSceneReady(this);
+        }
         Input.MouseMode = Input.MouseModeEnum.Captured;
     }
 
@@ -140,8 +158,125 @@ public partial class Game : Node3D
         GameConfig.Loadouts.TryGetValue(entry.Id, out string[] loadout);
         Hardpoint.Apply(node, loadout);
         node.AddChild(PlayerPilotScene.Instantiate());
+        if (node is Mech named && Net.Online) named.DisplayName = NetLink.I.HostName;
         node.Transform = spawn;
         _units.AddChild(node);
+        if (node is Mech own) own.Respawns = !Net.Online || Net.Respawns;
+        else if (node is Vehicle ownVehicle) ownVehicle.Respawns = !Net.Online || Net.Respawns;
+        NetLink.I.Track(node, 1, loadout, GameConfig.PlayerPaint().Pack(), GameConfig.InsigniaBytes());
+    }
+
+    // ── Network game ────────────────────────────────────────────
+
+    /// <summary>The pilot of the given kind sitting in a machine, if that is who drives it.</summary>
+    public static T PilotOf<T>(Node unit) where T : MechPilot
+    {
+        foreach (Node child in unit.GetChildren())
+            if (child is T pilot) return pilot;
+        return null;
+    }
+
+    int _joined;
+
+    /// <summary>Host: puts a machine on the field for a player who has joined; it is driven from that player's computer.</summary>
+    public Node3D SpawnForPeer(string unitId, string name, string[] loadout, int peer, float[] paint, byte[] emblem)
+    {
+        var entry = Catalog.Find(Catalog.PlayerUnits, unitId);
+        var node = GD.Load<PackedScene>(entry.Path).Instantiate<Node3D>();
+        _joined++;
+        // Teams: all together against the computer; two sides, filled in turn; or (free-for-all) it doesn't matter.
+        Team team = Net.Mode == Net.GameMode.Tdm && _joined % 2 == 1 ? Team.Enemy : Team.Player;
+        Outfit(node, team, name, loadout, paint, emblem);
+        node.AddChild(new RemotePilot());
+        Vector3 at = Net.Mode == Net.GameMode.Pve
+            ? _map.GetNode<Node3D>("PlayerSpawn").Position + new Vector3(18f * _joined, 0f, 14f)
+            : NextSpawn();
+        if (entry.Kind == Catalog.Kind.Water) at = MapTerrain.Instance?.RandomSeaSpot(24f) ?? WaterSpotNear(at) ?? at;
+        node.Transform = new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(at.X, at.Z)), at);
+        _units.AddChild(node);
+        NetLink.I.Track(node, peer, loadout, paint, emblem);
+        return node;
+    }
+
+    /// <summary>Client: shows a machine the host has told about; one's own gets the player's seat.</summary>
+    public Node3D SpawnRemote(string unitId, Team team, string name, string[] loadout, Transform3D at, bool mine, float[] paint, byte[] emblem)
+    {
+        var entry = Catalog.Find(Catalog.PlayerUnits, unitId);
+        var node = GD.Load<PackedScene>(entry.Path).Instantiate<Node3D>();
+        Outfit(node, team, name, loadout, paint, emblem);
+        node.AddChild(mine ? PlayerPilotScene.Instantiate() : new RemotePilot());
+        node.Transform = at;
+        _units.AddChild(node);
+        return node;
+    }
+
+    /// <summary>Side, name, weapons and colours of a network player's machine. It comes back only when the host says so.</summary>
+    void Outfit(Node3D node, Team team, string name, string[] loadout, float[] colours, byte[] emblem)
+    {
+        Texture2D badge = GameConfig.InsigniaFrom(emblem);
+        // Each player's machine in that player's own colours; the computer's in its side's.
+        var paint = PaintJob.Unpack(colours) ?? (team == Team.Player ? GameConfig.PlayerPaint() : new PaintJob { Camo = EnemyCamo, Second = EnemyStripe, Scheme = EnemyScheme });
+        if (node is Mech mech)
+        {
+            mech.Team = team;
+            mech.DisplayName = name;
+            mech.Respawns = Net.IsHost && Net.Respawns;
+            mech.RespawnTime = PlayerRespawnTime;
+            mech.ApplyPaint(paint);
+            mech.ApplyInsignia(badge);
+        }
+        else if (node is Vehicle vehicle)
+        {
+            vehicle.Team = team;
+            vehicle.DisplayName = name;
+            vehicle.Respawns = Net.IsHost && Net.Respawns;
+            vehicle.RespawnTime = PlayerRespawnTime;
+            vehicle.ApplyPaint(paint);
+            vehicle.ApplyInsignia(badge);
+        }
+        Hardpoint.Apply(node, loadout);
+    }
+
+    /// <summary>The player's squad, in the order of their numbers (key 1 is the first).</summary>
+    public readonly List<AiPilot> Squad = new();
+
+    /// <summary>
+    /// The player's own lance: mechs on the player's side, each with a computer pilot that keeps
+    /// formation on the player and takes orders (see <see cref="SquadCommand"/>).
+    /// </summary>
+    void SpawnSquad()
+    {
+        Squad.Clear();
+        if (PlayerUnit is not IDrivable leader) return;
+        Transform3D spawn = _map.GetNode<Node3D>("PlayerSpawn").Transform;
+        PaintJob paint = GameConfig.PlayerPaint();
+        for (int i = 0; i < GameConfig.SquadSize; i++)
+        {
+            var entry = GameConfig.SquadMechId switch
+            {
+                "random" => Catalog.Mechs[GD.Randi() % (uint)Catalog.Mechs.Length],
+                "same" => Catalog.Find(Catalog.Mechs, GameConfig.MechId),
+                _ => Catalog.Find(Catalog.Mechs, GameConfig.SquadMechId),
+            };
+            var mech = GD.Load<PackedScene>(entry.Path).Instantiate<Mech>();
+            mech.Team = Team.Player;
+            mech.DisplayName = $"Звено-{i + 1} ({entry.Name})";
+            mech.Respawns = true;
+            mech.RespawnTime = EnemyRespawnTime;
+            mech.ApplyPaint(paint);
+            mech.ApplyInsignia(GameConfig.Insignia);
+            // A wedge behind the leader: odd numbers to the left, even to the right, each pair further back.
+            int row = i / 2 + 1;
+            var slot = new Vector3((i % 2 == 0 ? -1f : 1f) * SquadSpacing * row, 0f, SquadSpacing * 0.8f * row);
+            var pilot = AiPilotScene.Instantiate<AiPilot>();
+            pilot.Leader = leader;
+            pilot.FormationSlot = slot;
+            mech.AddChild(pilot);
+            mech.Transform = new Transform3D(spawn.Basis, spawn.Origin + spawn.Basis * slot);
+            _units.AddChild(mech);
+            NetLink.I.Track(mech, 0, null, null);
+            Squad.Add(pilot);
+        }
     }
 
     void SpawnEnemies()
@@ -210,6 +345,7 @@ public partial class Game : Node3D
         // Facing the middle of the map.
         unit.Transform = new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(position.X, position.Z)), position);
         _units.AddChild(unit);
+        NetLink.I.Track(unit, 0, null, null);
     }
 
     static Vector3? WaterSpotNear(Vector3 origin)
@@ -235,6 +371,17 @@ public partial class Game : Node3D
 
     public override void _Process(double delta)
     {
+        if (Net.Online && !Net.IsHost)
+        {
+            // The host keeps the clock.
+            TimeLeft = Net.ClientTimeLeft;
+            if (Net.ClientTimeUp && !TimeUp)
+            {
+                TimeUp = true;
+                SetPaused(true);
+            }
+            return;
+        }
         if (Paused) return;
         if (TimeLimited && !TimeUp)
         {
@@ -283,7 +430,13 @@ public partial class Game : Node3D
 
     public void SetPaused(bool paused)
     {
-        GetTree().Paused = paused;
+        // In a network game only the host stops the battle, and stops it for everyone; a client's menu
+        // opens over a battle that goes on.
+        if (!Net.Online || Net.IsHost)
+        {
+            GetTree().Paused = paused;
+            NetLink.I?.HostPaused(paused);
+        }
         _pauseMenu.Visible = paused;
         Input.MouseMode = paused ? Input.MouseModeEnum.Visible : Input.MouseModeEnum.Captured;
         // The click on "resume" shouldn't also fire the guns.
@@ -292,6 +445,7 @@ public partial class Game : Node3D
 
     public void QuitToMenu()
     {
+        NetLink.I?.Stop();
         GetTree().Paused = false;
         Input.MouseMode = Input.MouseModeEnum.Visible;
         GetTree().ChangeSceneToFile(MenuScene);

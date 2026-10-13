@@ -1,0 +1,25 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/fx/nuke_cloud.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/rise_height = 260.0
+shader_parameter/rise_time = 9.0
+shader_parameter/cap_radius = 110.0
+shader_parameter/cap_flatten = 0.78
+shader_parameter/stem_radius = 20.0
+shader_parameter/surge_radius = 240.0
+shader_parameter/roll_speed = 1.3
+shader_parameter/puffs = 300.0
+shader_parameter/cap_share = 0.55
+shader_parameter/stem_share = 0.24
+shader_parameter/surge_share = 0.17
+shader_parameter/puff_size = 1.2
+shader_parameter/dust_color = Color(0.3, 0.24, 0.19, 1)
+shader_parameter/cloud_color = Color(0.74, 0.71, 0.68, 1)
+shader_parameter/ground_color = Color(0.5, 0.42, 0.33, 1)
+shader_parameter/glow_time = 7.0
+shader_parameter/life = 62.0
+shader_parameter/fade_time = 22.0
+shader_parameter/wind = Vector3(2.2, 0, 0.9)

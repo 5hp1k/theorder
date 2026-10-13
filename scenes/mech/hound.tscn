@@ -229,7 +229,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.08, -0.16, 0)
 [node name="Torso" type="Node3D" parent="Hips"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.56, 0)
 
-[node name="CenterTorso" type="StaticBody3D" parent="Hips/Torso"]
+[node name="CenterTorso" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")
@@ -251,7 +252,8 @@ shape = SubResource("BoxShape3D_6")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.04, -1.84)
 shape = SubResource("BoxShape3D_7")
 
-[node name="Head" type="StaticBody3D" parent="Hips/Torso"]
+[node name="Head" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")
@@ -269,7 +271,8 @@ material_override = ExtResource("4")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.48, -2.12)
 shape = SubResource("BoxShape3D_9")
 
-[node name="LeftTorso" type="StaticBody3D" parent="Hips/Torso"]
+[node name="LeftTorso" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")
@@ -287,7 +290,8 @@ material_override = ExtResource("2")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1, 0.88, 0.08)
 shape = SubResource("BoxShape3D_11")
 
-[node name="RightTorso" type="StaticBody3D" parent="Hips/Torso"]
+[node name="RightTorso" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")
@@ -312,7 +316,8 @@ material_override = ExtResource("2")
 [node name="ArmL" type="Node3D" parent="Hips/Torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.88, 0.8, -0.24)
 
-[node name="Hit" type="StaticBody3D" parent="Hips/Torso/ArmL"]
+[node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmL"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")
@@ -350,7 +355,8 @@ material_override = ExtResource("6")
 [node name="ArmR" type="Node3D" parent="Hips/Torso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.88, 0.8, -0.24)
 
-[node name="Hit" type="StaticBody3D" parent="Hips/Torso/ArmR"]
+[node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmR"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")
@@ -439,7 +445,8 @@ MetaSwingAngle = 0.55
 [node name="Thigh" type="Node3D" parent="LegL"]
 transform = Transform3D(0.99916, -0.04088, 0, -0.02938, -0.71821, 0.69521, -0.02842, -0.69463, -0.71881, -1.13077, 4.09999, -0.86273)
 
-[node name="Hit" type="StaticBody3D" parent="LegL/Thigh"]
+[node name="Hit" type="AnimatableBody3D" parent="LegL/Thigh"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")
@@ -467,7 +474,8 @@ material_override = ExtResource("6")
 [node name="Shin" type="Node3D" parent="LegL"]
 transform = Transform3D(0.99932, -0.0369, 0, -0.02395, -0.64841, -0.76092, 0.02808, 0.7604, -0.64885, -1.23077, 2.343, -0.71109)
 
-[node name="Hit" type="StaticBody3D" parent="LegL/Shin"]
+[node name="Hit" type="AnimatableBody3D" parent="LegL/Shin"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")
@@ -540,7 +548,8 @@ MetaSwingAngle = 0.55
 [node name="Thigh" type="Node3D" parent="LegR"]
 transform = Transform3D(0.99916, 0.04088, 0, 0.02938, -0.71821, 0.69521, 0.02842, -0.69463, -0.71881, 1.13077, 4.09999, -0.86273)
 
-[node name="Hit" type="StaticBody3D" parent="LegR/Thigh"]
+[node name="Hit" type="AnimatableBody3D" parent="LegR/Thigh"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")
@@ -568,7 +577,8 @@ material_override = ExtResource("6")
 [node name="Shin" type="Node3D" parent="LegR"]
 transform = Transform3D(0.99932, 0.0369, 0, 0.02395, -0.64841, -0.76092, -0.02808, 0.7604, -0.64885, 1.23077, 2.343, -0.71109)
 
-[node name="Hit" type="StaticBody3D" parent="LegR/Shin"]
+[node name="Hit" type="AnimatableBody3D" parent="LegR/Shin"]
+sync_to_physics = false
 collision_layer = 16
 collision_mask = 0
 script = ExtResource("5")

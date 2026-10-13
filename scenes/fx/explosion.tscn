@@ -104,7 +104,7 @@ Lifetime = 6
 FlashTime = 0.45
 
 [node name="Fireball" type="GPUParticles3D" parent="."]
-amount = 40
+amount = 60
 lifetime = 1.2
 cast_shadow = 0
 process_material = SubResource("ParticleProcessMaterial_5")
@@ -114,7 +114,7 @@ explosiveness = 0.95
 emitting = true
 
 [node name="Sparks" type="GPUParticles3D" parent="."]
-amount = 80
+amount = 120
 lifetime = 1.7
 cast_shadow = 0
 process_material = SubResource("ParticleProcessMaterial_9")
@@ -124,7 +124,7 @@ explosiveness = 0.95
 emitting = true
 
 [node name="Smoke" type="GPUParticles3D" parent="."]
-amount = 26
+amount = 39
 lifetime = 4.5
 cast_shadow = 0
 process_material = SubResource("ParticleProcessMaterial_15")

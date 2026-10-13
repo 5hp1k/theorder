@@ -1,5 +1,5 @@
 """The four mechs.
-    blender -b --python tools/blender/mechs.py -- <output dir> <ostrich|hound|ballista|cleaver> [preview]
+    blender -b --python tools/blender/mechs.py -- <output dir> <ostrich|hound|ballista|cleaver|panther|hades|gladiator> [preview]
 Writes <name>.glb (one mesh per part, each in the axes of the scene node it hangs on) and <name>.json
 (which node each mesh belongs to); with "preview", also studio renders of the assembled machine.
 """
@@ -199,6 +199,62 @@ def hound():
     return m
 
 
+def shoulder_racks(model, k, lift=0.0, back=0.0):
+    """Box missile launchers carried high on the shoulders, over the side torsos (axes of Hips/Torso)."""
+    T = "Hips/Torso"
+    r = Part("LeftTorso_Rack")
+    # the box, a little nose-down, on a pedestal
+    r.stations("z", [(1.25, 1.25, 1.0, -1.3, 2.75, 0.08), (-1.55, 1.25, 1.0, -1.3, 2.6, 0.08)], seams=PANELS)
+    r.plate(None, (-1.3, 3.2, -0.2), (0, 1, 0.05), (0.8, 1.6), 0.06, along=(0, 0, 1))
+    r.plate(None, (-1.94, 2.68, -0.2), (-1, 0, 0), (0.6, 1.8), 0.06, along=(0, 0, 1))
+    r.bolts([(-1.6, 3.24, -0.9), (-1.0, 3.24, -0.9), (-1.6, 3.27, 0.6), (-1.0, 3.27, 0.6)], (0, 1, 0), r=0.04)
+    model.both(r.move((0, lift, back)).scale(k), T + "/LeftTorso", "Rack", CAMO)
+    f = Part("LeftTorso_RackFace")
+    f.box((-1.3, 2.6, -1.58), (1.1, 0.86, 0.08), FRAME, 0.02)
+    for i in range(4):
+        for j in range(3):
+            x, y = -1.3 + (i - 1.5) * 0.26, 2.6 + (j - 1) * 0.27
+            f.cyl((x, y, -1.61), (x, y, -1.64), 0.1, segs=10, kind=RECESS, bevel=0)
+            f.cyl((x, y, -1.6), (x, y, -1.65), 0.12, 0.11, segs=10, kind=SOFT, bevel=0, caps=False)
+    f.box((-1.3, 2.1, 0.1), (0.7, 0.34, 1.2), FRAME, 0.03)          # pedestal
+    f.slats((-1.3, 2.68, 1.26), (0, 0, 1), (1, 0, 0), (0.9, 0.7), 5, 0.06)
+    model.both(f.move((0, lift, back)).scale(k), T + "/LeftTorso", "RackFace", JOINT)
+
+
+def panther():
+    """A heavy in the manner of the Mad Cat: bird legs, a low cab thrust forward, each arm a long
+    weapon pod carried at the elbow, a missile box on each shoulder. Built on the Ostrich's frame."""
+    m = Model("panther", "scenes/mech/panther.tscn")
+    bird_torso(m, 1.0, heavy=True, guns=[(-0.6, 0.85, -2.75, 0.95, 0.13), (0.6, 0.85, -2.75, 0.95, 0.13)])
+    T = "Hips/Torso"
+    lf = Part("LeftTorso_Frame")
+    # shoulder joint and the upper arm hanging from it, down to the elbow the pod pivots on
+    lf.cyl((-1.7, 1.0, -0.3), (-2.1, 1.0, -0.3), 0.55, segs=16, kind=FRAME)
+    lf.cyl((-1.82, 1.0, -0.3), (-1.92, 1.0, -0.3), 0.66, segs=16, kind=SOFT)
+    m.both(lf, T + "/LeftTorso", "Frame", JOINT)
+    arm = Part("ArmL_Armor")
+    # the pod: a long slab-sided box, deeper than it is wide, with a chin under the muzzles
+    arm.stations("z", [(1.0, 0.95, 1.5, 0, -0.1, 0.1), (-2.3, 0.95, 1.5, 0, -0.1, 0.1), (-2.7, 0.85, 1.3, 0, -0.1, 0.1)], seams=PANELS, cuts=[((0, 0, -0.7), (0, 0, 1))])
+    arm.plate(None, (-0.48, -0.1, -0.7), (-1, 0, 0), (1.1, 2.2), 0.08, along=(0, 0, 1))
+    arm.plate(None, (0, 0.66, -0.6), (0, 1, 0), (0.6, 1.8), 0.06, along=(0, 0, 1))
+    arm.bolts([(-0.54, 0.4, -1.6), (-0.54, -0.6, -1.6), (-0.54, 0.4, 0.2), (-0.54, -0.6, 0.2)], (-1, 0, 0), r=0.045)
+    arm.slats((0, -0.1, 1.01), (0, 0, 1), (1, 0, 0), (0.7, 1.0), 5, 0.06)
+    m.both(arm, T + "/ArmL/Hit", "Armor", CAMO)
+    af = Part("ArmL_Frame")
+    af.cyl((0.3, 0, 0), (0.7, 0, 0), 0.46, segs=16, kind=FRAME)   # elbow trunnion
+    af.box((0, -0.1, -2.72), (0.8, 1.26, 0.1), FRAME)             # muzzle plate
+    barrel(af, (0, 0.3, -2.6), 1.5, 0.19, "laser")                # the big laser over…
+    barrel(af, (0, -0.42, -2.6), 1.15, 0.14, "laser")             # …the smaller one
+    m.both(af, T + "/ArmL/Hit", "Frame", JOINT)
+    m.moves[T + "/ArmL/Insignia"] = (-0.535, 0.0, -0.4)
+    m.moves[T + "/ArmR/Insignia"] = (0.535, 0.0, -0.4)
+    shoulder_racks(m, 1.0)
+    hips(m, 1.0)
+    cockpit(m)
+    legs(m, (2.7, 1.05, 1.25), (2.9, 0.82, 0.92), (1.6, 0.6, 0.65), (1.4, 0.38, 2.4), (0.76, 0.66, 0.55))
+    return m
+
+
 def ballista():
     k = 1.12
     m = Model("ballista", "scenes/mech/ballista.tscn")
@@ -210,9 +266,16 @@ def ballista():
     return m
 
 
-def cleaver():
-    """A man-shaped brawler: upright torso, a head, arms with elbows; an axe in the right hand."""
-    m = Model("cleaver", "scenes/mech/cleaver.tscn")
+def cleaver(kind="cleaver"):
+    """The man-shaped frame: upright torso, a head, arms with elbows and fists. Four machines stand on it:
+    cleaver   — the brawler with an axe in the right hand and a gun in the left forearm;
+    hades     — a gun platform in the manner of the Thanatos: a weapon pod for a right forearm, a fist
+                and a gun on the left, missile boxes on broad shoulders;
+    panther   — in the manner of the Mad Cat, but with arms and hands: a laser in each forearm, missile
+                boxes on the shoulders;
+    gladiator — a fast brawler: two bare fists, a shield on the left forearm, a mace in the right hand."""
+    heavy = kind == "hades"
+    m = Model(kind, f"scenes/mech/{kind}.tscn")
     T = "Hips/Torso"
     p = Part("CenterTorso_Armor")
     # abdomen and chest
@@ -222,6 +285,13 @@ def cleaver():
     p.plate(None, (-0.4, 1.8, -1.8), (0, 0.1, -1), (0.5, 0.5), 0.05)
     # collar round the neck
     p.stations("y", [(2.7, 1.0, 1.1, 0, -0.1, 0.2), (2.95, 0.8, 0.9, 0, -0.1, 0.15)])
+    if kind == "gladiator":
+        # a muscled breastplate: two raised slabs and a boss between them, a studded belt
+        for s in (-1, 1):
+            p.plate(None, (s * 0.48, 2.05, -1.42), (s * 0.15, 0.1, -1), (0.8, 0.75), 0.12, along=(0, 1, 0))
+        p.cyl((0, 1.55, -1.3), (0, 1.5, -1.52), 0.3, 0.18, segs=10, kind=FRAME)
+        p.stations("y", [(0.25, 1.75, 1.55, 0, 0, 0.12), (0.55, 1.75, 1.55, 0, 0, 0.12)], kind=FRAME, seams=SMALL_PANELS)
+        p.bolts([(x, 0.4, -0.79) for x in (-0.6, -0.2, 0.2, 0.6)], (0, 0, -1), r=0.07, h=0.06)
     m.add(p, T + "/CenterTorso", "Armor", CAMO)
 
     f = Part("CenterTorso_Frame")
@@ -246,6 +316,12 @@ def cleaver():
     for s in (-1, 1):
         h.cyl((s * 0.48, 3.15, -0.2), (s * 0.56, 3.15, -0.2), 0.2, segs=10, kind=SOFT)
     h.cyl((0.3, 3.55, 0.1), (0.3, 3.95, 0.14), 0.02, 0.008, segs=6, kind=FRAME, bevel=0)
+    if kind == "gladiator":
+        # a tall crest fore and aft over the helmet, cheek guards, and a grille for a face
+        h.loft([[(x, y, z) for z, y in [(-0.7, 3.5), (-0.5, 4.25), (0.1, 4.45), (0.6, 4.1), (0.5, 3.5)]] for x in (-0.07, 0.07)], bevel=0.012)
+        for s in (-1, 1):
+            h.box((s * 0.5, 2.98, -0.45), (0.1, 0.5, 0.55), PAINT, 0.02)
+        h.slats((0, 3.0, -0.84), (0, 0, -1), (1, 0, 0), (0.6, 0.3), 5, 0.05)
     m.add(h, T + "/Head", "Skull", CAMO)
     v = Part("Head_Visor")
     v.stations("z", [(-0.8, 0.6, 0.16, 0, 3.24, 0.04), (-0.7, 0.86, 0.24, 0, 3.24, 0.06), (-0.5, 0.92, 0.24, 0, 3.24, 0.06)], bevel=0.008)
@@ -256,6 +332,12 @@ def cleaver():
     left.slats((-1.2, 2.0, -1.06), (0, 0.1, -1), (1, 0, 0), (0.5, 0.6), 4, 0.06)
     # pauldron
     left.stations("x", [(-2.0, 1.1, 0.3, 0, 2.62, 0.08), (-1.5, 1.6, 0.62, 0, 2.66, 0.18), (-1.0, 1.5, 0.5, 0, 2.7, 0.14)], seams=SMALL_PANELS)
+    if kind == "gladiator":
+        # layered round shoulder guards, and tassets hanging over the hips
+        for i, (r, y) in enumerate(((1.15, 2.75), (0.95, 3.05), (0.7, 3.3))):
+            left.cyl((-1.55, y, 0.0), (-1.55, y + 0.26, 0.0), r, r * 0.8, segs=12, kind=PAINT, bevel=0.02)
+        left.box((-0.95, 0.0, -0.95), (0.8, 1.1, 0.12), PAINT, 0.03, SMALL_PANELS, Matrix.Rotation(math.radians(-14), 3, "X"))
+        left.box((-1.5, 0.05, 0.0), (0.12, 1.0, 1.3), PAINT, 0.03, SMALL_PANELS)
     m.both(left, T + "/LeftTorso", "Hull", CAMO)
     m.removes += [T + "/LeftTorso/Shoulder", T + "/RightTorso/Shoulder"]
 
@@ -270,6 +352,16 @@ def cleaver():
     u.stations("y", [(0.8, 0.8, 0.86, 0, 0, 0.16), (0.1, 0.76, 0.8, 0, 0, 0.14), (-0.75, 0.6, 0.62, 0, 0, 0.1)], seams=SMALL_PANELS)
     u.cyl((0.2, 0.62, 0), (0.75, 0.62, 0), 0.36, segs=14, kind=SOFT)
     m.both(u, T, "UpperArmL", CAMO, own_place=True)
+
+    def pod(name):
+        """A forearm that is a weapon pod: a long box with a heavy barrel and a lighter one under it."""
+        fa = Part(name)
+        fa.cyl((-0.5, 0, 0), (0.5, 0, 0), 0.5, segs=16, kind=FRAME)  # elbow
+        fa.stations("z", [(-0.4, 0.9, 1.0, 0, -0.05, 0.1), (-2.5, 0.9, 1.0, 0, -0.05, 0.1), (-2.75, 0.8, 0.9, 0, -0.05, 0.1)], kind=FRAME, seams=SMALL_PANELS)
+        barrel(fa, (0, 0.18, -2.7), 1.25, 0.2, "laser")
+        barrel(fa, (0, -0.3, -2.7), 0.8, 0.15, "cannon")
+        fa.slats((0.46, -0.05, -1.4), (1, 0, 0), (0, 0, 1), (0.6, 0.9), 5, 0.05)
+        return fa
 
     def forearm(name, gun):
         fa = Part(name)
@@ -289,8 +381,25 @@ def cleaver():
     arm.stations("z", [(-0.35, 0.6, 0.6, 0, 0, 0.1), (-0.8, 0.8, 0.82, 0, 0, 0.16), (-2.0, 0.76, 0.76, 0, 0, 0.14), (-2.32, 0.6, 0.6, 0, 0, 0.1)], seams=SMALL_PANELS)
     arm.plate(None, (0, 0.4, -1.4), (0, 1, 0), (0.46, 1.0), 0.06, along=(0, 0, 1))
     m.both(arm, T + "/ArmL/Hit", "Forearm", CAMO)
-    m.add(forearm("ArmL_Frame", True), T + "/ArmL/Hit", "Hand", JOINT)
-    m.add(forearm("ArmR_Frame_", False).mirrored("ArmR_Frame"), T + "/ArmR/Hit", "Hand", JOINT)
+    if heavy:
+        # the left arm keeps its hand, to hit with
+        m.add(forearm("ArmL_Frame", True), T + "/ArmL/Hit", "Hand", JOINT)
+        m.add(pod("ArmR_Frame_").mirrored("ArmR_Frame"), T + "/ArmR/Hit", "Hand", JOINT)
+        shoulder_racks(m, 0.85, lift=1.0, back=0.9)
+    elif kind == "panther":
+        m.add(forearm("ArmL_Frame", True), T + "/ArmL/Hit", "Hand", JOINT)
+        m.add(forearm("ArmR_Frame_", True).mirrored("ArmR_Frame"), T + "/ArmR/Hit", "Hand", JOINT)
+        shoulder_racks(m, 0.95, lift=0.75, back=0.7)
+    elif kind == "gladiator":
+        left = forearm("ArmL_Frame", False)
+        # a slab of shield bolted along the outside of the forearm
+        left.box((-0.62, 0.1, -1.5), (0.14, 1.5, 2.3), FRAME, 0.03, SMALL_PANELS)
+        left.bolts([(-0.7, 0.6, -0.7), (-0.7, -0.4, -0.7), (-0.7, 0.6, -2.3), (-0.7, -0.4, -2.3)], (-1, 0, 0), r=0.05)
+        m.add(left, T + "/ArmL/Hit", "Hand", JOINT)
+        m.add(forearm("ArmR_Frame_", False).mirrored("ArmR_Frame"), T + "/ArmR/Hit", "Hand", JOINT)
+    else:
+        m.add(forearm("ArmL_Frame", True), T + "/ArmL/Hit", "Hand", JOINT)
+        m.add(forearm("ArmR_Frame_", False).mirrored("ArmR_Frame"), T + "/ArmR/Hit", "Hand", JOINT)
     for side in "LR":
         m.removes += [f"{T}/Arm{side}/Hit/Elbow", f"{T}/Arm{side}/Hit/Barrel"]
     m.moves[T + "/ArmL/Insignia"] = (-0.41, 0.0, -1.4)
@@ -302,4 +411,4 @@ def cleaver():
     return m
 
 
-{"ostrich": ostrich, "hound": hound, "ballista": ballista, "cleaver": cleaver}[ARGS[1]]().finish([ARGS[0]] + ARGS[2:])
+{"ostrich": ostrich, "hound": hound, "ballista": ballista, "cleaver": cleaver, "panther": panther, "hades": lambda: cleaver("hades"), "gladiator": lambda: cleaver("gladiator")}[ARGS[1]]().finish([ARGS[0]] + ARGS[2:])

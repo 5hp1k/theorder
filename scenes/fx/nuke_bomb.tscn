@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Bomb.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/nuke_explosion.tscn" id="2"]
+[ext_resource type="Material" path="res://materials/sign_white.tres" id="3"]
+[ext_resource type="ArrayMesh" path="res://models/small/bomb/Body.res" id="x3"]
+
+[node name="NukeBomb" type="Node3D"]
+script = ExtResource("1")
+Gravity = 12.0
+Drag = 1.0
+BlastRadius = 0.0
+CraterSize = 0.0
+Warn = true
+ImpactScene = ExtResource("2")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(2.2, 0, 0, 0, 2.2, 0, 0, 0, 2.2, 0, 0, 0)
+mesh = ExtResource("x3")
+material_override = ExtResource("3")
+cast_shadow = 0

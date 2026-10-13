@@ -1,0 +1,47 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/OneShotFx.cs" id="1"]
+[ext_resource type="Material" path="res://materials/fx/spark_orange.tres" id="2"]
+
+[sub_resource type="Gradient" id="Gradient_1"]
+offsets = PackedFloat32Array(0, 0.3, 1)
+colors = PackedColorArray(1, 1, 0.85, 1, 1, 0.7, 0.25, 1, 1, 0.25, 0.05, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_1"]
+gradient = SubResource("Gradient_1")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_1"]
+direction = Vector3(0, 0, 1)
+spread = 55.0
+initial_velocity_min = 7.0
+initial_velocity_max = 24.0
+gravity = Vector3(0, -20, 0)
+damping_min = 0.5
+damping_max = 2.0
+scale_min = 0.5
+scale_max = 1.4
+color_ramp = SubResource("GradientTexture1D_1")
+
+[sub_resource type="QuadMesh" id="QuadMesh_1"]
+size = Vector2(0.11, 0.11)
+material = ExtResource("2")
+
+[node name="Sparks" type="Node3D"]
+script = ExtResource("1")
+Lifetime = 1.2
+FlashTime = 0.12
+
+[node name="Shower" type="GPUParticles3D" parent="."]
+amount = 30
+lifetime = 0.6
+one_shot = true
+explosiveness = 1.0
+randomness = 0.4
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_1")
+draw_pass_1 = SubResource("QuadMesh_1")
+
+[node name="Flash" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.75, 0.4, 1)
+light_energy = 3.0
+omni_range = 6.0

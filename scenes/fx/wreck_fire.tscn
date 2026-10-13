@@ -76,14 +76,14 @@ material = ExtResource("2")
 [node name="WreckFire" type="Node3D"]
 
 [node name="Flames" type="GPUParticles3D" parent="."]
-amount = 46
+amount = 78
 lifetime = 1
 cast_shadow = 0
 process_material = SubResource("ParticleProcessMaterial_5")
 draw_pass_1 = SubResource("QuadMesh_6")
 
 [node name="SmokeColumn" type="GPUParticles3D" parent="."]
-amount = 110
+amount = 187
 lifetime = 9
 cast_shadow = 0
 process_material = SubResource("ParticleProcessMaterial_11")

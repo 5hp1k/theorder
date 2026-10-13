@@ -1,0 +1,45 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="AudioStream" path="res://audio/swing.wav" id="3"]
+[ext_resource type="ArrayMesh" path="res://models/small/mace/Grip.res" id="x1"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="x2"]
+[ext_resource type="ArrayMesh" path="res://models/small/mace/Haft.res" id="x3"]
+[ext_resource type="ArrayMesh" path="res://models/small/mace/Head.res" id="x4"]
+[ext_resource type="Material" path="res://materials/street_steel.tres" id="x5"]
+
+[node name="Mace" type="Node3D"]
+script = ExtResource("1")
+DisplayName = "Булава"
+Group = 3
+Kind = 3
+Slot = 4
+Slots = 1
+Damage = 30
+Heat = 0
+Cooldown = 1.9
+Range = 12
+MaxAmmo = -1
+FxColor = Color(1, 0.8, 0.5, 1)
+SwingTime = 0.8
+SwingAngle = -1.7
+CraterSize = 1.3
+
+[node name="Fist" type="MeshInstance3D" parent="."]
+mesh = ExtResource("x1")
+material_override = ExtResource("x2")
+
+[node name="Handle" type="MeshInstance3D" parent="."]
+mesh = ExtResource("x3")
+material_override = ExtResource("x2")
+
+[node name="Head" type="MeshInstance3D" parent="."]
+mesh = ExtResource("x4")
+material_override = ExtResource("x5")
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3")
+unit_size = 14
+max_distance = 200
+volume_db = 0
+pitch_scale = 1.1

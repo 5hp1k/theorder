@@ -57,13 +57,21 @@ public partial class Missile : Projectile
 
     public override void _PhysicsProcess(double delta)
     {
+        long prof = Prof.Now();
+        Tick(delta);
+        Prof.Add(2, prof);
+    }
+
+    void Tick(double delta)
+    {
         float dt = (float)delta;
         _age += dt;
 
         if (_age > ArmTime)
         {
             bool locked = _target is Node node && IsInstanceValid(node) && !_target.IsDestroyed;
-            if (locked && _dir.AngleTo(_target.AimCenter - GlobalPosition) > SeekerCone)
+            // A seeker can be out-flown, and an electromagnetic pulse burns it out (or the set that guides it).
+            if (locked && (_dir.AngleTo(_target.AimCenter - GlobalPosition) > SeekerCone || Emp.Charged(GlobalPosition) || Emp.Jammed(Shooter)))
             {
                 // Flew past or was out-turned: no second chances.
                 locked = false;
@@ -88,9 +96,12 @@ public partial class Missile : Projectile
         if (Phys.Ray(GetWorld3D().DirectSpaceState, from, to, _mask, _exclude, out var hit))
         {
             Burning.Heat = Burns;
+            Score.Attacker = Shooter;
             Phys.Damage(hit, _damage);
+            Score.Attacker = null;
             Burning.Heat = false;
             Impacts.Ground(GetParent(), hit, CraterSize, MarkKind);
+            Impacts.Unit(hit, CraterSize, MarkKind);
             Detonate(hit.Position);
             return;
         }

@@ -62,6 +62,12 @@ public partial class Weapon : Node3D
     /// <summary>Radius of the mark a hit leaves on the ground; 0 = none.</summary>
     [Export] public float CraterSize;
 
+    /// <summary>
+    /// A weapon of last resort (the nuclear bomb): a computer pilot never looses it with the rest of its
+    /// group, only on its own decision — see <see cref="WeaponSystem.HoldStrategic"/>.
+    /// </summary>
+    [Export] public bool Strategic;
+
     [ExportGroup("Melee")]
     [Export] public float SwingTime = 0.5f;
     /// <summary>How far the weapon node pitches at the bottom of the swing, radians.</summary>
@@ -83,6 +89,10 @@ public partial class Weapon : Node3D
     public float SalvoTimer { get; set; }
     public float SwingLeft { get; set; }
     public bool SwingHit { get; set; }
+    /// <summary>Shares of a swing: up to here the wind-up, at <see cref="Strike"/> the blow lands, then the recovery.</summary>
+    public const float WindUp = 0.38f, Strike = 0.56f;
+    /// <summary>How far through its swing a hand weapon is, 0..1 (0 when at rest).</summary>
+    public float SwingPhase => SwingLeft > 0f && SwingTime > 0f ? Mathf.Clamp(1f - SwingLeft / SwingTime, 0f, 1f) : 0f;
     public Vector3 RestRotation { get; private set; }
     public MeshInstance3D BeamMesh { get; private set; }
     public AudioStreamPlayer3D FireSound { get; private set; }
@@ -125,6 +135,23 @@ public sealed class WeaponSystem
     /// beside the pilot doesn't appear to fire through the cab. The shots themselves are unaffected.
     /// </summary>
     public (Vector3 eye, Vector3 forward, float depth)? CabClip;
+    /// <summary>Hand weapons are only swung when the aim point is within their reach.</summary>
+    public bool MeleeInReachOnly;
+    /// <summary>Strategic weapons stay on the rack whatever group is fired (a computer pilot's safety catch)…</summary>
+    public bool HoldStrategic;
+    /// <summary>…until the pilot clears them, for the tick it is set in.</summary>
+    public bool ReleaseStrategic;
+
+    /// <summary>A strategic weapon that could be dropped right now, or null.</summary>
+    public Weapon ReadyStrategic
+    {
+        get
+        {
+            foreach (var w in Weapons)
+                if (w.Strategic && w.IsReady) return w;
+            return null;
+        }
+    }
 
     /// <summary>Where a shot from one point to another first shows.</summary>
     Vector3 Seen(Vector3 from, Vector3 to, out bool muzzleInView)
@@ -139,6 +166,16 @@ public sealed class WeaponSystem
         return along > 0.05f ? from + dir * ((clip.depth - at) / along) : from;
     }
 
+    readonly ITarget _owner;
+
+    /// <summary>Deals damage in the owner's name (the score needs to know whose shot it was).</summary>
+    void Hurt(in Phys.Hit hit, float amount)
+    {
+        Score.Attacker = _owner;
+        Phys.Damage(hit, amount);
+        Score.Attacker = null;
+    }
+
     readonly Node _fxRoot;
     readonly Godot.Collections.Array<Rid> _exclude;
 
@@ -146,6 +183,7 @@ public sealed class WeaponSystem
     {
         _fxRoot = fxRoot;
         _exclude = exclude;
+        _owner = owner as ITarget;
         Geo.Collect(owner, Weapons);
     }
 
@@ -155,12 +193,35 @@ public sealed class WeaponSystem
         float heat = 0f;
         foreach (var w in Weapons)
         {
-            if (w.Group != group || !w.IsReady) continue;
-            // No point swinging at something out of reach.
-            if (w.Kind == WeaponKind.Melee && w.GlobalPosition.DistanceTo(aimPoint) > w.Range + 2f) continue;
+            if (w.Group != group || w.Kind == WeaponKind.Melee || !w.IsReady) continue;
+            if (w.Strategic && HoldStrategic && !ReleaseStrategic) continue;
             heat += Fire(w, aimPoint, space);
         }
+        // Hand weapons strike one at a time (a machine throws its whole body into a blow), taking turns.
+        if (NextMelee(group, aimPoint) is { } melee)
+        {
+            _lastMelee = Weapons.IndexOf(melee);
+            heat += Fire(melee, aimPoint, space);
+        }
         return heat;
+    }
+
+    int _lastMelee = -1;
+
+    /// <summary>The hand weapon of the group whose turn it is, if no blow is being struck right now.</summary>
+    Weapon NextMelee(int group, Vector3 aimPoint)
+    {
+        foreach (var w in Weapons)
+            if (w.Kind == WeaponKind.Melee && w.SwingLeft > 0f) return null;
+        for (int i = 1; i <= Weapons.Count; i++)
+        {
+            var w = Weapons[(_lastMelee + i + Weapons.Count) % Weapons.Count];
+            if (w.Kind != WeaponKind.Melee || w.Group != group || !w.IsReady) continue;
+            // A computer pilot doesn't flail at something far out of reach (a player may swing at will).
+            if (MeleeInReachOnly && w.GlobalPosition.DistanceTo(aimPoint) > w.Range * 1.25f) continue;
+            return w;
+        }
+        return null;
     }
 
     public void CancelBeams()
@@ -176,6 +237,17 @@ public sealed class WeaponSystem
             if (w.Mount != section) continue;
             w.Destroyed = destroyed;
             if (destroyed) w.StopFiring();
+        }
+    }
+
+    /// <summary>Some weapon has fired off part of its ammunition.</summary>
+    public bool NeedsAmmo
+    {
+        get
+        {
+            foreach (var w in Weapons)
+                if (w.MaxAmmo >= 0 && w.Ammo < w.MaxAmmo) return true;
+            return false;
         }
     }
 
@@ -212,8 +284,10 @@ public sealed class WeaponSystem
                 if (didHit)
                 {
                     TimedFx.Flash(_fxRoot, end, w.FxColor, 0.6f, 0.12f);
-                    Phys.Damage(hit, w.Damage * DamageScale);
+                    Hurt(hit, w.Damage * DamageScale);
                     Impacts.Ground(_fxRoot, hit, w.CraterSize, w.CraterSize < 0.5f ? Mark.Bullet : Mark.Blast);
+                    Impacts.Unit(hit, w.CraterSize, w.CraterSize < 0.5f ? Mark.Bullet : Mark.Blast);
+                    Impacts.Sparks(_fxRoot, hit);
                 }
                 break;
 
@@ -269,22 +343,49 @@ public sealed class WeaponSystem
         }
     }
 
+    /// <summary>
+    /// A hand weapon's blow. The arm and the torso are swung by the machine itself (see Mech); here the
+    /// weapon turns in the hand, and at the moment of the strike whatever is within reach in an arc in
+    /// front of the shoulder is hit — there is no need to stand nose to nose with the target or to have
+    /// the sight exactly on it.
+    /// </summary>
     void UpdateSwing(Weapon w, float dt, Vector3 aimPoint, PhysicsDirectSpaceState3D space)
     {
         w.SwingLeft -= dt;
-        float k = Mathf.Clamp(1f - w.SwingLeft / w.SwingTime, 0f, 1f);
-        // Fast chop down, slower recovery.
-        float f = k < 0.4f ? Mathf.SmoothStep(0f, 1f, k / 0.4f) : 1f - Mathf.SmoothStep(0f, 1f, (k - 0.4f) / 0.6f);
+        float k = w.SwingPhase;
+        // Back with the wind-up, through with the blow, slowly home.
+        float f = k < Weapon.WindUp ? -0.35f * Mathf.SmoothStep(0f, 1f, k / Weapon.WindUp)
+                : k < Weapon.Strike ? Mathf.Lerp(-0.35f, 1f, Mathf.SmoothStep(0f, 1f, (k - Weapon.WindUp) / (Weapon.Strike - Weapon.WindUp)))
+                : 1f - Mathf.SmoothStep(0f, 1f, (k - Weapon.Strike) / (1f - Weapon.Strike));
         w.Rotation = w.RestRotation + new Vector3(f * w.SwingAngle, 0f, 0f);
         if (w.SwingLeft <= 0f) w.Rotation = w.RestRotation;
 
-        if (w.SwingHit || k < 0.35f) return;
+        if (w.SwingHit || k < Weapon.Strike - 0.06f) return;
         w.SwingHit = true;
-        Vector3 end = Trace(w, w.GlobalPosition, aimPoint, space, out var hit, out bool didHit);
-        if (!didHit) return;
-        TimedFx.Flash(_fxRoot, end, w.FxColor, 1.6f, 0.18f);
-        Phys.Damage(hit, w.Damage * DamageScale);
-        Impacts.Ground(_fxRoot, hit, w.CraterSize, Mark.Bullet);
+        // From the shoulder, a fan of reaches towards where the pilot is looking.
+        Node3D shoulder = (w.GetParent() as Node3D)?.GetParent() as Node3D ?? w;
+        Vector3 from = shoulder.GlobalPosition;
+        Vector3 dir = (aimPoint - from).Normalized();
+        Phys.Hit best = default;
+        float bestDist = float.MaxValue;
+        foreach (float turn in new[] { 0f, -0.28f, 0.28f, -0.56f, 0.56f })
+        foreach (float dip in new[] { 0f, -0.3f })
+        {
+            Vector3 reach = dir.Rotated(Vector3.Up, turn);
+            reach = (reach + Vector3.Up * dip).Normalized();
+            if (!Phys.Ray(space, from, from + reach * w.Range, Mask, _exclude, out var hit)) continue;
+            // What stands in the middle of the arc is hit before what is at its edge.
+            float d = from.DistanceTo(hit.Position) * (1f + Mathf.Abs(turn));
+            if (d >= bestDist) continue;
+            best = hit;
+            bestDist = d;
+        }
+        if (bestDist == float.MaxValue) return;
+        TimedFx.Flash(_fxRoot, best.Position, w.FxColor, 1.6f, 0.18f);
+        Hurt(best, w.Damage * DamageScale);
+        Impacts.Ground(_fxRoot, best, w.CraterSize, Mark.Bullet);
+        Impacts.Unit(best, w.CraterSize * 0.6f, Mark.Bullet);
+        Impacts.Sparks(_fxRoot, best);
     }
 
     void Launch(Weapon w, Vector3 aimPoint, ITarget lockTarget)
@@ -298,6 +399,7 @@ public sealed class WeaponSystem
         Shot(w, from, rackInView ? 0.4f : 0f);
 
         var projectile = w.ProjectileScene.Instantiate<Projectile>();
+        projectile.Shooter = _owner;
         _fxRoot.AddChild(projectile);
         projectile.Launch(from, aimPoint, lockTarget, w.Damage * DamageScale, w.Range, Mask, _exclude, CarrierVelocity);
     }
@@ -315,11 +417,12 @@ public sealed class WeaponSystem
         {
             // What a beam destroys, it sets alight.
             Burning.Heat = true;
-            Phys.Damage(hit, w.Damage * DamageScale * dt / w.BeamTime);
+            Hurt(hit, w.Damage * DamageScale * dt / w.BeamTime);
             Burning.Heat = false;
             if (GD.Randf() < 0.35f) TimedFx.Flash(_fxRoot, end, w.FxColor, 0.45f, 0.08f);
             // A beam held on the ground scorches a line of marks; on water it boils the surface now and then.
             if (GD.Randf() < 0.06f) Impacts.Ground(_fxRoot, hit, w.CraterSize, Mark.Burn);
+            if (GD.Randf() < 0.08f) Impacts.Unit(hit, w.CraterSize + 0.25f, Mark.Burn);
         }
         if (dt > 0f && GD.Randf() < 0.05f) Impacts.Water(_fxRoot, from, end, 0.6f);
     }

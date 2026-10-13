@@ -21,6 +21,20 @@ public abstract partial class HudWidget : Control
     /// <summary>Seconds since the instrument came on, for blinking.</summary>
     protected float Clock => Godot.Time.GetTicksMsec() * 0.001f;
 
+    /// <summary>Seconds the player's electronics stay dead after an electromagnetic pulse; 0 = working.</summary>
+    protected static float Jam => Emp.Left(Game.PlayerUnit);
+
+    /// <summary>What a dead screen shows: snow, and a line saying why.</summary>
+    protected void Static(Rect2 area, int grains = 90)
+    {
+        var rng = new RandomNumberGenerator { Seed = (ulong)(Clock * 24f) + 1 };
+        for (int i = 0; i < grains; i++)
+        {
+            var at = area.Position + new Vector2(rng.Randf() * area.Size.X, rng.Randf() * area.Size.Y);
+            DrawRect(new Rect2(at, new Vector2(rng.RandfRange(2f, 14f), 1.5f)), new Color(Dim, rng.RandfRange(0.15f, 0.7f)));
+        }
+    }
+
     Font _font;
 
     public override void _Ready()
@@ -42,7 +56,7 @@ public abstract partial class HudWidget : Control
     protected abstract void Paint();
 
     protected void Text(string s, Vector2 pos, int size, Color c, HorizontalAlignment align = HorizontalAlignment.Left, float width = -1f)
-        => DrawString(_font, pos, s, align, width, size, c);
+        => DrawString(_font, pos, Loc.T(s), align, width, size, c);
 
     protected void PanelBackground() => DrawRect(new Rect2(Vector2.Zero, Size), Panel);
 }

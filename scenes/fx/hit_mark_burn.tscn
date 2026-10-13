@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://materials/mark_burn.tres" id="1"]
+
+[sub_resource type="QuadMesh" id="QuadMesh_1"]
+size = Vector2(1, 1)
+
+[node name="HitMark" type="MeshInstance3D"]
+cast_shadow = 0
+mesh = SubResource("QuadMesh_1")
+material_override = ExtResource("1")

@@ -19,6 +19,12 @@ public static class Catalog
             "Мех, лёгкий, 30 т. Очень быстрый (80 км/ч) и вёрткий, с прыжковыми двигателями, но броня тонкая."),
         new("ballista", "Баллиста", "res://scenes/mech/ballista.tscn",
             "Мех, тяжёлый, 65 т. Ракетная платформа: две пусковые установки с наведением и два лазера в корпусе. Медленный, толстая броня."),
+        new("panther", "Пантера", "res://scenes/mech/panther.tscn",
+            "Мех, тяжёлый, 75 т. Универсал: руки — орудийные контейнеры с большим и средним лазерами, на плечах ракетные установки с наведением, в носу пара пулемётов. Толстая броня, 45 км/ч."),
+        new("hades", "Аид", "res://scenes/mech/hades.tscn",
+            "Мех, тяжёлый, 75 т. Человекоподобная огневая платформа: правая рука — орудийный контейнер с протонной пушкой, в левой автопушка, пулемёт и кулак для ближнего боя, на плечах ракетные установки, лазер в груди, прыжковые двигатели."),
+        new("gladiator", "Гладиатор", "res://scenes/mech/gladiator.tscn",
+            "Мех, средний, 50 т. Быстрый рукопашник (74 км/ч): булава в правой руке, кулак и щит на левой, ракеты ближнего боя на плече, лазер в груди. Прыжковые двигатели."),
         new("cleaver", "Секач", "res://scenes/mech/cleaver.tscn",
             "Мех, средний, 45 т. Рукопашник: топор в правой руке (группа 3), автопушка и пулемёт в левой, лазер в груди, прыжковые двигатели."),
     };
@@ -36,7 +42,7 @@ public static class Catalog
         new("helicopter", "Вертолёт", "res://scenes/vehicles/helicopter.tscn",
             "Пробел — вверх, Shift — вниз. Подвижный пулемёт и ракеты.", Kind.Air),
         new("bomber", "Бомбардировщик", "res://scenes/vehicles/bomber.tscn",
-            "Летит всегда: W/S — тяга, A/D — разворот, мышь вверх-вниз — набор и снижение. Курсовая пушка и бомбы (группа 2).", Kind.Air),
+            "Летит всегда. Клавишами: A/D — разворот, W/S — нос вниз и вверх, Shift/Ctrl — тяга. Или мышью: ведите её туда, куда лететь. Пробел (держать) — осмотреться. Курсовая пушка, бомбы (группа 2) и тактическая ядерная бомба (группа 3): сбросив, уходите на полной тяге.", Kind.Air),
     };
 
     public const string InfantryId = "infantry";
@@ -72,8 +78,11 @@ public static class Catalog
         new("heavy_cannon", "Тяжёлая пушка", "res://scenes/weapons/heavy_cannon.tscn"),
         new("srm", "Ракеты ближнего боя", "res://scenes/weapons/srm.tscn"),
         new("lrm", "Ракеты дальнего боя (10)", "res://scenes/weapons/lrm.tscn"),
+        new("fist", "Штурмовой кулак", "res://scenes/weapons/fist.tscn"),
+        new("mace", "Булава", "res://scenes/weapons/mace.tscn"),
         new("hatchet", "Топор", "res://scenes/weapons/hatchet.tscn"),
         new("bomb_rack", "Бомбы", "res://scenes/weapons/bomb_rack.tscn"),
+        new("nuke_rack", "Тактическая ядерная бомба", "res://scenes/weapons/nuke_rack.tscn"),
     };
 
     static Entry[] Join(params Entry[][] lists)
@@ -95,6 +104,14 @@ public static class Catalog
         for (int i = 0; i < list.Length; i++)
             if (list[i].Id == id) return i;
         return 0;
+    }
+
+    /// <summary>Catalog id of a mech's or vehicle's scene.</summary>
+    public static string IdByPath(string path)
+    {
+        foreach (var e in PlayerUnits)
+            if (e.Path == path) return e.Id;
+        return Mechs[0].Id;
     }
 
     /// <summary>Catalog id of a weapon scene path, or null.</summary>

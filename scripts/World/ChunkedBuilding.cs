@@ -59,6 +59,9 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
 
     // Effects per frame are capped: a collapsing tower would otherwise spawn hundreds at once.
     const int FxPerFrame = 5;
+    /// <summary>Least time between two blocks' own breaking sounds, ms.</summary>
+    const ulong BreakGapMs = 160;
+    static ulong _lastBreak;
     static ulong _fxFrame;
     static int _fxCount;
 
@@ -220,6 +223,7 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
 
     void Attach(Node3D fitting, int cell)
     {
+        Lod.Apply(fitting, 45f, 110f, 500f);
         AddChild(fitting);
         if (!_fittings.TryGetValue(cell, out var list)) _fittings[cell] = list = new List<Node3D>();
         list.Add(fitting);
@@ -366,6 +370,24 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
         });
     }
 
+    /// <summary>
+    /// The front of a great explosion passing through: only the blocks it has reached since the last call
+    /// (those between <paramref name="inner"/> and <paramref name="outer"/> from the centre) are hit, so a
+    /// whole town isn't brought down in a single frame. <paramref name="damageAt"/> gives the damage at a distance.
+    /// </summary>
+    public void BlastShell(Vector3 center, float inner, float outer, System.Func<float, float> damageAt)
+    {
+        if (_aliveCount == 0) return;
+        Vector3 local = GlobalTransform.AffineInverse() * center;
+        ForEachCellIn(local - Vector3.One * outer, local + Vector3.One * outer, (x, y, z) =>
+        {
+            Vector3 away = CellCenter(x, y, z) - local;
+            float dist = away.Length();
+            if (dist < inner || dist >= outer) return;
+            DamageCell(Index(x, y, z), damageAt(dist), GlobalTransform.Basis * away.Normalized() * 9f);
+        });
+    }
+
     /// <summary>Mechs walking through buildings: knocks out every block a body of this size overlaps.</summary>
     public static void TrampleAround(Vector3 position, float radius, float height)
     {
@@ -420,9 +442,16 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
 
     // ── Blocks going ────────────────────────────────────────────
 
+    /// <summary>A block the host says is gone.</summary>
+    public void NetRemove(int cell)
+    {
+        if (cell >= 0 && cell < _alive.Length) Remove(cell, true);
+    }
+
     void Remove(int cell, bool withFx)
     {
         if (!_alive[cell]) return;
+        NetLink.I?.World(0, All.IndexOf(this), cell, default, 0f);
         _alive[cell] = false;
         _aliveCount--;
         int x = cell % Cells.X, z = cell / Cells.X % Cells.Z, y = cell / (Cells.X * Cells.Z);
@@ -431,6 +460,8 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
         // …and the ones behind it come into view.
         Reveal(x + 1, y, z); Reveal(x - 1, y, z); Reveal(x, y + 1, z); Reveal(x, y - 1, z); Reveal(x, y, z + 1); Reveal(x, y, z - 1);
 
+        // The sound of it is one roar for the lot, fed by each block — not a knock apiece.
+        if (withFx) CollapseRumble.Feed(GetTree().CurrentScene, GlobalTransform * CellCenter(x, y, z));
         if (withFx && AllowFx())
         {
             Node scene = GetTree().CurrentScene;
@@ -438,6 +469,10 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
             if (ChunkFx != null)
             {
                 var fx = ChunkFx.Instantiate<Node3D>();
+                // Only now and then does one block's own break stand out of the roar.
+                ulong now = Time.GetTicksMsec();
+                if (now - _lastBreak < BreakGapMs && fx.GetNodeOrNull<AudioStreamPlayer3D>("Sound") is { } sound) sound.Autoplay = false;
+                else _lastBreak = now;
                 scene.AddChild(fx);
                 fx.GlobalPosition = at;
             }

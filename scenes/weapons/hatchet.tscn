@@ -18,11 +18,11 @@ Slot = 4
 Slots = 1
 Damage = 42
 Heat = 0
-Cooldown = 2.2
-Range = 12
+Cooldown = 2.4
+Range = 13
 MaxAmmo = -1
 FxColor = Color(1, 0.8, 0.5, 1)
-SwingTime = 0.55
+SwingTime = 0.95
 SwingAngle = -1.9
 CraterSize = 1.6
 

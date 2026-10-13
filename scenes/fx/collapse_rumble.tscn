@@ -1,0 +1,17 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/CollapseRumble.cs" id="1"]
+[ext_resource type="AudioStream" path="res://audio/collapse_loop.wav" id="2"]
+
+[node name="CollapseRumble" type="AudioStreamPlayer3D"]
+script = ExtResource("1")
+stream = ExtResource("2")
+unit_size = 45.0
+max_distance = 1200.0
+volume_db = 5.0
+attenuation_filter_cutoff_hz = 9000.0
+FullRate = 14.0
+QuietDb = -22.0
+Attack = 0.25
+Release = 1.6
+Pitch = Vector2(1.15, 0.85)

@@ -21,7 +21,7 @@ public partial class StatusText : HudWidget
         }
         else if (Seat.IsDestroyed)
         {
-            Text($"{Seat.UnitName.ToUpper()}: УНИЧТОЖЕН", new Vector2(0f, 30f), 30, Red, HorizontalAlignment.Center, w);
+            Text($"{Loc.T(Seat.UnitName).ToUpper()}: УНИЧТОЖЕН", new Vector2(0f, 30f), 30, Red, HorizontalAlignment.Center, w);
             Text($"Восстановление через {Mathf.CeilToInt(Seat.RespawnLeft)} с", new Vector2(0f, 62f), 20, Amber, HorizontalAlignment.Center, w);
         }
         else if (Seat.IsShutdown)
@@ -31,6 +31,11 @@ public partial class StatusText : HudWidget
                 ? $"Перезапуск… {Mathf.RoundToInt(Seat.RestartProgress * 100f)}%"
                 : $"Остывание до {Mathf.RoundToInt(Seat.RestartHeat * 100f)}%";
             Text(sub, new Vector2(0f, 62f), 20, Amber, HorizontalAlignment.Center, w);
+        }
+        else if (Jam > 0f)
+        {
+            if (Mathf.PosMod(Hud.Time, 1f) < 0.7f) Text("ЭМИ — ПРИБОРЫ ОТКЛЮЧЕНЫ", new Vector2(0f, 30f), 26, Red, HorizontalAlignment.Center, w);
+            Text($"Навигация и наведение: перезапуск через {Mathf.CeilToInt(Jam)} с", new Vector2(0f, 62f), 18, Amber, HorizontalAlignment.Center, w);
         }
         else if (Seat.HasHeat && Seat.Heat > 0.85f && Mathf.PosMod(Hud.Time, 0.6f) < 0.35f)
         {

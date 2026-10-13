@@ -81,13 +81,13 @@ material_override = ExtResource("insignia")
 material_override = ExtResource("2")
 
 [node name="Belt" parent="Hull/TrackL" instance=ExtResource("track_belt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.76, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.72, 0, 0)
 
 [node name="TrackR" type="MeshInstance3D" parent="Hull"]
 material_override = ExtResource("2")
 
 [node name="Belt" parent="Hull/TrackR" instance=ExtResource("track_belt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.76, 0, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.72, 0, 0)
 
 [node name="WheelL1" type="MeshInstance3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.9, 0.62, -2.82)

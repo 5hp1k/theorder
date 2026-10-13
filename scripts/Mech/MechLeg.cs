@@ -140,14 +140,19 @@ public partial class MechLeg : Node3D
     /// Airborne: the leg is drawn up into a tucked pose held relative to the body (so it rides with the
     /// mech instead of trailing behind it), given as a foot position in the mech's own space.
     /// </summary>
+    Vector3 _airLocal;
+
     public void Hang(Transform3D root, Vector3 localFoot, float dt)
     {
         Planted = false;
         HasTarget = false;
+        // The foot is carried in the body's own axes while in the air: it tucks towards its place at its
+        // own pace however fast the body is flying. (Held in the world it trailed metres behind.)
+        if (!_airborne) _airLocal = root.AffineInverse() * _contact;
         _airborne = true;
         _t = 0.5f;
-        Vector3 local = root.AffineInverse() * _contact;
-        _contact = root * local.Lerp(localFoot, 1f - Mathf.Exp(-7f * dt));
+        _airLocal = _airLocal.Lerp(localFoot, 1f - Mathf.Exp(-7f * dt));
+        _contact = root * _airLocal;
         _normal = root.Basis.Y.Normalized();
     }
 

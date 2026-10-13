@@ -1,0 +1,147 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/RepairBay.cs" id="1"]
+[ext_resource type="Material" path="res://materials/concrete.tres" id="2"]
+[ext_resource type="Material" path="res://materials/rig_steel.tres" id="3"]
+[ext_resource type="Material" path="res://materials/light_green.tres" id="4"]
+[ext_resource type="Material" path="res://materials/sign_yellow.tres" id="5"]
+[ext_resource type="Material" path="res://materials/light_red.tres" id="6"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_pad"]
+size = Vector3(18, 0.5, 18)
+
+[sub_resource type="BoxMesh" id="BoxMesh_stripe"]
+size = Vector3(16.4, 0.06, 0.5)
+
+[sub_resource type="BoxMesh" id="BoxMesh_post"]
+size = Vector3(0.7, 13, 0.7)
+
+[sub_resource type="BoxMesh" id="BoxMesh_beam"]
+size = Vector3(19.4, 0.8, 0.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_crate"]
+size = Vector3(2.4, 1.8, 3.6)
+
+[sub_resource type="BoxMesh" id="BoxMesh_lamp"]
+size = Vector3(0.9, 0.3, 0.9)
+
+[sub_resource type="BoxMesh" id="BoxMesh_side"]
+size = Vector3(0.6, 15, 19)
+
+[sub_resource type="BoxMesh" id="BoxMesh_back"]
+size = Vector3(19.8, 15, 0.6)
+
+[sub_resource type="BoxMesh" id="BoxMesh_roof"]
+size = Vector3(20.6, 0.6, 19.8)
+
+[sub_resource type="BoxMesh" id="BoxMesh_door"]
+size = Vector3(9.5, 14.4, 0.4)
+
+[node name="RepairBay" type="Node3D"]
+script = ExtResource("1")
+Radius = 7.0
+RepairTime = 14.0
+DoorTravel = 9.5
+DoorTime = 2.2
+
+[node name="Pad" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.1, 0)
+mesh = SubResource("BoxMesh_pad")
+material_override = ExtResource("2")
+
+[node name="StripeN" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, -8.2)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stripe")
+material_override = ExtResource("5")
+
+[node name="StripeS" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 8.2)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stripe")
+material_override = ExtResource("5")
+
+[node name="StripeW" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, -8.2, 0.16, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stripe")
+material_override = ExtResource("5")
+
+[node name="StripeE" type="MeshInstance3D" parent="."]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 8.2, 0.16, 0)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_stripe")
+material_override = ExtResource("5")
+
+[node name="CrateA" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.6, 0.9, -3)
+mesh = SubResource("BoxMesh_crate")
+material_override = ExtResource("3")
+
+[node name="CrateB" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.94, 0, 0.34, 0, 1, 0, -0.34, 0, 0.94, 10.8, 0.9, -1.5)
+mesh = SubResource("BoxMesh_crate")
+material_override = ExtResource("3")
+
+[node name="WorkLight" type="SpotLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0, 1, 0, -1, 0, 0, 14.6, 0)
+visible = false
+light_color = Color(1, 0.9, 0.7, 1)
+light_energy = 12.0
+spot_range = 22.0
+spot_angle = 50.0
+
+[node name="WallL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.9, 7.5, 0.4)
+mesh = SubResource("BoxMesh_side")
+material_override = ExtResource("3")
+
+[node name="WallR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.9, 7.5, 0.4)
+mesh = SubResource("BoxMesh_side")
+material_override = ExtResource("3")
+
+[node name="WallBack" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 7.5, 9.6)
+mesh = SubResource("BoxMesh_back")
+material_override = ExtResource("3")
+
+[node name="Roof" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15.3, 0.2)
+mesh = SubResource("BoxMesh_roof")
+material_override = ExtResource("3")
+
+[node name="DoorL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -14.25, 7.2, -9.3)
+mesh = SubResource("BoxMesh_door")
+material_override = ExtResource("5")
+
+[node name="DoorR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.25, 7.2, -9.5)
+mesh = SubResource("BoxMesh_door")
+material_override = ExtResource("5")
+
+[node name="BeaconReady" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15.75, -9.2)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_lamp")
+material_override = ExtResource("4")
+
+[node name="Light" type="OmniLight3D" parent="BeaconReady"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
+light_color = Color(0.4, 1, 0.5, 1)
+light_energy = 2.5
+omni_range = 18.0
+
+[node name="BeaconSpent" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 15.75, -9.2)
+visible = false
+cast_shadow = 0
+mesh = SubResource("BoxMesh_lamp")
+material_override = ExtResource("6")
+
+[node name="Light" type="OmniLight3D" parent="BeaconSpent"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
+light_color = Color(1, 0.25, 0.2, 1)
+light_energy = 2.5
+omni_range = 18.0

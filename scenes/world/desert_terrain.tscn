@@ -13,6 +13,7 @@
 [ext_resource type="Material" path="res://materials/terrain_desert.tres" id="11"]
 [ext_resource type="Material" path="res://materials/water.tres" id="12"]
 [ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="13"]
+[ext_resource type="PackedScene" path="res://scenes/props/repair_bay.tscn" id="repair_bay"]
 
 [node name="Desert_Terrain" type="StaticBody3D"]
 collision_layer = 1
@@ -21,6 +22,8 @@ script = ExtResource("1")
 Seed = 1337
 Size = 1040
 Border = 120
+RepairBayScene = ExtResource("repair_bay")
+RepairBaySpots = PackedVector2Array()
 CellSize = 4
 RidgeHeight = 7
 RidgeLength = 95

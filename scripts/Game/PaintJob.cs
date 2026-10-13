@@ -12,7 +12,7 @@ public sealed class PaintJob
 {
     public static readonly string[] SchemeNames = { "Весь в камуфляже", "Руки (башня)", "Ноги", "Руки и ноги", "Корпус" };
 
-    public static readonly string[] PatternNames = { "Без узора", "Пятна", "Цифровой", "Тигровые полосы", "Осколочный", "Косые полосы", "Крап" };
+    public static readonly string[] PatternNames = { "Без узора", "Пятна", "Цифровой", "Тигровые полосы", "Осколочный", "Косые полосы", "Крап", "Шахматный", "Два тона", "Волны", "Мазки", "Горох", "Трещины" };
 
     /// <param name="Pattern">Index into <see cref="PatternNames"/>.</param>
     public record Preset(string Name, Color Base, int Pattern, Color A, Color B);
@@ -28,6 +28,11 @@ public sealed class PaintJob
         new("Осколочный", new(0.35f, 0.38f, 0.3f), 4, new(0.2f, 0.22f, 0.18f), new(0.55f, 0.5f, 0.38f)),
         new("Флектарн", new(0.3f, 0.34f, 0.2f), 6, new(0.12f, 0.14f, 0.09f), new(0.45f, 0.3f, 0.18f)),
         new("Предупреждающий", new(0.9f, 0.7f, 0.1f), 5, new(0.08f, 0.08f, 0.08f), new(0.08f, 0.08f, 0.08f)),
+        new("Гоночный", new(0.75f, 0.08f, 0.06f), 8, new(0.9f, 0.9f, 0.88f), new(0.05f, 0.05f, 0.05f)),
+        new("Шахматный", new(0.85f, 0.85f, 0.82f), 7, new(0.08f, 0.08f, 0.09f), new(0.08f, 0.08f, 0.09f)),
+        new("Морской", new(0.16f, 0.3f, 0.42f), 9, new(0.08f, 0.16f, 0.26f), new(0.55f, 0.65f, 0.7f)),
+        new("Мазки", new(0.42f, 0.4f, 0.28f), 10, new(0.2f, 0.24f, 0.14f), new(0.62f, 0.55f, 0.4f)),
+        new("Лава", new(0.1f, 0.09f, 0.09f), 12, new(0.95f, 0.35f, 0.05f), new(0.3f, 0.08f, 0.04f)),
         new("Ржавый", new(0.45f, 0.25f, 0.15f), 1, new(0.3f, 0.15f, 0.1f), new(0.55f, 0.36f, 0.2f)),
         new("Серый", new(0.4f, 0.42f, 0.44f), 0, new(0.3f, 0.3f, 0.3f), new(0.2f, 0.2f, 0.2f)),
         new("Чёрный", new(0.05f, 0.05f, 0.055f), 0, new(0.1f, 0.1f, 0.1f), new(0.2f, 0.2f, 0.2f)),
@@ -56,6 +61,26 @@ public sealed class PaintJob
     public Color? Glass;
     /// <summary>Emblem plates are scaled by this.</summary>
     public float InsigniaSize = 1f;
+
+    /// <summary>The paint as plain numbers, to send to the other computers of a network game.</summary>
+    public float[] Pack() => new[]
+    {
+        Base.R, Base.G, Base.B, Pattern, PatternA.R, PatternA.G, PatternA.B, PatternB.R, PatternB.G, PatternB.B,
+        Second.R, Second.G, Second.B, Scheme, Wear, Dirt, Gloss, PatternSize,
+        Glass?.R ?? 0.02f, Glass?.G ?? 0.045f, Glass?.B ?? 0.06f,
+    };
+
+    public static PaintJob Unpack(float[] v)
+    {
+        if (v == null || v.Length < 21) return null;
+        return new PaintJob
+        {
+            Base = new Color(v[0], v[1], v[2]), Pattern = Mathf.Clamp((int)v[3], 0, PatternNames.Length - 1),
+            PatternA = new Color(v[4], v[5], v[6]), PatternB = new Color(v[7], v[8], v[9]),
+            Second = new Color(v[10], v[11], v[12]), Scheme = Mathf.Clamp((int)v[13], 0, SchemeNames.Length - 1),
+            Wear = v[14], Dirt = v[15], Gloss = v[16], PatternSize = v[17], Glass = new Color(v[18], v[19], v[20]),
+        };
+    }
 
     enum Zone { Body, Arms, Legs }
 

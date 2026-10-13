@@ -39,7 +39,7 @@ public partial class PauseMenu : Control
     {
         ShowSettings(false);
         bool over = Game.Instance is { TimeUp: true };
-        _title.Text = over ? $"ВРЕМЯ ВЫШЛО\nУничтожено: {Game.Kills}" : "ПАУЗА";
+        _title.Text = Loc.T(over ? $"ВРЕМЯ ВЫШЛО\nУничтожено: {Game.Kills}" : "ПАУЗА");
         _resume.Visible = !over;
     }
 }

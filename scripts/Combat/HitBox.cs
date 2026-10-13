@@ -7,8 +7,10 @@ namespace MechSim;
 /// Collision volume of one section, placed in the mech scene. Weapons hit this and the damage goes to
 /// the owner's model. Meshes parented under the box are the section's armour plates: they get charred
 /// when the section is destroyed.
+/// A kinematic body, not a static one: it rides on the mech every tick, and moving a static body makes
+/// the physics engine re-sort everything that never moves (thousands of trees and rocks).
 /// </summary>
-public partial class HitBox : StaticBody3D, IDamageable
+public partial class HitBox : AnimatableBody3D, IDamageable
 {
     [Export] public Section Section;
 
@@ -58,5 +60,10 @@ public partial class HitBox : StaticBody3D, IDamageable
         SetEnabled(true);
     }
 
-    public void TakeDamage(float amount, Vector3 point) => _model?.Apply(Section, amount);
+    public void TakeDamage(float amount, Vector3 point)
+    {
+        Score.Hit(Unit as ITarget);
+        NetLink.I?.QueueHurt(Unit, (int)Section, amount);
+        _model?.Apply(Section, amount);
+    }
 }
