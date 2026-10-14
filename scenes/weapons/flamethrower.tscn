@@ -1,0 +1,119 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="AudioStream" path="res://audio/jet_loop.wav" id="2"]
+[ext_resource type="Material" path="res://materials/fx/flame_jet.tres" id="3"]
+[ext_resource type="Material" path="res://materials/fx/smoke.tres" id="smoke"]
+
+[sub_resource type="Gradient" id="Gradient_1"]
+offsets = PackedFloat32Array(0, 0.05, 0.4, 0.75, 1)
+colors = PackedColorArray(1, 0.55, 0.12, 0, 1, 0.4, 0.05, 0.68, 0.88, 0.2, 0.02, 0.52, 0.45, 0.07, 0.01, 0.22, 0.15, 0.03, 0.01, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_2"]
+gradient = SubResource("Gradient_1")
+
+[sub_resource type="Curve" id="Curve_3"]
+_limits = [0.0, 4.0, 0.0, 1.0]
+_data = [Vector2(0, 0.7), 0.0, 0.0, 0, 0, Vector2(0.5, 2.4), 0.0, 0.0, 0, 0, Vector2(1, 4), 0.0, 0.0, 0, 0]
+point_count = 3
+
+[sub_resource type="CurveTexture" id="CurveTexture_4"]
+curve = SubResource("Curve_3")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_5"]
+emission_shape = 1
+emission_sphere_radius = 0.35
+direction = Vector3(0, 0, -1)
+spread = 4.0
+initial_velocity_min = 78.0
+initial_velocity_max = 96.0
+gravity = Vector3(0, 2.5, 0)
+damping_min = 4.0
+damping_max = 7.0
+scale_min = 0.7
+scale_max = 1.3
+color_ramp = SubResource("GradientTexture1D_2")
+scale_curve = SubResource("CurveTexture_4")
+
+[sub_resource type="QuadMesh" id="QuadMesh_6"]
+size = Vector2(2.6, 2.6)
+material = ExtResource("3")
+
+[sub_resource type="Gradient" id="Gradient_7"]
+offsets = PackedFloat32Array(0, 0.3, 0.7, 1)
+colors = PackedColorArray(0.1, 0.08, 0.07, 0, 0.07, 0.06, 0.05, 0.65, 0.13, 0.12, 0.11, 0.4, 0.22, 0.21, 0.2, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_8"]
+gradient = SubResource("Gradient_7")
+
+[sub_resource type="Curve" id="Curve_9"]
+_limits = [0.0, 6.0, 0.0, 1.0]
+_data = [Vector2(0, 0.8), 0.0, 0.0, 0, 0, Vector2(1, 6), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_10"]
+curve = SubResource("Curve_9")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_11"]
+emission_shape = 1
+emission_sphere_radius = 0.3
+direction = Vector3(0, 0, -1)
+spread = 5.0
+initial_velocity_min = 40.0
+initial_velocity_max = 60.0
+gravity = Vector3(0, 4, 0)
+damping_min = 18.0
+damping_max = 28.0
+scale_min = 0.8
+scale_max = 1.4
+color_ramp = SubResource("GradientTexture1D_8")
+scale_curve = SubResource("CurveTexture_10")
+
+[sub_resource type="QuadMesh" id="QuadMesh_12"]
+size = Vector2(2.4, 2.4)
+material = ExtResource("smoke")
+
+[node name="Flamethrower" type="Node3D"]
+script = ExtResource("1")
+DisplayName = "Огнемёт"
+Group = 2
+Kind = 0
+Slot = 0
+Slots = 1
+MaxAmmo = -1
+FxColor = Color(1, 0.55, 0.12, 1)
+Damage = 5
+Heat = 0.06
+Cooldown = 1
+Range = 85
+BeamTime = 1
+CraterSize = 0.9
+TargetHeat = 0.17
+Ignites = true
+Afterburn = 6.0
+
+[node name="Flame" type="GPUParticles3D" parent="."]
+top_level = true
+emitting = false
+amount = 420
+lifetime = 1.15
+visibility_aabb = AABB(-12, -12, -95, 24, 24, 100)
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_5")
+draw_pass_1 = SubResource("QuadMesh_6")
+
+[node name="Smoke" type="GPUParticles3D" parent="Flame"]
+emitting = false
+amount = 90
+lifetime = 2.2
+visibility_aabb = AABB(-15, -10, -90, 30, 30, 95)
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_11")
+draw_pass_1 = SubResource("QuadMesh_12")
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("2")
+unit_size = 9
+max_distance = 260
+volume_db = -7
+pitch_scale = 1.5

@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="AudioStream" path="res://audio/bomb_whistle.wav" id="whistle"]
+[ext_resource type="Script" path="res://scripts/Combat/Bomb.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion_shell.tscn" id="2"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="3"]
+[ext_resource type="ArrayMesh" path="res://models/small/bomb/Body.res" id="4"]
+[ext_resource type="Material" path="res://materials/fx/smoke.tres" id="5"]
+
+[sub_resource type="Gradient" id="Gradient_1"]
+offsets = PackedFloat32Array(0, 0.2, 1)
+colors = PackedColorArray(0.8, 0.78, 0.74, 0.35, 0.7, 0.7, 0.7, 0.22, 0.6, 0.6, 0.6, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_2"]
+gradient = SubResource("Gradient_1")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_3"]
+direction = Vector3(0, 0, 1)
+spread = 4.0
+initial_velocity_min = 1.0
+initial_velocity_max = 3.0
+gravity = Vector3(0, 0.3, 0)
+scale_min = 0.5
+scale_max = 0.9
+color_ramp = SubResource("GradientTexture1D_2")
+
+[sub_resource type="QuadMesh" id="QuadMesh_4"]
+size = Vector2(0.7, 0.7)
+material = ExtResource("5")
+
+[node name="Shell" type="Node3D"]
+script = ExtResource("1")
+Gravity = 20
+BlastRadius = 22
+Shake = 0.9
+DirectHit = 0.6
+CraterSize = 9.5
+CraterDepth = 0.38
+WhistleLead = 2.3
+ImpactScene = ExtResource("2")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(0.55, 0, 0, 0, 0.55, 0, 0, 0, 0.7, 0, 0, 0)
+mesh = ExtResource("4")
+material_override = ExtResource("3")
+cast_shadow = 0
+
+[node name="Trail" type="GPUParticles3D" parent="."]
+amount = 24
+lifetime = 0.5
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_3")
+draw_pass_1 = SubResource("QuadMesh_4")
+
+[node name="Whistle" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("whistle")
+unit_size = 30
+max_distance = 700
+volume_db = -4
+pitch_scale = 1.35
+doppler_tracking = 2

@@ -18,6 +18,7 @@ emission_energy_multiplier = 7
 
 [node name="Medium_Laser" type="Node3D"]
 script = ExtResource("1")
+Kick = 0.04
 DisplayName = "Ср. лазер"
 Group = 1
 Kind = 0

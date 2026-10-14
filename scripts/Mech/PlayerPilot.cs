@@ -96,7 +96,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
     float BaseFov => GameConfig.Fov;
 
     Node3D _cockpit;
-    AudioStreamPlayer _lockSound;
+    AudioStreamPlayer _lockSound, _acquireSound, _killSound;
     Transform3D _aimView = Transform3D.Identity;
     float _lookYaw, _lookPitch;
     // Aircraft: how far left of the nose the mouse has asked it to turn; whether W/S hold the nose off level.
@@ -136,6 +136,8 @@ public partial class PlayerPilot : MechPilot, ICockpit
         Camera.Fov = BaseFov;
         Camera.MakeCurrent();
         _lockSound = GetNodeOrNull<AudioStreamPlayer>("LockSound");
+        _acquireSound = GetNodeOrNull<AudioStreamPlayer>("AcquireSound");
+        _killSound = GetNodeOrNull<AudioStreamPlayer>("TargetDownSound");
         _friendlyFire = GetNodeOrNull<AudioStreamPlayer>("FriendlyFireSound");
         Score.FriendlyFire += OnFriendlyFire;
         _cockpit = unit.CockpitInterior;
@@ -222,7 +224,13 @@ public partial class PlayerPilot : MechPilot, ICockpit
     public override void Think(float dt)
     {
         if (Game.Typing) return;
-        if (Target != null && (Target is not Node node || !IsInstanceValid(node) || Target.IsDestroyed)) SetTarget(null);
+        if (Target != null && (Target is not Node node || !IsInstanceValid(node) || Target.IsDestroyed))
+        {
+            // The one we had in the sight is down: a tone to say so.
+            if (Target is Node gone && IsInstanceValid(gone) && Target.IsDestroyed && Units.Hostile(Unit, Target))
+                _killSound?.Play();
+            SetTarget(null);
+        }
 
         bool g1 = Input.IsActionPressed("fire_group_1");
         bool g2 = Input.IsActionPressed("fire_group_2");
@@ -332,6 +340,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
         Target = target;
         Unit.LockTarget = null;
         LockProgress = 0f;
+        if (target != null) _acquireSound?.Play();
         target?.SetPreview(true, PreviewLayer);
     }
 

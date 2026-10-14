@@ -1,0 +1,33 @@
+[gd_scene format=3]
+
+[ext_resource type="AudioStream" path="res://audio/bomb_whistle.wav" id="whistle"]
+[ext_resource type="Script" path="res://scripts/Combat/Bomb.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/emp_burst.tscn" id="2"]
+[ext_resource type="Material" path="res://materials/sign_blue.tres" id="3"]
+[ext_resource type="ArrayMesh" path="res://models/small/bomb/Body.res" id="x3"]
+
+[node name="EmpBomb" type="Node3D"]
+script = ExtResource("1")
+Gravity = 20.0
+BlastRadius = 6.0
+CraterSize = 1.5
+MarkKind = 2
+EmpRadius = 160.0
+EmpTime = 16.0
+Shake = 0.3
+ImpactScene = ExtResource("2")
+
+[node name="Body" type="MeshInstance3D" parent="."]
+transform = Transform3D(1.4, 0, 0, 0, 1.4, 0, 0, 0, 1.4, 0, 0, 0)
+mesh = ExtResource("x3")
+material_override = ExtResource("3")
+cast_shadow = 0
+
+[node name="Whistle" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("whistle")
+unit_size = 40
+max_distance = 700
+volume_db = 0
+pitch_scale = 0.92
+doppler_tracking = 2
+autoplay = true

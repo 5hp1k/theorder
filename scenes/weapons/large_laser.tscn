@@ -18,6 +18,9 @@ emission_energy_multiplier = 7
 
 [node name="Large_Laser" type="Node3D"]
 script = ExtResource("1")
+Kick = 0.08
+RecoilTravel = 0.05
+RecoilReturn = 0.3
 DisplayName = "Бол. лазер"
 Group = 1
 Kind = 0

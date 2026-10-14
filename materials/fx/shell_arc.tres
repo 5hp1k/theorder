@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/fx/shell_arc.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/tint = Color(1, 0.75, 0.2, 0.9)
+shader_parameter/dash = 5.0
+shader_parameter/gap = 3.0
+shader_parameter/glow = 2.2

@@ -1,0 +1,44 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/barrel_smoke.tscn" id="barrel_smoke"]
+[ext_resource type="PackedScene" path="res://scenes/fx/muzzle_flash_large.tscn" id="flash"]
+[ext_resource type="PackedScene" path="res://scenes/fx/muzzle_smoke_large.tscn" id="smoke"]
+[ext_resource type="PackedScene" path="res://scenes/fx/shell.tscn" id="2"]
+[ext_resource type="AudioStream" path="res://audio/cannon.wav" id="3"]
+
+[node name="Howitzer" type="Node3D"]
+script = ExtResource("1")
+MuzzleFlash = ExtResource("flash")
+SmokeTime = 7
+MuzzleSmoke = ExtResource("smoke")
+Kick = 0.9
+RecoilTravel = 0.9
+RecoilReturn = 1.1
+DisplayName = "Гаубица"
+Group = 1
+Kind = 2
+Slot = 1
+Slots = 4
+Damage = 75
+Heat = 0.3
+Cooldown = 7
+Range = 550
+MaxAmmo = 24
+FxColor = Color(1, 0.8, 0.45, 1)
+Spread = 0.006
+ProjectileScene = ExtResource("2")
+SalvoSize = 1
+SalvoInterval = 0.1
+RackSize = Vector2(0, 0)
+MuzzleSpeed = 105
+ShellGravity = 20
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3")
+unit_size = 40
+max_distance = 900
+volume_db = 6
+pitch_scale = 0.45
+
+[node name="BarrelSmoke" parent="." instance=ExtResource("barrel_smoke")]

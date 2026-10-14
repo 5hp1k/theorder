@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="AudioStream" path="res://audio/bomb_whistle.wav" id="whistle"]
 [ext_resource type="Script" path="res://scripts/Combat/Bomb.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/fx/explosion_medium.tscn" id="2"]
 [ext_resource type="Material" path="res://materials/mech_joint.tres" id="3"]
@@ -15,3 +16,12 @@ ImpactScene = ExtResource("2")
 mesh = ExtResource("x3")
 material_override = ExtResource("3")
 cast_shadow = 0
+
+[node name="Whistle" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("whistle")
+unit_size = 40
+max_distance = 700
+volume_db = 0
+pitch_scale = 1.0
+doppler_tracking = 2
+autoplay = true

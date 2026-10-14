@@ -1,0 +1,38 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/barrel_smoke.tscn" id="barrel_smoke"]
+[ext_resource type="PackedScene" path="res://scenes/fx/muzzle_smoke.tscn" id="smoke"]
+[ext_resource type="PackedScene" path="res://scenes/fx/missile.tscn" id="2"]
+[ext_resource type="AudioStream" path="res://audio/missile_launch.wav" id="3"]
+
+[node name="Rocket_Battery" type="Node3D"]
+script = ExtResource("1")
+SmokeTime = 4
+MuzzleSmoke = ExtResource("smoke")
+Kick = 0.06
+DisplayName = "РСЗО"
+Group = 1
+Kind = 2
+Slot = 2
+Slots = 3
+Damage = 3.4
+Heat = 0.3
+Cooldown = 10
+Range = 650
+MaxAmmo = 10
+FxColor = Color(1, 0.7, 0.3, 1)
+ProjectileScene = ExtResource("2")
+SalvoSize = 12
+SalvoInterval = 0.13
+RackSize = Vector2(1.9, 0.9)
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3")
+unit_size = 22
+max_distance = 600
+volume_db = -3
+pitch_scale = 0.85
+max_polyphony = 6
+
+[node name="BarrelSmoke" parent="." instance=ExtResource("barrel_smoke")]

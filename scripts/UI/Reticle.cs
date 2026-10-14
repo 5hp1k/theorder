@@ -54,6 +54,15 @@ public partial class Reticle : HudWidget
         DrawLine(aim + new Vector2(0, 20), aim + new Vector2(0, 30), col, 2f);
         DrawCircle(aim, 2f, col);
 
+        // A howitzer's rangefinder: how far the sight's point is, how long the shell will fly, whether it gets there.
+        if (ShellArc.Active && Jam <= 0f)
+        {
+            Color tone = ShellArc.OnTarget ? Amber : Red;
+            string verdict = ShellArc.OnTarget ? $"ПОЛЁТ {ShellArc.FlightTime:0.0} с" : "НЕДОЛЁТ";
+            Text($"ДАЛЬНОМЕР {Mathf.RoundToInt(ShellArc.Range)} м   {verdict}", aim + new Vector2(-200f, 96f), 15, tone, HorizontalAlignment.Center, 400f);
+            if (!ShellArc.Loaded) Text("ЗАРЯЖАНИЕ", aim + new Vector2(-200f, 116f), 13, Dim, HorizontalAlignment.Center, 400f);
+        }
+
         if (Seat.Magnification > 1.15f)
             Text($"×{Seat.Magnification:0.0}", aim + new Vector2(38f, -24f), 14, Green);
 

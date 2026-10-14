@@ -1,10 +1,19 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/barrel_smoke_small.tscn" id="barrel_smoke"]
+[ext_resource type="PackedScene" path="res://scenes/fx/muzzle_flash_small.tscn" id="flash"]
+[ext_resource type="PackedScene" path="res://scenes/fx/muzzle_smoke_small.tscn" id="smoke"]
 [ext_resource type="AudioStream" path="res://audio/mg.wav" id="2"]
 
 [node name="Machine_Gun" type="Node3D"]
 script = ExtResource("1")
+MuzzleFlash = ExtResource("flash")
+SmokeTime = 1.5
+MuzzleSmoke = ExtResource("smoke")
+Kick = 0.012
+RecoilTravel = 0.02
+RecoilReturn = 0.06
 DisplayName = "Пулемёт"
 Group = 3
 Kind = 1
@@ -25,3 +34,5 @@ unit_size = 14
 max_distance = 400
 volume_db = -6
 max_polyphony = 4
+
+[node name="BarrelSmoke" parent="." instance=ExtResource("barrel_smoke")]

@@ -10,6 +10,9 @@ namespace MechSim;
 /// Scene layout: optional "Hull" (visual; tilts with the ground or banks in flight);
 /// optional "Turret" (turns) with "Gun" under it (elevates) and "CockpitCam" under that — without a
 /// turret, "CockpitCam" sits on the hull and the weapons point where the nose does;
+/// optional "Turret/Sight" with the "CockpitCam" on it instead (self-propelled artillery): the sight
+/// then follows the gunner's aim while the gun is laid by the fire control, at whatever elevation
+/// drops its shell on the point the sight is on (see <see cref="Ballistics"/>);
 /// Weapon nodes anywhere; nodes named "Rotor…" spin; nodes under "Hull" named "Wheel…" roll with the
 /// speed (their axle is their local X) and, on a vehicle without tracks, the front ones steer;
 /// "Belt" (a TrackBelt) under "TrackL" / "TrackR" is the track itself, drawn round the wheels of its side;
@@ -59,6 +62,13 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     /// <summary>Hitting anything faster than this wrecks an aircraft, m/s. A helicopter set down slower than this lands.</summary>
     [Export] public float CrashSpeed = 6f;
 
+    /// <summary>Share of its speed it keeps on running a tree down or a car over.</summary>
+    [Export(PropertyHint.Range, "0,1")] public float RamKeeps = 0.8f;
+
+    [ExportGroup("Recoil")]
+    /// <summary>How much the hull rocks to the kick of its own guns (less for something big and heavy).</summary>
+    [Export] public float RockScale = 1f;
+
     [ExportGroup("Suspension")]
     /// <summary>How far each wheel can move up and down from its rest position, metres.</summary>
     [Export] public float SuspensionTravel = 0.38f;
@@ -78,6 +88,13 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     [Export] public float PitchRate = 1.2f;
     [Export] public float MinPitch { get; set; } = -0.2f;
     [Export] public float MaxPitch { get; set; } = 0.5f;
+    /// <summary>With a "Turret/Sight": how far the gun itself can be raised and lowered, radians.</summary>
+    [Export] public float MinElevation = -0.05f;
+    [Export] public float MaxElevation = 1.25f;
+
+    [ExportGroup("Computer pilot")]
+    /// <summary>Distance a computer pilot fights from in this machine; 0 = its usual.</summary>
+    [Export] public float AiRange;
 
     [ExportGroup("Damage")]
     [Export] public Material CharredMaterial;
@@ -143,8 +160,14 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     public bool Descend { get; set; }
     public ITarget LockTarget { get; set; }
     public float Shake { get; set; }
+    /// <summary>
+    /// A point given to the fire control to shoot at whatever the sight itself is on — a computer
+    /// gunner firing over a hill at a target it has been told of. Set afresh every tick, or not at all.
+    /// </summary>
+    public Vector3? AimOverride { get; set; }
 
-    Node3D _hull, _turret, _gun;
+    Node3D _hull, _turret, _gun, _sight;
+    float _elevation;
     Vector3 _turretRest; // where the turret ring is on the hull
     readonly List<Node3D> _rotors = new();
     // Wheels: the node, its radius, and how far forward it sits (1 = front axle, 0 = middle and back).
@@ -174,7 +197,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     float _yaw, _pitch, _climb, _roll, _tilt;
     bool _falling, _avoiding;
     float _yawRate, _sink;
-    int _tick, _wake;
+    int _tick, _wake, _ram;
 
     void FindWheels()
     {
@@ -210,6 +233,31 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 
     /// <summary>Half the distance between the two tracks.</summary>
     float TrackGauge => _belts.Count > 0 ? Mathf.Abs(_belts[0].belt.Position.X) : 0f;
+
+    Grime _grime;
+    Node3D _barrel;
+    Vector3 _barrelRest;
+    float _barrelRecoil, _barrelReturn, _rock, _rockVel, _rollKick, _rollKickVel;
+
+    /// <summary>
+    /// A gun has fired: the hull rocks away from it on its springs (back if it fired ahead, over to the
+    /// side if it fired abeam), and if it is the turret's own gun, the barrel runs back and out again.
+    /// </summary>
+    void OnFired(Weapon w)
+    {
+        if (_gun != null && _barrel != null && w.RecoilTravel > 0f && _gun.IsAncestorOf(w))
+        {
+            _barrelRecoil = Mathf.Max(_barrelRecoil, w.RecoilTravel);
+            _barrelReturn = w.RecoilTravel / Mathf.Max(w.RecoilReturn, 0.05f);
+        }
+        if (w.Kick <= 0f || IsAircraft || _hull == null) return;
+        // Which way it fired, in the hull's own axes.
+        Vector3 aim = _hull.GlobalBasis.Orthonormalized().Inverse() * -w.GlobalBasis.Z.Normalized();
+        float k = w.Kick * RockScale;
+        _rockVel += k * -aim.Z;
+        _rollKickVel += k * aim.X;
+        Shake += k * 0.3f;
+    }
 
     /// <summary>Draws each track round its wheels where they are now.</summary>
     void LayTracks()
@@ -286,6 +334,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     public override void _ExitTree()
     {
         Units.All.Remove(this);
+        _grime?.Forget();
         if (Game.PlayerUnit == this) Game.PlayerUnit = null;
     }
 
@@ -294,8 +343,9 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         _hull = GetNodeOrNull<Node3D>("Hull");
         _turret = GetNodeOrNull<Node3D>("Turret");
         _gun = GetNodeOrNull<Node3D>("Turret/Gun");
+        _sight = GetNodeOrNull<Node3D>("Turret/Sight");
         if (_turret != null) _turretRest = _turret.Position;
-        AimAnchor = GetNodeOrNull<Node3D>("Turret/Gun/CockpitCam") ?? GetNodeOrNull<Node3D>("Hull/CockpitCam") ?? GetNode<Node3D>("CockpitCam");
+        AimAnchor = GetNodeOrNull<Node3D>("Turret/Sight/CockpitCam") ?? GetNodeOrNull<Node3D>("Turret/Gun/CockpitCam") ?? GetNodeOrNull<Node3D>("Hull/CockpitCam") ?? GetNode<Node3D>("CockpitCam");
         _engine = GetNodeOrNull<AudioStreamPlayer3D>("Sounds/Engine");
         foreach (var node in Geo.Collect<Node3D>(this))
             if (node.Name.ToString().StartsWith("Rotor")) _rotors.Add(node);
@@ -331,6 +381,10 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         }
         _exclude.Add(GetRid());
         Weapons = new WeaponSystem(this, GetParent(), _exclude);
+        Weapons.Fired += OnFired;
+        _grime = new Grime(this);
+        _barrel = GetNodeOrNull<Node3D>("Turret/Gun/Mantlet");
+        if (_barrel != null) _barrelRest = _barrel.Position;
 
         foreach (Node child in GetChildren())
             if (child is MechPilot pilot) Pilot = pilot;
@@ -396,6 +450,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 
         TurnInput = 0f;
         Fire1 = Fire2 = Fire3 = Jump = Descend = false;
+        AimOverride = null;
         Pilot?.Think(dt);
         if (_repairLeft > 0f)
         {
@@ -421,6 +476,9 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         // Each about its own mast (the tail rotor's lies across the boom).
         foreach (var rotor in _rotors) rotor.RotateObjectLocal(Vector3.Up, 28f * dt);
         TurnWheels(dt);
+        _grime.Update(dt, Mathf.Clamp(Mathf.Abs(Speed) / Mathf.Max(MaxForwardSpeed, 1f), 0f, 1f) * (IsAircraft ? 0f : 1f));
+        _barrelRecoil = Mathf.MoveToward(_barrelRecoil, 0f, _barrelReturn * dt);
+        if (_barrel != null) _barrel.Position = _barrelRest + Vector3.Back * _barrelRecoil;
         Pilot?.UpdateView(dt);
         UpdateAim(space);
 
@@ -482,8 +540,8 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             }
         }
 
-        // Ships need way on to answer the helm; tracked things can turn on the spot.
-        float steer = Kind == MoveKind.Ship ? Mathf.Clamp(Mathf.Abs(Speed) / (MaxForwardSpeed * 0.3f), 0.15f, 1f) : 1f;
+        // Ships need way on to answer the helm (their bow thrusters swing them slowly when stopped); tracked things can turn on the spot.
+        float steer = Kind == MoveKind.Ship ? Mathf.Clamp(Mathf.Abs(Speed) / (MaxForwardSpeed * 0.3f), 0.35f, 1f) : 1f;
         float wantTurn = Mathf.Clamp(TurnInput, -1f, 1f) * TurnRate * steer;
         if (Kind != MoveKind.Ship && !afloat)
         {
@@ -507,6 +565,17 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         Velocity = v;
         FloorSnapLength = afloat ? 0f : 0.6f;
         MoveAndSlide();
+
+        // Driven at, trees go down and cars are crushed under the hull (rocks and bridges are another matter).
+        if (Kind != MoveKind.Ship && !afloat && Mathf.Abs(Throttle) > 0.1f && (++_ram % 4) == 0)
+        {
+            Vector3 way = forward * Mathf.Sign(Throttle);
+            if (Destructible.TrampleAround(GlobalPosition + way * (HalfExtents.Y * 0.8f), HalfExtents.X + 0.25f, way) > 0)
+            {
+                Speed *= RamKeeps;
+                Shake += 0.25f;
+            }
+        }
 
         if (depth > 0.2f && Mathf.Abs(Speed) > 1f && (++_wake & 31) == 0) WaterSurface.AddRipple(GlobalPosition, afloat ? 1.5f : 0.8f);
 
@@ -535,7 +604,12 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         float accel = (Speed - _lastSpeed) / Mathf.Max(dt, 1e-4f);
         _lastSpeed = Speed;
         _squat = Mathf.Lerp(_squat, afloat ? 0f : Mathf.Clamp(accel * BodyPitchPerAccel, -0.09f, 0.09f), 1f - Mathf.Exp(-5f * dt));
-        _hull.Rotation = new Vector3(_tilt + _squat, 0f, _roll);
+        // Rocked by its own guns: a damped swing on the springs.
+        _rockVel += (-_rock * 70f - _rockVel * 7f) * dt;
+        _rock += _rockVel * dt;
+        _rollKickVel += (-_rollKick * 70f - _rollKickVel * 7f) * dt;
+        _rollKick += _rollKickVel * dt;
+        _hull.Rotation = new Vector3(_tilt + _squat + _rock, 0f, _roll + _rollKick);
         Suspend(dt, afloat);
     }
 
@@ -733,10 +807,17 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         }
         else _yaw = Mathf.MoveToward(_yaw, Mathf.Clamp(TargetYaw, -MaxTwist, MaxTwist), TwistRate * dt);
         _pitch = Mathf.MoveToward(_pitch, Mathf.Clamp(TargetPitch, MinPitch, MaxPitch), PitchRate * dt);
+        // Artillery: the sight takes the gunner's aim, the gun is laid for the shell's arc.
+        Node3D aimed = _sight ?? _gun;
+        if (_sight != null && _gun != null)
+        {
+            _elevation = Mathf.MoveToward(_elevation, Mathf.Clamp(LaidElevation(), MinElevation, MaxElevation), PitchRate * dt);
+            _gun.Rotation = new Vector3(_elevation, 0f, 0f);
+        }
         if (_hull == null || _turret.GetParent() != this)
         {
             _turret.Rotation = new Vector3(0f, _yaw, 0f);
-            if (_gun != null) _gun.Rotation = new Vector3(_pitch, 0f, 0f);
+            if (aimed != null) aimed.Rotation = new Vector3(_pitch, 0f, 0f);
             return;
         }
         // The turret sits on the hull and leans with it — over bumps, on slopes, banking in the air —
@@ -748,11 +829,29 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         float traverse = Mathf.Atan2(-local.X, -local.Z);
         float elevation = Mathf.Atan2(local.Y, new Vector2(local.X, local.Z).Length());
         _turret.Transform = lean * new Transform3D(new Basis(Vector3.Up, traverse), _turretRest);
-        if (_gun != null) _gun.Rotation = new Vector3(elevation, 0f, 0f);
+        if (aimed != null) aimed.Rotation = new Vector3(elevation, 0f, 0f);
+    }
+
+    /// <summary>The elevation that throws the gun's shell onto the point the sight is on; level with nothing to throw.</summary>
+    float LaidElevation()
+    {
+        foreach (var w in Weapons.Weapons)
+        {
+            if (!w.Lobbed || w.Destroyed) continue;
+            Vector3 v = Ballistics.Lay(w.GlobalPosition, AimPoint, w.MuzzleSpeed, w.ShellGravity, out _);
+            return Mathf.Atan2(v.Y, new Vector2(v.X, v.Z).Length());
+        }
+        return _pitch;
     }
 
     void UpdateAim(PhysicsDirectSpaceState3D space)
     {
+        if (AimOverride is { } told)
+        {
+            AimPoint = told;
+            AimCollider = null;
+            return;
+        }
         // The AI can do with a shorter sight line, checked every other tick.
         bool player = Pilot is PlayerPilot;
         if (!player && (++_tick & 1) == 1) return;
@@ -876,6 +975,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         for (int i = 0; i < _meshes.Count; i++) _meshes[i].MaterialOverride = _original[i];
         Hp = MaxHp;
         Weapons.Rearm();
+        _grime.Clean();
     }
 
     /// <summary>Being worked on at a repair bay: switched off until it is done.</summary>
@@ -925,7 +1025,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         Velocity = Vector3.Zero;
         Speed = Kind == MoveKind.Plane ? MaxForwardSpeed * 0.8f : 0f;
         Throttle = Kind == MoveKind.Plane ? 0.7f : 0f;
-        _yaw = _pitch = _climb = _roll = _tilt = _yawRate = _sink = _squat = 0f;
+        _yaw = _pitch = _elevation = _climb = _roll = _tilt = _yawRate = _sink = _squat = 0f;
         _avoiding = false;
         TargetYaw = TargetPitch = 0f;
         _falling = false;

@@ -27,6 +27,8 @@ public static class Catalog
             "Мех, средний, 50 т. Быстрый рукопашник (74 км/ч): булава в правой руке, кулак и щит на левой, ракеты ближнего боя на плече, лазер в груди. Прыжковые двигатели."),
         new("cleaver", "Секач", "res://scenes/mech/cleaver.tscn",
             "Мех, средний, 45 т. Рукопашник: топор в правой руке (группа 3), автопушка и пулемёт в левой, лазер в груди, прыжковые двигатели."),
+        new("agni", "Агни", "res://scenes/mech/agni.tscn",
+            "Мех, лёгкий, 35 т. Самый быстрый (97 км/ч) поджигатель: огнемёты в руках перегревают противника до отключения реактора. Все точки подвески универсальные. Прыжковые двигатели, броня тонкая."),
     };
 
     public static readonly Entry[] Vehicles =
@@ -37,12 +39,16 @@ public static class Catalog
             "Колёсный бронетранспортёр: быстрый, с автопушкой и пулемётом, броня слабая.", Kind.Ground),
         new("amphibian", "Танк-амфибия", "res://scenes/vehicles/amphibian.tscn",
             "Лёгкий танк, который плавает: реки и море ему не преграда.", Kind.Ground),
+        new("spg", "Самоходная гаубица", "res://scenes/vehicles/spg.tscn",
+            "Гусеничная артиллерия: гаубица бьёт навесом на полкарты, оставляет большие воронки и сносит дома. Наводите прицел на точку — дальномер покажет расстояние и время полёта, дуга — путь снаряда и место падения. Медленная, броня слабая.", Kind.Ground),
+        new("mlrs", "Реактивная установка", "res://scenes/vehicles/mlrs.tscn",
+            "Гусеничная РСЗО: залп из двенадцати самонаводящихся ракет. Возьмите цель (E / T / Q) и держите на ней прицел до надписи «ЗАХВАТ». Броня слабая.", Kind.Ground),
         new("ship", "Сторожевой корабль", "res://scenes/vehicles/ship.tscn",
             "Ходит только по воде (лучше всего на «Побережье»): орудийная башня, ракеты и пулемёт.", Kind.Water),
         new("helicopter", "Вертолёт", "res://scenes/vehicles/helicopter.tscn",
             "Пробел — вверх, Shift — вниз. Подвижный пулемёт и ракеты.", Kind.Air),
         new("bomber", "Бомбардировщик", "res://scenes/vehicles/bomber.tscn",
-            "Летит всегда. Клавишами: A/D — разворот, W/S — нос вниз и вверх, Shift/Ctrl — тяга. Или мышью: ведите её туда, куда лететь. Пробел (держать) — осмотреться. Курсовая пушка, бомбы (группа 2) и тактическая ядерная бомба (группа 3): сбросив, уходите на полной тяге.", Kind.Air),
+            "Летит всегда. Клавишами: A/D — разворот, W/S — нос вниз и вверх, Shift/Ctrl — тяга. Или мышью: ведите её туда, куда лететь. Пробел (держать) — осмотреться. Курсовая пушка, бомбы и ЭМИ-бомбы (группа 2: ЭМИ выводит из строя электронику машин вокруг) и тактическая ядерная бомба (группа 3): сбросив, уходите на полной тяге.", Kind.Air),
     };
 
     public const string InfantryId = "infantry";
@@ -72,16 +78,20 @@ public static class Catalog
         new("small_laser", "Малый лазер", "res://scenes/weapons/small_laser.tscn"),
         new("medium_laser", "Средний лазер", "res://scenes/weapons/medium_laser.tscn"),
         new("large_laser", "Большой лазер", "res://scenes/weapons/large_laser.tscn"),
+        new("flamethrower", "Огнемёт", "res://scenes/weapons/flamethrower.tscn"),
         new("ppc", "Протонная пушка (ППЦ)", "res://scenes/weapons/ppc.tscn"),
         new("machine_gun", "Пулемёт", "res://scenes/weapons/machine_gun.tscn"),
         new("autocannon", "Автопушка", "res://scenes/weapons/autocannon.tscn"),
         new("heavy_cannon", "Тяжёлая пушка", "res://scenes/weapons/heavy_cannon.tscn"),
+        new("howitzer", "Гаубица", "res://scenes/weapons/howitzer.tscn"),
         new("srm", "Ракеты ближнего боя", "res://scenes/weapons/srm.tscn"),
         new("lrm", "Ракеты дальнего боя (10)", "res://scenes/weapons/lrm.tscn"),
+        new("rocket_battery", "Реактивная батарея (12)", "res://scenes/weapons/rocket_battery.tscn"),
         new("fist", "Штурмовой кулак", "res://scenes/weapons/fist.tscn"),
         new("mace", "Булава", "res://scenes/weapons/mace.tscn"),
         new("hatchet", "Топор", "res://scenes/weapons/hatchet.tscn"),
         new("bomb_rack", "Бомбы", "res://scenes/weapons/bomb_rack.tscn"),
+        new("emp_rack", "ЭМИ-бомбы", "res://scenes/weapons/emp_rack.tscn"),
         new("nuke_rack", "Тактическая ядерная бомба", "res://scenes/weapons/nuke_rack.tscn"),
     };
 

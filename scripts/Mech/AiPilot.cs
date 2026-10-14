@@ -92,6 +92,7 @@ public partial class AiPilot : MechPilot
     float _strafeSign = 1f, _strafeTimer, _stuck;
     Vector3 _aimOffset, _aimOffsetGoal;
     float _aimTimer, _jumpLeft, _egress, _lock;
+    bool _laid;
 
     /// <summary>Seconds the guns must stay on the target before its missiles will home.</summary>
     [Export] public float LockTime = 1.8f;
@@ -116,6 +117,13 @@ public partial class AiPilot : MechPilot
     float _nukeTimer;
     bool _brawler;
     Vehicle _plane;
+    /// <summary>A ship: keeps to water deep enough for its keel, whatever it is after.</summary>
+    Vehicle _ship;
+    Vector3 _safeWay;
+    float _safeTimer, _aground, _backOff, _sternStuck, _turnAway = 1f;
+    bool _ahead;
+    /// <summary>Artillery or a rocket launcher: it fires over the ground between, at targets it is told of rather than sees.</summary>
+    Vehicle _battery;
 
     Vector3 Here => Unit.GlobalPosition;
 
@@ -126,7 +134,16 @@ public partial class AiPilot : MechPilot
         foreach (var w in unit.Weapons.Weapons) _brawler |= w.Kind == WeaponKind.Melee && w.Damage > 20f;
         unit.Weapons.MeleeInReachOnly = true;
         unit.Weapons.HoldStrategic = true;
+        unit.Weapons.HoldEmp = !GameConfig.BotEmp;
         if (unit is Vehicle { Kind: Vehicle.MoveKind.Plane } plane) _plane = plane;
+        if (unit is Vehicle { Kind: Vehicle.MoveKind.Ship } ship) _ship = ship;
+        // Artillery and rocket launchers stand off, and are told of targets that far away.
+        if (unit is Vehicle { AiRange: > 0f } gunner)
+        {
+            _battery = gunner;
+            PreferredRange = gunner.AiRange;
+            SensorRange = Mathf.Max(SensorRange, gunner.AiRange * 1.3f);
+        }
         _strafeSign = GD.Randf() < 0.5f ? -1f : 1f;
         _wait = GD.Randf() * 3f;
         PickWaypoint();
@@ -144,7 +161,7 @@ public partial class AiPilot : MechPilot
         Perceive(dt, alive);
         // Missile lock, earned the same way the player earns it: by holding the sight on the target.
         // (With its electronics burnt out by a pulse there is no lock to be had.)
-        bool onTarget = alive && !Emp.Jammed(Unit) && Units.FromCollider(Unit.AimCollider) == _target;
+        bool onTarget = alive && !Emp.Jammed(Unit) && (Units.FromCollider(Unit.AimCollider) == _target || (_battery != null && _laid));
         if (Emp.Jammed(Unit)) _lock = 0f;
         _lock = Mathf.Clamp(_lock + (onTarget ? dt / LockTime : -dt * 1.5f), 0f, 1f);
         Unit.LockTarget = _lock >= 1f ? _target : null;
@@ -246,8 +263,8 @@ public partial class AiPilot : MechPilot
             _seesTarget = alive
                 // Sensors dead (a pulse): only what the pilot's own eyes make out.
                 && Here.DistanceTo(_target.GlobalPosition) < SensorRange * (Emp.Jammed(Unit) ? BlindSight : 1f)
-                // Terrain and rocks block sensors.
-                && !Phys.Ray(Unit.Body.GetWorld3D().DirectSpaceState, Unit.AimCenter, _target.AimCenter, Phys.LayerWorld, Phys.NoExclude, out _);
+                // Terrain and rocks block sensors (a battery is passed its targets by those who do see them).
+                && (_battery != null && !Emp.Jammed(Unit) || !Phys.Ray(Unit.Body.GetWorld3D().DirectSpaceState, Unit.AimCenter, _target.AimCenter, Phys.LayerWorld, Phys.NoExclude, out _));
         }
         if (_seesTarget && alive)
         {
@@ -312,7 +329,8 @@ public partial class AiPilot : MechPilot
         Unit.TargetYaw = 0f;
         Unit.TargetPitch = 0f;
         Steer(_waypoint - Here, PatrolThrottle, dt);
-        if (FlatDistance(_waypoint) < 10f || Unit.Blocked)
+        // (A ship with its bow on a shoal is not "there": it backs off and tries again, see Steer.)
+        if (FlatDistance(_waypoint) < 10f || (Unit.Blocked && _ship == null))
         {
             _wait = (float)GD.RandRange(2.0, 5.0);
             PickWaypoint();
@@ -394,13 +412,29 @@ public partial class AiPilot : MechPilot
             _aimOffsetGoal = new Vector3((float)GD.RandRange(-1.0, 1.0), (float)GD.RandRange(-0.7, 0.7), (float)GD.RandRange(-1.0, 1.0)) * spread;
         }
         _aimOffset = _aimOffset.Lerp(_aimOffsetGoal, 1f - Mathf.Exp(-3f * dt));
+        _laid = false;
+        if (_battery != null)
+        {
+            // Indirect fire: the gun is laid on the target's place by the fire control (a howitzer), or the
+            // launcher is tipped up to send its rockets over whatever lies between; it fires once the
+            // turret has come round, with no need of a line of sight. Not at anything right on top of it.
+            Vector3 mark = _target.GlobalPosition + _aimOffset;
+            bool lobs = false;
+            foreach (var w in Unit.Weapons.Weapons) lobs |= w.Lobbed;
+            if (lobs) _battery.AimOverride = mark;
+            AimAt(lobs ? mark : _target.AimCenter + Vector3.Up * (dist * 0.3f));
+            _laid = Mathf.Abs(Mathf.AngleDifference(Unit.TorsoYaw, Unit.TargetYaw)) < 0.06f;
+            Unit.Fire1 = _laid && dist > 45f && dist < PreferredRange * 1.6f && (lobs || Unit.LockTarget != null);
+            Unit.Fire2 = Unit.Fire3 = false;
+            return;
+        }
         AimAt(_target.AimCenter + _aimOffset);
 
         // Shoot only when the guns are actually on the target (this is also the line-of-fire check).
         if (Units.FromCollider(Unit.AimCollider) == _target)
         {
             Unit.Fire1 = !hot;
-            Unit.Fire2 = dist < 400f;
+            Unit.Fire2 = dist < Mathf.Max(400f, PreferredRange * 1.4f);
             // Machine guns and hand weapons; the weapons themselves refuse a swing out of reach.
             Unit.Fire3 = dist < 250f;
         }
@@ -518,6 +552,35 @@ public partial class AiPilot : MechPilot
     {
         direction.Y = 0f;
         if (direction.LengthSquared() < 1e-4f) return;
+        if (_ship != null)
+        {
+            // Run aground anyway: go astern for a while, swinging the bow round, then try again.
+            _aground = Unit.Blocked ? _aground + dt : Mathf.Max(0f, _aground - dt);
+            if (_aground > 0.8f)
+            {
+                _backOff = 4f;
+                _aground = 0f;
+                // Swing the bow towards the deeper side.
+                _turnAway = DeeperSide();
+            }
+            if (_backOff > 0f)
+            {
+                _backOff -= dt;
+                // Shoal astern as well: ahead slowly instead, still swinging round — and back again if that grounds too.
+                _sternStuck = Unit.Blocked ? _sternStuck + dt : 0f;
+                if (_sternStuck > 0.6f)
+                {
+                    _sternStuck = 0f;
+                    _ahead = !_ahead;
+                }
+                float gear = _ahead ? 0.35f : -Unit.ReverseFraction;
+                Unit.Throttle = Mathf.MoveToward(Unit.Throttle, gear, Unit.ThrottleRate * dt);
+                Unit.TurnInput = _turnAway;
+                if (_backOff <= 0f) _ahead = false;
+                return;
+            }
+            direction = SeaWay(direction, dt);
+        }
         Vector3 forward = -Unit.Body.GlobalTransform.Basis.Z;
         float angle = forward.SignedAngleTo(direction.Normalized(), Vector3.Up); // positive = to the left
         Unit.TurnInput = Mathf.Clamp(angle * 2.5f, -1f, 1f);
@@ -542,9 +605,65 @@ public partial class AiPilot : MechPilot
 
     void PickWaypoint()
     {
-        float angle = GD.Randf() * Mathf.Tau;
-        float dist = Mathf.Sqrt(GD.Randf()) * PatrolRadius;
-        _waypoint = _home + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * dist;
+        for (int tries = 0; tries < 12; tries++)
+        {
+            float angle = GD.Randf() * Mathf.Tau;
+            // (A ship ranges further: there is more sea than a patrol circle.)
+            float dist = Mathf.Sqrt(GD.Randf()) * PatrolRadius * (_ship != null ? 2.5f : 1f);
+            _waypoint = _home + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * dist;
+            if (_ship == null || Navigable(_waypoint)) return;
+        }
+        // No open water near (a ship that has wandered up a river): make for the open sea.
+        _waypoint = _ship != null ? MapTerrain.Instance?.RandomSeaSpot(24f) ?? _home : _home;
+    }
+
+    /// <summary>+1 if there is more water to the left of the ship than to its right, -1 otherwise.</summary>
+    float DeeperSide()
+    {
+        var terrain = MapTerrain.Instance;
+        if (terrain == null) return 1f;
+        Basis b = Unit.Body.GlobalTransform.Basis;
+        float left = 0f, right = 0f;
+        foreach (float d in new[] { 15f, 30f, 45f })
+        {
+            Vector3 l = Here - b.X * d, r = Here + b.X * d;
+            left += terrain.WaterDepthAt(l.X, l.Z);
+            right += terrain.WaterDepthAt(r.X, r.Z);
+        }
+        return left >= right ? 1f : -1f;
+    }
+
+    /// <summary>Deep enough for the ship's keel, and inside the map.</summary>
+    bool Navigable(Vector3 p)
+    {
+        var terrain = MapTerrain.Instance;
+        if (terrain == null) return true;
+        float edge = terrain.PlayHalf - 10f;
+        return Mathf.Abs(p.X) < edge && Mathf.Abs(p.Z) < edge && terrain.WaterDepthAt(p.X, p.Z) > _ship.Draft + 0.8f;
+    }
+
+    /// <summary>
+    /// The heading a ship takes for the one it wants: that one if the water ahead is deep enough for a
+    /// good way, otherwise the nearest to it that is (looked for a few times a second, both ways round).
+    /// A target on land is shot at from the water's edge, not run at.
+    /// </summary>
+    Vector3 SeaWay(Vector3 want, float dt)
+    {
+        _safeTimer -= dt;
+        if (_safeTimer > 0f && _safeWay != Vector3.Zero) return _safeWay;
+        _safeTimer = 0.25f;
+        want = want.Normalized();
+        float look = _ship.BowDistance + Mathf.Max(Mathf.Abs(Unit.Speed) * 3f, 15f);
+        foreach (float turn in new[] { 0f, 0.35f, -0.35f, 0.7f, -0.7f, 1.05f, -1.05f, 1.4f, -1.4f, 1.8f, -1.8f, 2.3f, -2.3f, 2.8f, -2.8f, Mathf.Pi })
+        {
+            Vector3 way = want.Rotated(Vector3.Up, turn);
+            bool clear = true;
+            for (int k = 1; k <= 4 && clear; k++) clear = Navigable(Here + way * (look * k / 4f));
+            if (!clear) continue;
+            return _safeWay = way;
+        }
+        // Hemmed in: back the way it came.
+        return _safeWay = Unit.Body.GlobalTransform.Basis.Z;
     }
 
     float FlatDistance(Vector3 point)

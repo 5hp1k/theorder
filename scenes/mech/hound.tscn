@@ -95,22 +95,22 @@ size = Vector3(0.8, 0.88, 2.24)
 size = Vector2(0.64, 0.64)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_42"]
-size = Vector3(0.76, 2.484, 0.92)
+size = Vector3(0.988, 2.484, 1.196)
 
 [sub_resource type="QuadMesh" id="QuadMesh_44"]
 size = Vector2(0.6, 0.6)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_45"]
-size = Vector3(0.6, 2.668, 0.68)
+size = Vector3(0.852, 2.668, 0.9656)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_54"]
-size = Vector3(0.76, 2.484, 0.92)
+size = Vector3(0.988, 2.484, 1.196)
 
 [sub_resource type="QuadMesh" id="QuadMesh_56"]
 size = Vector2(0.6, 0.6)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_57"]
-size = Vector3(0.6, 2.668, 0.68)
+size = Vector3(0.852, 2.668, 0.9656)
 
 [sub_resource type="Gradient" id="Gradient_66"]
 offsets = PackedFloat32Array(0, 0.1, 0.55, 1)
@@ -196,9 +196,9 @@ Deceleration = 13
 TurnRateStanding = 1.9
 TurnRateFull = 1.2
 ThrottleRate = 1.2
-StepLength = 5.8
+StepLength = 7.6
 StepHeight = 0.9
-RunSwing = 0.58
+RunSwing = 0.62
 BodySway = 0.2
 TwistRate = 3
 ArmorScale = 0.75
@@ -428,7 +428,7 @@ material_override = ExtResource("16")
 cast_shadow = 0
 
 [node name="HomeL" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.28, 0, -0.552)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.28, 0, -0.2)
 
 [node name="LegL" type="Node3D" parent="."]
 script = ExtResource("19")
@@ -441,6 +441,11 @@ MetaLength = 1.472
 AnkleHeight = 0.28
 MetaRestAngle = 0.62
 MetaSwingAngle = 0.55
+ToeReach = 1.41783
+HeelReach = 1.48378
+HeelOffAngle = 0.3
+HeelStrikeAngle = 0.14
+ToeHang = 0.5
 
 [node name="Thigh" type="Node3D" parent="LegL"]
 transform = Transform3D(0.99916, -0.04088, 0, -0.02938, -0.71821, 0.69521, -0.02842, -0.69463, -0.71881, -1.13077, 4.09999, -0.86273)
@@ -465,7 +470,7 @@ mesh = ExtResource("x20")
 material_override = ExtResource("2")
 
 [node name="Insignia" type="MeshInstance3D" parent="LegL/Thigh"]
-transform = Transform3D(0, 0, -1, 0, -1, 0, -1, 0, 0, -0.433, -0.322, 0)
+transform = Transform3D(0, 0, -1, 0, -1, 0, -1, 0, 0, -0.5614, -0.322, 0)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_44")
@@ -531,7 +536,7 @@ mesh = ExtResource("x37")
 material_override = ExtResource("2")
 
 [node name="HomeR" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.28, 0, -0.552)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.28, 0, -0.2)
 
 [node name="LegR" type="Node3D" parent="."]
 script = ExtResource("19")
@@ -544,6 +549,11 @@ MetaLength = 1.472
 AnkleHeight = 0.28
 MetaRestAngle = 0.62
 MetaSwingAngle = 0.55
+ToeReach = 1.41783
+HeelReach = 1.48378
+HeelOffAngle = 0.3
+HeelStrikeAngle = 0.14
+ToeHang = 0.5
 
 [node name="Thigh" type="Node3D" parent="LegR"]
 transform = Transform3D(0.99916, 0.04088, 0, 0.02938, -0.71821, 0.69521, 0.02842, -0.69463, -0.71881, 1.13077, 4.09999, -0.86273)
@@ -568,7 +578,7 @@ mesh = ExtResource("x22")
 material_override = ExtResource("2")
 
 [node name="Insignia" type="MeshInstance3D" parent="LegR/Thigh"]
-transform = Transform3D(0, 0, 1, 0, -1, 0, 1, 0, 0, 0.433, -0.322, 0)
+transform = Transform3D(0, 0, 1, 0, -1, 0, 1, 0, 0, 0.5614, -0.322, 0)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_56")

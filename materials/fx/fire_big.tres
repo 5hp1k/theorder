@@ -1,0 +1,11 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/fx/fire.gdshader" id="1"]
+
+[resource]
+shader = ExtResource("1")
+shader_parameter/heat = 1.4
+shader_parameter/rise = 1.6
+shader_parameter/puff = 0.0
+shader_parameter/core_tint = Color(1, 0.8, 0.45, 1)
+shader_parameter/core_mix = 0.55

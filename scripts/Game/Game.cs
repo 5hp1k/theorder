@@ -281,12 +281,13 @@ public partial class Game : Node3D
 
     void SpawnEnemies()
     {
-        int mechs = GameConfig.EnemyCount;
+        // Only the machines ticked on the battle page take the field.
+        var mechPool = GameConfig.EnemyPool(Catalog.Mechs);
+        var vehiclePool = GameConfig.EnemyPool(Catalog.Vehicles);
+        int mechs = mechPool.Length > 0 ? GameConfig.EnemyCount : 0;
         for (int i = 0; i < mechs; i++)
         {
-            var entry = GameConfig.EnemyMechId == "random"
-                ? Catalog.Mechs[GD.Randi() % (uint)Catalog.Mechs.Length]
-                : Catalog.Find(Catalog.Mechs, GameConfig.EnemyMechId);
+            var entry = mechPool[GD.Randi() % (uint)mechPool.Length];
             var mech = GD.Load<PackedScene>(entry.Path).Instantiate<Mech>();
             mech.Team = Team.Enemy;
             mech.DisplayName = $"{entry.Name}-{i + 1}";
@@ -301,13 +302,13 @@ public partial class Game : Node3D
         // Vehicles: whatever the map can take. Ships and amphibians only where there's water to start in.
         var terrain = MapTerrain.Instance;
         bool hasWater = terrain != null && terrain.HasWater;
-        for (int i = 0; i < GameConfig.EnemyVehicleCount; i++)
+        for (int i = 0; i < GameConfig.EnemyVehicleCount && vehiclePool.Length > 0; i++)
         {
             Catalog.Entry entry = null;
             Vector3 position = default;
             for (int tries = 0; tries < 8 && entry == null; tries++)
             {
-                var pick = Catalog.Vehicles[GD.Randi() % (uint)Catalog.Vehicles.Length];
+                var pick = vehiclePool[GD.Randi() % (uint)vehiclePool.Length];
                 if (pick.Kind == Catalog.Kind.Water)
                 {
                     // Ships belong at sea: none on maps without one.

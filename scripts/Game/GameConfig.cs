@@ -35,14 +35,32 @@ public static class GameConfig
     /// <summary>Tanks, aircraft and so on, on top of the mechs.</summary>
     public static int EnemyVehicleCount = 2;
     public static bool EnemyRespawn = true;
-    /// <summary>A mech id, or "random".</summary>
-    public static string EnemyMechId = "random";
+    /// <summary>
+    /// Mechs and vehicles the enemy does not field (catalog ids): the boxes left unticked on the battle
+    /// page. Everything else — anything added to the catalog later included — may be spawned.
+    /// </summary>
+    public static readonly HashSet<string> EnemyExcluded = new();
+
+    /// <summary>Those of a catalog list the enemy may field.</summary>
+    public static Catalog.Entry[] EnemyPool(Catalog.Entry[] list)
+        => System.Array.FindAll(list, e => !EnemyExcluded.Contains(e.Id));
+
+    /// <summary>Leaves the enemy just one sort of mech (or, with "random", all of them).</summary>
+    static void OnlyEnemyMech(string id)
+    {
+        foreach (var e in Catalog.Mechs) EnemyExcluded.Remove(e.Id);
+        if (id == "random" || Catalog.Find(Catalog.Mechs, id).Id != id) return;
+        foreach (var e in Catalog.Mechs)
+            if (e.Id != id) EnemyExcluded.Add(e.Id);
+    }
     /// <summary>0 = easy, 1 = normal, 2 = hard: scales enemy weapon damage.</summary>
     public static int Difficulty = 1;
     /// <summary>Free-for-all: the bots also shoot each other.</summary>
     public static bool BotsFight;
     /// <summary>Whether computer pilots may drop the nuclear bomb (once a battle, on a cluster of targets).</summary>
     public static bool BotNukes;
+    /// <summary>Whether computer pilots drop electromagnetic bombs.</summary>
+    public static bool BotEmp = true;
     /// <summary>Battle length in minutes; 0 = no limit.</summary>
     public static int TimeLimitMinutes;
     /// <summary>A mech's foot coming down on a tank or an armoured car destroys it (and they don't block mechs).</summary>
@@ -168,10 +186,15 @@ public static class GameConfig
             EnemyCount = (int)cfg.GetValue("battle", "enemy_count", EnemyCount);
             EnemyVehicleCount = (int)cfg.GetValue("battle", "enemy_vehicles", EnemyVehicleCount);
             EnemyRespawn = (bool)cfg.GetValue("battle", "enemy_respawn", EnemyRespawn);
-            EnemyMechId = (string)cfg.GetValue("battle", "enemy_mech", EnemyMechId);
+            EnemyExcluded.Clear();
+            if (cfg.HasSectionKey("battle", "enemy_excluded"))
+                foreach (string id in (string[])cfg.GetValue("battle", "enemy_excluded")) EnemyExcluded.Add(id);
+            // (Settings saved when the enemy had one sort of mech or a random mix.)
+            else OnlyEnemyMech((string)cfg.GetValue("battle", "enemy_mech", "random"));
             Difficulty = (int)cfg.GetValue("battle", "difficulty", Difficulty);
             BotsFight = (bool)cfg.GetValue("battle", "bots_fight", BotsFight);
             BotNukes = (bool)cfg.GetValue("battle", "bot_nukes", BotNukes);
+            BotEmp = (bool)cfg.GetValue("battle", "bot_emp", BotEmp);
             TimeLimitMinutes = (int)cfg.GetValue("battle", "time_limit", TimeLimitMinutes);
             MechsCrush = (bool)cfg.GetValue("battle", "mechs_crush", MechsCrush);
             SquadSize = Mathf.Clamp((int)cfg.GetValue("battle", "squad_size", SquadSize), 0, 8);
@@ -249,7 +272,13 @@ public static class GameConfig
         MapId = p[1];
         int.TryParse(p[2], out EnemyCount);
         int.TryParse(p[3], out EnemyVehicleCount);
-        EnemyMechId = p.Length > 4 ? p[4] : "random";
+        EnemyExcluded.Clear();
+        OnlyEnemyMech(p.Length > 4 ? p[4] : "random");
+        // (THEORDER_VEHICLES: the only vehicles the enemy fields, e.g. "spg,mlrs")
+        string only = OS.GetEnvironment("THEORDER_VEHICLES");
+        if (!string.IsNullOrEmpty(only))
+            foreach (var e in Catalog.Vehicles)
+                if (System.Array.IndexOf(only.Split(','), e.Id) < 0) EnemyExcluded.Add(e.Id);
         TimeOfDay = WeatherId = 0;
         BotsFight = OS.GetEnvironment("THEORDER_FFA") == "1";
         // (THEORDER_LANG: "ru" or "en")
@@ -307,10 +336,13 @@ public static class GameConfig
         cfg.SetValue("battle", "enemy_count", EnemyCount);
         cfg.SetValue("battle", "enemy_vehicles", EnemyVehicleCount);
         cfg.SetValue("battle", "enemy_respawn", EnemyRespawn);
-        cfg.SetValue("battle", "enemy_mech", EnemyMechId);
+        var excluded = new string[EnemyExcluded.Count];
+        EnemyExcluded.CopyTo(excluded);
+        cfg.SetValue("battle", "enemy_excluded", excluded);
         cfg.SetValue("battle", "difficulty", Difficulty);
         cfg.SetValue("battle", "bots_fight", BotsFight);
         cfg.SetValue("battle", "bot_nukes", BotNukes);
+        cfg.SetValue("battle", "bot_emp", BotEmp);
         cfg.SetValue("battle", "time_limit", TimeLimitMinutes);
         cfg.SetValue("battle", "mechs_crush", MechsCrush);
         cfg.SetValue("battle", "squad_size", SquadSize);

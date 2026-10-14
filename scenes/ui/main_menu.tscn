@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="PackedScene" path="res://scenes/ui/unit_check.tscn" id="unit_check"]
 [ext_resource type="Script" path="res://scripts/UI/MainMenu.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/ui/weapon_slot_row.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hardpoint_row.tscn" id="hardpoint_row"]
@@ -57,6 +58,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 SlotRowScene = ExtResource("2")
+UnitCheckScene = ExtResource("unit_check")
 HardpointRowScene = ExtResource("hardpoint_row")
 
 [node name="Background" type="ColorRect" parent="."]
@@ -768,23 +770,34 @@ text = "Карта и противники"
 theme_override_font_sizes/font_size = 28
 theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
 
-[node name="MapRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="BattleScroll" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="BattleSettings" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 10
+unique_name_in_owner = true
+
+[node name="MapRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/MapRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MapRow"]
 layout_mode = 2
 text = "Карта"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="MapOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/MapRow"]
+[node name="MapOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MapRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
 unique_name_in_owner = true
 
-[node name="MapInfo" type="Label" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="MapInfo" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 text = ""
 theme_override_font_sizes/font_size = 16
@@ -792,49 +805,49 @@ theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
 autowrap_mode = 3
 unique_name_in_owner = true
 
-[node name="DayRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="DayRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/DayRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DayRow"]
 layout_mode = 2
 text = "Время суток"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="TimeOfDayOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/DayRow"]
+[node name="TimeOfDayOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DayRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
 unique_name_in_owner = true
 
-[node name="WeatherRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="WeatherRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/WeatherRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/WeatherRow"]
 layout_mode = 2
 text = "Погода"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="WeatherOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/WeatherRow"]
+[node name="WeatherOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/WeatherRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
 unique_name_in_owner = true
 
-[node name="SquadRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="SquadRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/SquadRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRow"]
 layout_mode = 2
 text = "Мехов в вашем отряде"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="SquadCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/SquadRow"]
+[node name="SquadCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -844,7 +857,7 @@ step = 1
 value = 2
 unique_name_in_owner = true
 
-[node name="SquadCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/SquadRow"]
+[node name="SquadCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRow"]
 layout_mode = 2
 text = "2"
 theme_override_font_sizes/font_size = 18
@@ -852,33 +865,33 @@ custom_minimum_size = Vector2(40, 0)
 horizontal_alignment = 2
 unique_name_in_owner = true
 
-[node name="SquadTypeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="SquadTypeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/SquadTypeRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadTypeRow"]
 layout_mode = 2
 text = "Мехи отряда"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="SquadTypeOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/SquadTypeRow"]
+[node name="SquadTypeOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadTypeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
 unique_name_in_owner = true
 
-[node name="CountRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="CountRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/CountRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CountRow"]
 layout_mode = 2
 text = "Мехов противника"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="EnemyCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/CountRow"]
+[node name="EnemyCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CountRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -888,7 +901,7 @@ step = 1
 value = 4
 unique_name_in_owner = true
 
-[node name="EnemyCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/CountRow"]
+[node name="EnemyCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CountRow"]
 layout_mode = 2
 text = "4"
 theme_override_font_sizes/font_size = 18
@@ -896,33 +909,50 @@ custom_minimum_size = Vector2(40, 0)
 horizontal_alignment = 2
 unique_name_in_owner = true
 
-[node name="TypeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="MechPickRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/TypeRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow"]
 layout_mode = 2
-text = "Мехи противника"
+size_flags_vertical = 0
+text = "Какие мехи"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="EnemyTypeOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/TypeRow"]
+[node name="EnemyMechChecks" type="HFlowContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 0
 unique_name_in_owner = true
 
-[node name="VehicleRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="Buttons" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow"]
+layout_mode = 2
+
+[node name="BtnMechsAll" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow/Buttons"]
+layout_mode = 2
+text = "Все"
+theme_override_font_sizes/font_size = 14
+unique_name_in_owner = true
+
+[node name="BtnMechsNone" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow/Buttons"]
+layout_mode = 2
+text = "Никого"
+theme_override_font_sizes/font_size = 14
+unique_name_in_owner = true
+
+[node name="VehicleRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/VehicleRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehicleRow"]
 layout_mode = 2
 text = "Техника противника"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="VehicleCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/VehicleRow"]
+[node name="VehicleCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehicleRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
@@ -932,7 +962,7 @@ step = 1
 value = 2
 unique_name_in_owner = true
 
-[node name="VehicleCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/VehicleRow"]
+[node name="VehicleCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehicleRow"]
 layout_mode = 2
 text = "2"
 theme_override_font_sizes/font_size = 18
@@ -940,74 +970,122 @@ custom_minimum_size = Vector2(40, 0)
 horizontal_alignment = 2
 unique_name_in_owner = true
 
-[node name="RespawnRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="VehiclePickRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/RespawnRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow"]
+layout_mode = 2
+size_flags_vertical = 0
+text = "Какая техника"
+theme_override_font_sizes/font_size = 18
+custom_minimum_size = Vector2(210, 0)
+
+[node name="EnemyVehicleChecks" type="HFlowContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 0
+unique_name_in_owner = true
+
+[node name="Buttons" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow"]
+layout_mode = 2
+
+[node name="BtnVehiclesAll" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow/Buttons"]
+layout_mode = 2
+text = "Все"
+theme_override_font_sizes/font_size = 14
+unique_name_in_owner = true
+
+[node name="BtnVehiclesNone" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow/Buttons"]
+layout_mode = 2
+text = "Никого"
+theme_override_font_sizes/font_size = 14
+unique_name_in_owner = true
+
+[node name="RespawnRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/RespawnRow"]
 layout_mode = 2
 text = "Возрождаются"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="RespawnCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/RespawnRow"]
+[node name="RespawnCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/RespawnRow"]
 layout_mode = 2
 unique_name_in_owner = true
 
-[node name="BotsFightRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="BotsFightRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BotsFightRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotsFightRow"]
 layout_mode = 2
 text = "Боты воюют и друг с другом"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="BotsFightCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BotsFightRow"]
+[node name="BotsFightCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotsFightRow"]
 layout_mode = 2
 unique_name_in_owner = true
 
-[node name="BotNukesRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="BotNukesRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BotNukesRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotNukesRow"]
 layout_mode = 2
 text = "Боты применяют ядерную бомбу"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="BotNukesCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BotNukesRow"]
+[node name="BotNukesCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotNukesRow"]
 layout_mode = 2
 unique_name_in_owner = true
 tooltip_text = "Одна бомба на бой, и только по скоплению целей. О сбросе предупредят сирена и надпись."
 
-[node name="CrushRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+
+[node name="BotEmpRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/CrushRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotEmpRow"]
+layout_mode = 2
+text = "Боты сбрасывают ЭМИ-бомбы"
+theme_override_font_sizes/font_size = 18
+custom_minimum_size = Vector2(210, 0)
+
+[node name="BotEmpCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotEmpRow"]
+layout_mode = 2
+unique_name_in_owner = true
+tooltip_text = "Одна бомба на бой, и только по скоплению целей. О сбросе предупредят сирена и надпись."
+[node name="CrushRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CrushRow"]
 layout_mode = 2
 text = "Мехи давят технику"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="CrushCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/CrushRow"]
+[node name="CrushCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CrushRow"]
 layout_mode = 2
 unique_name_in_owner = true
 
-[node name="DifficultyRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="DifficultyRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/DifficultyRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DifficultyRow"]
 layout_mode = 2
 text = "Сложность"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="DifficultyOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/DifficultyRow"]
+[node name="DifficultyOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DifficultyRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
@@ -1020,17 +1098,17 @@ popup/item_1/id = 1
 popup/item_2/text = "Тяжёлая"
 popup/item_2/id = 2
 
-[node name="TimeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="TimeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/TimeRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/TimeRow"]
 layout_mode = 2
 text = "Лимит времени"
 theme_override_font_sizes/font_size = 18
 custom_minimum_size = Vector2(210, 0)
 
-[node name="TimeLimitOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/TimeRow"]
+[node name="TimeLimitOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/TimeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18

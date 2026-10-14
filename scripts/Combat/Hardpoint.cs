@@ -39,26 +39,31 @@ public partial class Hardpoint : Node3D
     public static List<Hardpoint> Of(Node unit) => Geo.Collect<Hardpoint>(unit);
 
     // ── Loadouts ────────────────────────────────────────────────
-    // A loadout is one string per hardpoint: the weapons fitted there, "id:group" joined with "+"
-    // (group 0 = the weapon's own), e.g. "medium_laser:1+medium_laser:0". Empty = nothing fitted.
+    // A loadout is one string per hardpoint: the weapons fitted there, "id:group[:rounds]" joined with
+    // "+" (group 0 = the weapon's own; rounds left out or 0 = its usual load), e.g.
+    // "medium_laser:1+autocannon:0:60". Empty = nothing fitted.
 
-    public static (string id, int group)[] Parse(string fit)
+    /// <summary>Most rounds a weapon may be given, as a multiple of its usual load.</summary>
+    public const int MaxAmmoTimes = 3;
+
+    public static (string id, int group, int ammo)[] Parse(string fit)
     {
-        var list = new List<(string, int)>();
+        var list = new List<(string, int, int)>();
         foreach (string part in (fit ?? "").Split('+', System.StringSplitOptions.RemoveEmptyEntries))
         {
             string[] p = part.Split(':');
-            int group = 0;
+            int group = 0, ammo = 0;
             if (p.Length > 1) int.TryParse(p[1], out group);
-            list.Add((p[0], Mathf.Clamp(group, 0, 3)));
+            if (p.Length > 2) int.TryParse(p[2], out ammo);
+            list.Add((p[0], Mathf.Clamp(group, 0, 3), Mathf.Max(ammo, 0)));
         }
         return list.ToArray();
     }
 
-    public static string Format(IEnumerable<(string id, int group)> weapons)
+    public static string Format(IEnumerable<(string id, int group, int ammo)> weapons)
     {
         var parts = new List<string>();
-        foreach (var (id, group) in weapons) parts.Add($"{id}:{group}");
+        foreach (var (id, group, ammo) in weapons) parts.Add(ammo > 0 ? $"{id}:{group}:{ammo}" : $"{id}:{group}");
         return string.Join("+", parts);
     }
 
@@ -69,9 +74,9 @@ public partial class Hardpoint : Node3D
         var result = new string[points.Count];
         for (int i = 0; i < points.Count; i++)
         {
-            var fit = new List<(string, int)>();
+            var fit = new List<(string, int, int)>();
             foreach (var w in points[i].Fitted())
-                if (Catalog.WeaponIdByPath(w.SceneFilePath) is { } id) fit.Add((id, 0));
+                if (Catalog.WeaponIdByPath(w.SceneFilePath) is { } id) fit.Add((id, 0, 0));
             result[i] = Format(fit);
         }
         return result;
@@ -86,7 +91,7 @@ public partial class Hardpoint : Node3D
     }
 
     /// <summary>Replaces what is fitted here; weapons of the wrong sort, or that there is no room for, are left out.</summary>
-    public void Fit((string id, int group)[] weapons)
+    public void Fit((string id, int group, int ammo)[] weapons)
     {
         foreach (var old in Fitted())
         {
@@ -95,7 +100,7 @@ public partial class Hardpoint : Node3D
         }
         var fitted = new List<Weapon>();
         int used = 0;
-        foreach (var (id, group) in weapons)
+        foreach (var (id, group, ammo) in weapons)
         {
             var entry = Catalog.Find(Catalog.Weapons, id);
             if (entry.Id != id) continue;
@@ -108,6 +113,8 @@ public partial class Hardpoint : Node3D
             used += weapon.Slots;
             weapon.Mount = Mount;
             if (group >= 1) weapon.Group = group;
+            // The load the player chose, for a weapon that has one at all.
+            if (ammo > 0 && weapon.MaxAmmo > 0) weapon.MaxAmmo = Mathf.Min(ammo, weapon.MaxAmmo * MaxAmmoTimes);
             fitted.Add(weapon);
         }
         for (int i = 0; i < fitted.Count; i++)

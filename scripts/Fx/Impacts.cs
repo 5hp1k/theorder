@@ -27,11 +27,12 @@ public static class Impacts
     static readonly Queue<Node3D> Craters = new();
 
     /// <summary>Leaves a mark if the hit landed on the ground — and a hole, if it was big enough.</summary>
-    public static void Ground(Node parent, in Phys.Hit hit, float radius, Mark kind = Mark.Blast)
+    public static void Ground(Node parent, in Phys.Hit hit, float radius, Mark kind = Mark.Blast, float depth = 0.3f)
     {
         if (radius <= 0f || hit.Collider is not MapTerrain terrain) return;
-        // Big blasts move earth as well as scorching it.
-        terrain.AddCrater(hit.Position, radius, radius * 0.3f);
+        // Big blasts move earth as well as scorching it, and spatter whatever stands near with it.
+        terrain.AddCrater(hit.Position, radius, radius * depth);
+        if (radius >= 1.5f) Grime.Splash(hit.Position, radius);
         // Nothing is painted on a bed under water: the mark would show through the surface.
         if (terrain.WaterDepthAt(hit.Position.X, hit.Position.Z) > 0.02f) return;
         Scenes[(int)kind] ??= GD.Load<PackedScene>(kind switch
@@ -205,6 +206,7 @@ public static class Impacts
         Emp.Reset();
         CollapseRumble.Reset();
         Bomb.Falling.Clear();
+        Grime.Reset();
         AiPilot.NukeSpent = false;
     }
 }

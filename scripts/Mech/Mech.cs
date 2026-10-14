@@ -38,6 +38,8 @@ public partial class Mech : CharacterBody3D, IDrivable
     [Export] public float BodySway = 0.3f;
     /// <summary>How far the pelvis swings round with each stride, radians.</summary>
     [Export] public float HipSwing = 0.16f;
+    /// <summary>How much the pelvis drops onto the leg that has just taken the weight (1 = as designed, 0 = rigid).</summary>
+    [Export] public float HipGive = 1f;
 
     [ExportGroup("Jump jets")]
     [Export] public bool HasJumpJets { get; set; }
@@ -75,6 +77,11 @@ public partial class Mech : CharacterBody3D, IDrivable
     /// <summary>How far the torso twists into a blow, and how far it leans into it, radians.</summary>
     [Export] public float SwingTwist = 0.45f;
     [Export] public float SwingLean = 0.16f;
+    [ExportGroup("Recoil")]
+    /// <summary>How much the machine gives to the kick of its own guns (1 = as the weapons say; a heavy mech, less).</summary>
+    [Export] public float RecoilGive = 1f;
+    /// <summary>Damage a foot takes when what it crushed blows up under it.</summary>
+    [Export] public float CrushBackfire = 6f;
     [ExportGroup("")]
     [Export] public Material CharredMaterial;
     /// <summary>What a section looks like with its armour shot away: bare structure.</summary>
@@ -182,7 +189,7 @@ public partial class Mech : CharacterBody3D, IDrivable
     Transform3D _spawn;
     uint _bodyLayer, _bodyMask;
     float _yaw, _pitch;
-    float _hipY, _bob, _bobVel, _lean, _roll;
+    float _hipY, _bob, _bobVel, _lean, _roll, _list, _listVel;
     float _restartTimer, _explodeTimer, _hitSoundCooldown;
     float _yawRate;
     Vector3 _lastHorizontalVel;
@@ -197,6 +204,7 @@ public partial class Mech : CharacterBody3D, IDrivable
     {
         All.Remove(this);
         Units.All.Remove(this);
+        _grime?.Forget();
         if (Game.PlayerUnit == this) Game.PlayerUnit = null;
     }
 
@@ -206,6 +214,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         Torso = GetNode<Node3D>("Hips/Torso");
         AimAnchor = GetNode<Node3D>("Hips/Torso/CockpitCam");
         _arms = new[] { GetNode<Node3D>("Hips/Torso/ArmL"), GetNode<Node3D>("Hips/Torso/ArmR") };
+        _armRest = new[] { _arms[0].Position, _arms[1].Position };
         Legs = new[] { GetNode<MechLeg>("LegL"), GetNode<MechLeg>("LegR") };
         _ragdoll = GetNodeOrNull<MechRagdoll>("Ragdoll");
         _sFoot = GetNodeOrNull<AudioStreamPlayer3D>("Sounds/Footstep");
@@ -241,6 +250,8 @@ public partial class Mech : CharacterBody3D, IDrivable
 
         foreach (var leg in Legs) leg.Landed += OnFootfall;
         Weapons = new WeaponSystem(this, GetParent(), _exclude);
+        Weapons.Fired += OnFired;
+        _grime = new Grime(this);
 
         foreach (Node child in GetChildren())
             if (child is MechPilot pilot) Pilot = pilot;
@@ -392,6 +403,8 @@ public partial class Mech : CharacterBody3D, IDrivable
         UpdateAim(space);
         UpdateWeapons(dt, space);
         UpdateSounds(dt, speedNorm);
+        _grime.Update(dt, speedNorm);
+        for (int i = 0; i < 2; i++) _armRecoil[i] = Mathf.MoveToward(_armRecoil[i], 0f, _armReturn[i] * dt);
 
         _lastHorizontalVel = hv;
     }
@@ -450,6 +463,28 @@ public partial class Mech : CharacterBody3D, IDrivable
         }
     }
 
+    Grime _grime;
+    Vector3[] _armRest;
+    readonly float[] _armRecoil = new float[2], _armReturn = new float[2];
+
+    /// <summary>A gun has fired: its arm is driven back, and the body rocks back from the kick, more to that side.</summary>
+    void OnFired(Weapon w)
+    {
+        int arm = w.Mount == Section.LeftArm ? 0 : w.Mount == Section.RightArm ? 1 : -1;
+        if (arm >= 0 && w.RecoilTravel > 0f)
+        {
+            float travel = w.RecoilTravel * ChaseScale;
+            _armRecoil[arm] = Mathf.Max(_armRecoil[arm], travel);
+            _armReturn[arm] = travel / Mathf.Max(w.RecoilReturn, 0.05f);
+        }
+        if (w.Kick <= 0f) return;
+        float k = w.Kick * RecoilGive / Mathf.Max(ChaseScale, 0.5f);
+        _nodVel += k * 0.9f;
+        _bobVel -= k * 0.6f;
+        _listVel += (arm == 0 ? 1f : arm == 1 ? -1f : 0f) * k * 0.35f;
+        Shake += k * 0.25f;
+    }
+
     void UpdateHeat(float dt)
     {
         // Standing in water cools the mech faster.
@@ -474,6 +509,14 @@ public partial class Mech : CharacterBody3D, IDrivable
                 RestartProgress = 0f;
             }
         }
+    }
+
+    /// <summary>Heat put into the machine from outside (a flamethrower playing on it).</summary>
+    public void AddHeat(float amount)
+    {
+        if (IsDestroyed || amount <= 0f) return;
+        // (A reactor that has already shut down can't be cooked much further.)
+        Heat = Mathf.Min(Heat + amount, 1.25f);
     }
 
     void UpdateTorso(float dt)
@@ -518,6 +561,8 @@ public partial class Mech : CharacterBody3D, IDrivable
         // The whole machine comes down on that foot: the body drops and nods forward, then heaves back up.
         _bobVel -= 1.6f + 2.6f * speedNorm;
         _nodVel -= 0.12f + 0.22f * speedNorm;
+        // …and settles onto the hip of that side, which gives under the load and pushes back.
+        _listVel -= leg.Side * (0.1f + 0.2f * speedNorm) * HipGive;
         Shake += 0.06f + 0.14f * speedNorm;
 
         // A foot coming down on a tank is the end of the tank.
@@ -530,7 +575,22 @@ public partial class Mech : CharacterBody3D, IDrivable
                 if (unit is not Vehicle { IsAircraft: false, IsDestroyed: false } vehicle || vehicle.Kind == Vehicle.MoveKind.Ship) continue;
                 Vector3 d = vehicle.GlobalTransform.AffineInverse() * leg.Contact;
                 if (Mathf.Abs(d.Y) < 3.5f && Mathf.Abs(d.X) < vehicle.HalfExtents.X + footW && Mathf.Abs(d.Z) < vehicle.HalfExtents.Y + footL)
+                {
                     vehicle.TakeDamage(vehicle.MaxHp * 2f, leg.Contact);
+                    // It goes up under the foot: the leg takes some of it, and the whole machine is shaken.
+                    Shake += 0.45f;
+                    _bobVel += 1.5f;
+                    if (Net.Authority && CrushBackfire > 0f)
+                    {
+                        Section foot = leg.Side < 0f ? Section.LeftLeg : Section.RightLeg;
+                        foreach (var box in _hitBoxes)
+                            if (box.Section == foot)
+                            {
+                                box.TakeDamage(CrushBackfire, leg.Contact);
+                                break;
+                            }
+                    }
+                }
             }
         }
 
@@ -594,6 +654,8 @@ public partial class Mech : CharacterBody3D, IDrivable
         _bob += _bobVel * dt;
         _nodVel += (-_nod * 55f - _nodVel * 9f) * dt;
         _nod += _nodVel * dt;
+        _listVel += (-_list * 60f - _listVel * 8f) * dt;
+        _list += _listVel * dt;
 
         float lift = 0f, roll = 0f;
         foreach (var leg in Legs)
@@ -620,11 +682,11 @@ public partial class Mech : CharacterBody3D, IDrivable
         float stride = -0.45f * Mathf.Abs(speedNorm);
         // "lift" peaks mid-step: the body vaults up over the standing leg and falls into the next footfall.
         Hips.Position = new Vector3(-roll * BodySway, _hipY + _bob + lift * 0.32f * (HipHeight / 5.6f) + slump + stride, 0);
-        Hips.Rotation = new Vector3(_lean - 0.04f * speedNorm + _nod, _twist, _roll * 1.6f);
+        Hips.Rotation = new Vector3(_lean - 0.04f * speedNorm + _nod, _twist, _roll * 1.6f + _list);
 
         var hips = Hips.GlobalTransform;
         var basis = GlobalTransform.Basis;
-        foreach (var leg in Legs) leg.Solve(hips, basis);
+        foreach (var leg in Legs) leg.Solve(hips, basis, hv, dt);
     }
 
     void UpdateSounds(float dt, float speedNorm)
@@ -681,6 +743,8 @@ public partial class Mech : CharacterBody3D, IDrivable
             if (_tornArms[i] != null) continue;
             if (arm.GlobalPosition.DistanceSquaredTo(AimPoint) > 4f)
                 arm.LookAt(AimPoint, Vector3.Up);
+            // Driven back along itself by the last shot, and running out again.
+            arm.Position = _armRest[i] + arm.Basis.Z * _armRecoil[i];
             // The striking arm goes up and back, then comes down through the target.
             if (i == _swingArm)
                 arm.RotateObjectLocal(Vector3.Right, _swing < 0f ? -_swing * SwingRaise : -_swing * SwingFollow);
@@ -841,6 +905,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         _damageFx.Clear();
 
         Damage.Reset();
+        _grime.Clean();
         for (int i = 0; i < DamageModel.Count; i++) Weapons.SetSectionDestroyed((Section)i, false);
         Weapons.Rearm();
         foreach (var box in _hitBoxes) box.Restore();
@@ -903,7 +968,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         RestartProgress = 0f;
         _yaw = _pitch = TargetYaw = TargetPitch = 0f;
         _hipY = HipHeight;
-        _bob = _bobVel = _twist = _nod = _nodVel = 0f;
+        _bob = _bobVel = _twist = _nod = _nodVel = _list = _listVel = 0f;
         JumpFuel = 1f;
         Hips.Position = new Vector3(0, HipHeight, 0);
         Hips.Rotation = Vector3.Zero;

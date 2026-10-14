@@ -1,5 +1,5 @@
 """Tanks, the armoured car, the ship and the aircraft.
-    blender -b --python tools/blender/vehicles.py -- <output dir> <tank|amphibian|apc|ship|helicopter|bomber> [preview]
+    blender -b --python tools/blender/vehicles.py -- <output dir> <tank|amphibian|spg|mlrs|apc|ship|helicopter|bomber> [preview]
 Axes of the scenes: X right, Y up, forward is -Z; ground vehicles stand on Y = 0.
 """
 import math
@@ -23,9 +23,11 @@ def road_wheel(name, r, w):
     return h
 
 
-def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), gun=(3.8, 0.14), boat=False):
+def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), gun=(3.8, 0.14), boat=False, top="tank", extra=None):
     """A tank. length / width of the hull, deck = height of its top, hull_h = how deep the upper hull is;
-    turret = (width, height, length); gun = (barrel length, radius)."""
+    turret = (width, height, length); gun = (barrel length, radius).
+    top: what stands on the hull — "tank" for the tank's own turret, anything else leaves the hull bare
+    for the caller to build on; extra(body, L, W, deck) adds to the hull's own mesh."""
     L, W = length / 2, width / 2
     body = Part("Body")
     floor = 0.42
@@ -55,6 +57,8 @@ def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), 
     for i in range(2):
         body.cyl((-W * 0.9 + i * 0.45, deck + 0.2, L - 0.5), (W * 0.1 - W + i * 0.45 + 0.9, deck + 0.2, L - 0.5), 0.2, segs=12, kind=PAINT) if False else None
     body.cyl((-W * 0.75, deck + 0.24, L - 0.25), (W * 0.75, deck + 0.24, L - 0.25), 0.22, segs=12, kind=PAINT)  # fuel drum
+    if extra:
+        extra(body, L, W, deck)
     m.add(body, "Hull", "Body", CAMO)
 
     # Tracks: a belt round sprocket, road wheels and idler
@@ -82,6 +86,10 @@ def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), 
     for i, (z, y, r) in enumerate(spots):
         w = road_wheel("RoadWheelL%d" % (0 if 0 < i < len(spots) - 1 else 1), r, 0.34)
         m.both(w, "Hull", "WheelL%d" % (i + 1), JOINT, at=(-(W + 0.2), y, z))
+
+    m.removes += ["Hull/Glacis", "Hull/Bow", "Turret/Gun/Barrel"]
+    if top != "tank":
+        return
 
     # Turret
     tw, th, tl = turret
@@ -113,7 +121,127 @@ def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), 
         g.slats((s * gr * 1.61, 0, -glen + 0.16), (s, 0, 0), (0, 1, 0), (gr * 1.4, 0.24), 2, 0.02)
     g.cyl((tw * 0.24, th * 0.18, -0.4), (tw * 0.24, th * 0.18, -1.35), 0.03, segs=6, kind=FRAME, bevel=0)  # coaxial machine gun
     m.add(g, "Turret/Gun", "Mantlet", JOINT)
-    m.removes += ["Hull/Glacis", "Hull/Bow", "Turret/Gun/Barrel"]
+
+
+def spg():
+    """Self-propelled howitzer: a long tracked hull with a tall slab-sided turret set well back and a
+    gun half as long again as the hull. Turret axes: the ring at the origin; gun axes: the trunnions."""
+    m = Model("spg", "scenes/vehicles/spg.tscn")
+
+    def fittings(body, L, W, deck):
+        # the gun's travel lock on the glacis, and recoil spades folded up at the back
+        for s in (-1, 1):
+            body.cyl((s * 0.32, deck - 0.1, -L + 0.9), (s * 0.12, deck + 0.75, -L + 0.75), 0.05, segs=8, kind=FRAME, bevel=0)
+            body.box((s * 1.0, deck - 0.5, L + 0.2), (0.7, 0.9, 0.12), FRAME, 0.02, None, Matrix.Rotation(math.radians(-14), 3, "X"))
+        body.box((0, deck + 0.78, -L + 0.75), (0.5, 0.12, 0.2), FRAME, 0.02)
+        # driver's hatch and periscopes at the front left
+        body.plate(None, (-W * 0.5, deck, -L + 1.3), (0, 1, 0), (0.7, 0.7), 0.06, along=(0, 0, 1))
+        body.box((-W * 0.5, deck + 0.1, -L + 0.86), (0.5, 0.12, 0.1), FRAME, 0.01)
+
+    tracked(m, 7.6, 3.5, 1.6, 0.7, (0, 1.6, 0.9), turret=(3.1, 1.55, 4.0), top="spg", extra=fittings)
+
+    tw, th, tl = 3.1, 1.55, 4.0
+    t = Part("Turret")
+    t.cyl((0, -0.02, 0), (0, 0.1, 0), tw * 0.44, segs=24, kind=FRAME)
+    # a welded box: raked front, straight sides, a bustle hanging over the engine deck
+    t.stations("z", [(-tl * 0.5, tw * 0.74, th * 0.6, 0, th * 0.4, 0.1), (-tl * 0.34, tw, th, 0, th * 0.52, 0.16, 0.26),
+                     (tl * 0.42, tw, th, 0, th * 0.52, 0.16, 0.26), (tl * 0.56, tw * 0.94, th * 0.78, 0, th * 0.6, 0.14)],
+               seams=PANELS, cuts=[((0, 0, 0.2), (0, 0, 1))])
+    for s in (-1, 1):
+        # side doors, stowage baskets along the bustle, lifting eyes
+        t.plate(None, (s * tw * 0.5, th * 0.55, 0.5), (s, 0, 0), (0.8, 1.1), 0.05, along=(0, 1, 0))
+        t.box((s * (tw * 0.5 + 0.2), th * 0.5, tl * 0.36), (0.36, 0.5, 1.0), FRAME, 0.02)
+        for z in (-0.8, 1.2):
+            t.box((s * tw * 0.42, th + 0.1, z), (0.05, 0.16, 0.22), FRAME, 0.012)
+        for i in range(3):  # smoke dischargers
+            a = (s * tw * 0.5, th * 0.86, -tl * 0.28 + i * 0.17)
+            t.cyl(a, (a[0] + s * 0.16, a[1] + 0.12, a[2] - 0.1), 0.05, segs=8, kind=FRAME, bevel=0)
+    t.cyl((tw * 0.24, th + 0.02, 0.2), (tw * 0.24, th + 0.3, 0.2), 0.36, segs=14, kind=PAINT)  # commander's cupola
+    t.cyl((tw * 0.24, th + 0.3, 0.2), (tw * 0.24, th + 0.34, 0.2), 0.3, segs=14, kind=SOFT)
+    t.plate(None, (-tw * 0.24, th + 0.05, 0.3), (0, 1, 0), (0.8, 0.8), 0.05, along=(0, 0, 1))  # loader's hatch
+    t.slats((0, th + 0.05, tl * 0.38), (0, 1, 0), (1, 0, 0), (1.6, 0.7), 6, 0.04)  # ventilator
+    t.box((-tw * 0.3, th + 0.24, -0.9), (0.34, 0.3, 0.44), FRAME, 0.03)  # gunner's sight head
+    t.cyl((-tw * 0.3, th + 0.24, -1.12), (-tw * 0.3, th + 0.24, -1.14), 0.1, segs=10, kind=RECESS, bevel=0)
+    t.cyl((-tw * 0.4, th + 0.05, tl * 0.48), (-tw * 0.4, th + 2.0, tl * 0.48), 0.02, 0.008, segs=6, kind=FRAME, bevel=0)
+    t.box((tw * 0.24, th + 0.44, -0.2), (0.14, 0.14, 0.4), FRAME, 0.01)  # machine gun on the cupola
+    t.cyl((tw * 0.24, th + 0.44, -0.4), (tw * 0.24, th + 0.44, -1.1), 0.025, segs=6, kind=FRAME, bevel=0)
+    m.add(t, "Turret", "Body", CAMO)
+
+    g = Part("Gun")
+    glen, gr = 6.5, 0.2
+    # mantlet: a curved shield round the trunnions, and the cradle with its recoil cylinders
+    g.cyl((-0.7, 0, 0), (0.7, 0, 0), 0.5, segs=16, kind=FRAME)
+    g.stations("z", [(0.2, 1.3, 1.0, 0, 0, 0.14), (-0.5, 1.0, 0.8, 0, 0, 0.12), (-1.3, 0.6, 0.6, 0, 0, 0.1)], kind=FRAME, seams=SMALL_PANELS)
+    for s in (-1, 1):
+        g.cyl((s * 0.2, 0.34, -0.6), (s * 0.2, 0.34, -2.3), 0.09, segs=10, kind=FRAME)
+        g.cyl((s * 0.2, 0.34, -2.3), (s * 0.2, 0.34, -2.6), 0.05, segs=8, kind=EDGE, bevel=0)
+    g.box((0, 0.3, -2.62), (0.62, 0.2, 0.12), FRAME, 0.02)
+    g.cyl((0, 0, -1.2), (0, 0, -glen), gr, gr * 0.86, segs=16, kind=FRAME)
+    g.cyl((0, 0, -1.2), (0, 0, -2.5), gr * 1.4, segs=16, kind=FRAME)
+    g.cyl((0, 0, -glen * 0.52), (0, 0, -glen * 0.64), gr * 1.5, segs=16, kind=FRAME)  # fume extractor
+    # a two-baffle muzzle brake
+    g.box((0, 0, -glen + 0.3), (gr * 3.4, gr * 2.4, 0.6), FRAME, 0.03)
+    for z in (0.14, 0.44):
+        for s in (-1, 1):
+            g.box((s * gr * 1.72, 0, -glen + z), (0.02, gr * 1.5, 0.16), RECESS, 0)
+    g.cyl((0, 0, -glen - 0.01), (0, 0, -glen - 0.03), gr * 0.72, segs=12, kind=RECESS, bevel=0)
+    m.add(g, "Turret/Gun", "Mantlet", JOINT)
+    return m
+
+
+def mlrs():
+    """Rocket launcher on tracks: an armoured cab over the nose, and behind it a turntable carrying a
+    box of twelve tubes that tips up to fire. Gun axes: the launcher's trunnions, at its rear."""
+    m = Model("mlrs", "scenes/vehicles/mlrs.tscn")
+
+    def cab(body, L, W, deck):
+        # crew cab: a box with a raked windscreen behind armoured louvres
+        body.stations("z", [(-L + 0.1, W * 1.5, 0.5, 0, deck + 0.2, 0.08), (-L + 0.9, W * 1.76, 1.1, 0, deck + 0.52, 0.14),
+                            (-L + 2.2, W * 1.76, 1.15, 0, deck + 0.55, 0.14), (-L + 2.5, W * 1.6, 0.9, 0, deck + 0.45, 0.12)], seams=SMALL_PANELS)
+        for i, x in enumerate((-W * 0.56, 0.0, W * 0.56)):
+            body.slats((x, deck + 0.68, -L + 0.5), (0, 0.72, -1), (1, 0, 0), (W * 0.42, 0.44), 5, 0.04)
+        for s in (-1, 1):
+            body.plate(None, (s * W * 0.88, deck + 0.5, -L + 1.5), (s, 0, 0), (0.7, 0.9), 0.05, along=(0, 1, 0))  # doors
+            body.slats((s * W * 0.885, deck + 0.75, -L + 1.5), (s, 0, 0), (0, 0, 1), (0.5, 0.3), 3, 0.03)
+            body.cyl((s * W * 0.7, deck + 0.3, -L - 0.02), (s * W * 0.7, deck + 0.3, -L - 0.12), 0.11, segs=10, kind=SOFT)
+        body.plate(None, (0, deck + 1.1, -L + 1.5), (0, 1, 0), (1.4, 0.8), 0.05, along=(0, 0, 1))
+        body.cyl((W * 0.7, deck + 1.1, -L + 2.2), (W * 0.7, deck + 2.7, -L + 2.2), 0.02, 0.008, segs=6, kind=FRAME, bevel=0)
+        # blast shield between the cab and the launcher
+        body.box((0, deck + 0.62, -L + 2.62), (W * 1.7, 1.2, 0.08), FRAME, 0.02)
+
+    tracked(m, 7.0, 3.3, 1.5, 0.62, (0, 1.5, 1.1), turret=(2.6, 0.5, 2.6), top="mlrs", extra=cab)
+
+    t = Part("Turret")
+    # turntable and the two cheeks that carry the launcher's trunnions
+    t.cyl((0, -0.02, 0), (0, 0.16, 0), 1.25, segs=24, kind=FRAME)
+    t.box((0, 0.24, 0.2), (2.3, 0.22, 2.4), PAINT, 0.03, SMALL_PANELS)
+    for s in (-1, 1):
+        t.stations("x", [(s * 1.18, 1.3, 0.4, 0.75, 0.42, 0.08), (s * 1.42, 1.5, 1.0, 0.7, 0.62, 0.12)], seams=SMALL_PANELS)
+        t.cyl((s * 1.42, 0.8, 0.9), (s * 1.5, 0.8, 0.9), 0.3, segs=14, kind=FRAME)
+        # elevating rams
+        t.cyl((s * 0.9, 0.36, -0.7), (s * 0.9, 0.62, -0.2), 0.09, segs=10, kind=FRAME)
+    m.add(t, "Turret", "Body", CAMO)
+
+    g = Part("Gun")
+    # the launcher: two pods of six tubes in an armoured box, trunnions at the back
+    g.cyl((-1.36, 0, 0), (1.36, 0, 0), 0.22, segs=14, kind=FRAME)
+    box = Part("Launcher")
+    box.stations("z", [(0.55, 2.6, 1.2, 0, 0.1, 0.1), (-3.4, 2.6, 1.2, 0, 0.1, 0.1)], seams=PANELS, cuts=[((0, 0, -1.4), (0, 0, 1))])
+    box.plate(None, (0, 0.7, -1.4), (0, 1, 0), (1.9, 3.2), 0.06, along=(0, 0, 1))
+    for s in (-1, 1):
+        box.plate(None, (s * 1.3, 0.1, -1.4), (s, 0, 0), (0.8, 3.0), 0.05, along=(0, 0, 1))
+        box.bolts([(s * 1.36, 0.4, -2.7), (s * 1.36, -0.2, -2.7), (s * 1.36, 0.4, -0.1), (s * 1.36, -0.2, -0.1)], (s, 0, 0), r=0.04)
+    box.slats((0, 0.1, 0.56), (0, 0, 1), (1, 0, 0), (2.0, 0.8), 6, 0.05)
+    m.add(box, "Turret/Gun", "Launcher", CAMO)
+    g.box((0, 0.1, -3.42), (2.44, 1.06, 0.06), FRAME, 0.015)
+    for s in (-1, 1):
+        for i in range(3):
+            for j in range(2):
+                x, y = s * 0.62 + (i - 1) * 0.36, 0.1 + (j - 0.5) * 0.42
+                g.cyl((x, y, -3.44), (x, y, -3.47), 0.15, segs=12, kind=RECESS, bevel=0)
+                g.cyl((x, y, -3.4), (x, y, -3.5), 0.175, 0.165, segs=12, kind=SOFT, bevel=0, caps=False)
+    m.add(g, "Turret/Gun", "Mantlet", JOINT)
+    return m
 
 
 def tank():
@@ -429,4 +557,4 @@ def bomber():
     return m
 
 
-{"tank": tank, "amphibian": amphibian, "apc": apc, "ship": ship, "helicopter": helicopter, "bomber": bomber}[ARGS[1]]().finish([ARGS[0]] + ARGS[2:])
+{"tank": tank, "amphibian": amphibian, "spg": spg, "mlrs": mlrs, "apc": apc, "ship": ship, "helicopter": helicopter, "bomber": bomber}[ARGS[1]]().finish([ARGS[0]] + ARGS[2:])

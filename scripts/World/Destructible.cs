@@ -83,7 +83,8 @@ public partial class Destructible : StaticBody3D, IDamageable
     }
 
     /// <summary>Destroys every trample-able prop whose footprint a body of the given radius overlaps.</summary>
-    public static void TrampleAround(Vector3 position, float radius, Vector3 direction)
+    /// <returns>How many went down.</returns>
+    public static int TrampleAround(Vector3 position, float radius, Vector3 direction)
     {
         var body = new Rect2(position.X - radius, position.Z - radius, radius * 2f, radius * 2f);
         Found.Clear();
@@ -93,6 +94,7 @@ public partial class Destructible : StaticBody3D, IDamageable
                 if (!d._destroyed && d._area.Intersects(body) && !Found.Contains(d)) Found.Add(d);
         });
         foreach (var d in Found) d.Destroy(direction);
+        return Found.Count;
     }
 
     public void TakeDamage(float amount, Vector3 point)

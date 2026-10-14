@@ -40,6 +40,10 @@ uniform float wear : hint_range(0.0, 1.0) = 0.55;
 uniform vec3 dirt_color : source_color = vec3(0.13, 0.11, 0.09);
 uniform float dirt : hint_range(0.0, 1.0) = 0.45;
 uniform sampler2D noise_tex : filter_linear_mipmap, repeat_enable;
+/// Mud and dust the part has picked up in the battle (set per part by the game, see Grime.cs), 0..1.
+instance uniform float grime_level : hint_range(0.0, 1.0) = 0.0;
+/// How wet the part is (just out of the water), 0..1: darker and glossier while it dries.
+instance uniform float wetness : hint_range(0.0, 1.0) = 0.0;
 
 varying vec3 part_pos;
 varying vec3 part_normal;
@@ -148,6 +152,8 @@ void fragment() {
 	// Dirt: in the seams, and in broad stains.
 	float grime = clamp(recess * 1.1 + smoothstep(0.45, 0.9, coarse.r * 0.7 + fine.b * 0.3) * dirt, 0.0, 1.0);
 	grime *= mix(0.5, 1.0, dirt) * step(0.001, dirt + recess);
+	// Mud from the battle: first in blotches, then over the whole plate.
+	grime = max(grime, min(1.0, grime_level * 2.5) * smoothstep(0.45, 0.75, coarse.r * 0.6 + fine.b * 0.4 + grime_level * 0.6));
 
 	vec3 albedo = mix(paint, metal_color * (0.7 + 0.5 * arm.g), bare);
 	float metallic = mix(paint_metallic, 0.95, bare);
@@ -155,6 +161,8 @@ void fragment() {
 	albedo = mix(albedo, dirt_color, grime * 0.75);
 	metallic *= 1.0 - grime * 0.8;
 	rough = mix(rough, 0.92, grime);
+	albedo *= 1.0 - wetness * 0.28;
+	rough = mix(rough, 0.12, wetness * 0.75);
 
 	// Relief, from the same three sides.
 	vec2 bx = texture(surface_normal, part_pos.zy * surface_scale).rg * 2.0 - 1.0;

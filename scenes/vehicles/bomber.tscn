@@ -16,6 +16,7 @@
 [ext_resource type="ArrayMesh" path="res://models/vehicles/bomber/EngineR.res" id="x7"]
 [ext_resource type="Material" path="res://materials/stealth_grey.tres" id="x1"]
 [ext_resource type="Script" path="res://scripts/Combat/Hardpoint.cs" id="hardpoint"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/emp_rack.tscn" id="emp"]
 [ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
 [ext_resource type="Material" path="res://materials/insignia.tres" id="insignia"]
 
@@ -113,6 +114,16 @@ Slots = 2
 Mount = 5
 
 [node name="Nuke" parent="Hull/HardpointNuke" instance=ExtResource("11")]
+
+[node name="HardpointEmp" type="Node3D" parent="Hull"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -1.5, -2.6)
+script = ExtResource("hardpoint")
+DisplayName = "Передний отсек"
+Type = 5
+Slots = 2
+Mount = 5
+
+[node name="Emp" parent="Hull/HardpointEmp" instance=ExtResource("emp")]
 
 [node name="Sounds" type="Node3D" parent="."]
 

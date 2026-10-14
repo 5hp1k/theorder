@@ -41,6 +41,7 @@ ExplosionScene = ExtResource("5")
 WreckFireScene = ExtResource("6")
 ArmorMaterial = ExtResource("1")
 MaxHp = 420
+RockScale = 0.15
 CenterHeight = 3.5
 ChaseScale = 1.9
 MaxForwardSpeed = 15

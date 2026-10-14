@@ -55,6 +55,15 @@ popup/item_2/id = 2
 popup/item_3/text = "гр. 3"
 popup/item_3/id = 3
 
+[node name="Ammo" type="SpinBox" parent="Row"]
+layout_mode = 2
+custom_minimum_size = Vector2(84, 0)
+tooltip_text = "Боезапас (выстрелов, залпов)"
+min_value = 1.0
+max_value = 999.0
+value = 1.0
+alignment = 2
+
 [node name="Remove" type="Button" parent="Row"]
 layout_mode = 2
 custom_minimum_size = Vector2(30, 0)

@@ -84,34 +84,34 @@ size = Vector3(0.95, 2.47, 2.09)
 size = Vector3(0.95, 2.47, 2.09)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_24"]
-size = Vector3(0.855, 0.855, 3.23)
+size = Vector3(1, 1, 3.23)
 
 [sub_resource type="QuadMesh" id="QuadMesh_25"]
 size = Vector2(0.57, 0.57)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_31"]
-size = Vector3(0.855, 0.855, 3.23)
+size = Vector3(1, 1, 3.23)
 
 [sub_resource type="QuadMesh" id="QuadMesh_32"]
 size = Vector2(0.57, 0.57)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_48"]
-size = Vector3(0.9025, 2.744, 1.0925)
+size = Vector3(1.17325, 2.744, 1.42025)
 
 [sub_resource type="QuadMesh" id="QuadMesh_50"]
 size = Vector2(0.7125, 0.7125)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_51"]
-size = Vector3(0.7125, 2.744, 0.8075)
+size = Vector3(1.01175, 2.744, 1.14665)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_59"]
-size = Vector3(0.9025, 2.744, 1.0925)
+size = Vector3(1.17325, 2.744, 1.42025)
 
 [sub_resource type="QuadMesh" id="QuadMesh_61"]
 size = Vector2(0.7125, 0.7125)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_62"]
-size = Vector3(0.7125, 2.744, 0.8075)
+size = Vector3(1.01175, 2.744, 1.14665)
 
 [sub_resource type="Gradient" id="Gradient_70"]
 offsets = PackedFloat32Array(0, 0.1, 0.55, 1)
@@ -196,7 +196,7 @@ Acceleration = 6.5
 Deceleration = 10
 TurnRateStanding = 1.5
 TurnRateFull = 0.95
-StepLength = 4.6
+StepLength = 6
 StepHeight = 1
 RunSwing = 0.5
 HipSwing = 0.2
@@ -343,7 +343,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.235)
 shape = SubResource("BoxShape3D_24")
 
 [node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmL"]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.41, 0, -1.4)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -0.565, 0, -1.4)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_25")
@@ -397,7 +397,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.235)
 shape = SubResource("BoxShape3D_31")
 
 [node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmR"]
-transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.41, 0, -1.4)
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 0.565, 0, -1.4)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_32")
@@ -440,7 +440,7 @@ material_override = ExtResource("17")
 cast_shadow = 0
 
 [node name="HomeL" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.52, 0, -0.245)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.52, 0, 0.05)
 
 [node name="LegL" type="Node3D" parent="."]
 script = ExtResource("20")
@@ -453,6 +453,8 @@ MetaLength = 0.441
 AnkleHeight = 0.3325
 MetaRestAngle = 0.04
 MetaSwingAngle = 0.3
+ToeReach = 2.00607
+HeelReach = 0.634352
 
 [node name="Thigh" type="Node3D" parent="LegL"]
 transform = Transform3D(0.99911, -0.04224, 0, -0.0366, -0.86569, 0.49925, -0.02109, -0.4988, -0.86646, -1.34045, 4.45328, -0.68435)
@@ -477,7 +479,7 @@ mesh = ExtResource("x20")
 material_override = ExtResource("2")
 
 [node name="Insignia" type="MeshInstance3D" parent="LegL/Thigh"]
-transform = Transform3D(0, 0, -1, 0, -1, 0, -1, 0, 0, -0.51325, -0.355704, 0)
+transform = Transform3D(0, 0, -1, 0, -1, 0, -1, 0, 0, -0.665725, -0.355704, 0)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_50")
@@ -539,7 +541,7 @@ mesh = ExtResource("x35")
 material_override = ExtResource("2")
 
 [node name="HomeR" type="Marker3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.52, 0, -0.245)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.52, 0, 0.05)
 
 [node name="LegR" type="Node3D" parent="."]
 script = ExtResource("20")
@@ -552,6 +554,8 @@ MetaLength = 0.441
 AnkleHeight = 0.3325
 MetaRestAngle = 0.04
 MetaSwingAngle = 0.3
+ToeReach = 2.00607
+HeelReach = 0.634352
 
 [node name="Thigh" type="Node3D" parent="LegR"]
 transform = Transform3D(0.99911, 0.04224, 0, 0.0366, -0.86569, 0.49925, 0.02109, -0.4988, -0.86646, 1.34045, 4.45328, -0.68435)
@@ -576,7 +580,7 @@ mesh = ExtResource("x22")
 material_override = ExtResource("2")
 
 [node name="Insignia" type="MeshInstance3D" parent="LegR/Thigh"]
-transform = Transform3D(0, 0, 1, 0, -1, 0, 1, 0, 0, 0.51325, -0.355704, 0)
+transform = Transform3D(0, 0, 1, 0, -1, 0, 1, 0, 0, 0.665725, -0.355704, 0)
 visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_61")

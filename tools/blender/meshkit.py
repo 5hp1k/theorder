@@ -403,6 +403,8 @@ class Model:
         self.spec = {}       # for props: what kind of scene to make of it (see make_props.py)
         self.loose = []      # meshes that hang on no node of their own
         self.root = {}       # properties of the scene's root that take one of them, e.g. FootprintMesh
+        self.shapes = {}     # CollisionShape3D node path -> size of its box: hit boxes that follow the model
+        self.props = {}      # node path -> {property: number} to set on that node
 
     def add(self, part, parent, node, material, own_place=False, at=None):
         """at: where the node goes in its parent (for nodes the model brings with it, such as wheels);
@@ -441,7 +443,7 @@ class Model:
         for part in self.loose:
             bpy.data.objects.remove(bpy.data.objects[part.name])
         json.dump({"parts": manifest, "move": self.moves, "remove": self.removes, "root": self.root, "spec": self.spec,
-                   "frames": self.frames, "scripts": self.scripts}, open(os.path.join(out, self.name + ".json"), "w"), indent=1)
+                   "frames": self.frames, "scripts": self.scripts, "shapes": self.shapes, "props": self.props}, open(os.path.join(out, self.name + ".json"), "w"), indent=1)
         print("MODEL", self.name, "PARTS", len(export), "TRIS", tris)
         if "preview" not in args:
             return

@@ -178,6 +178,58 @@ t = np.arange(int(0.09 * RATE)) / RATE
 pip = lambda hz: np.sin(2 * np.pi * hz * t) * np.minimum(1, t / 0.004) * np.minimum(1, (0.09 - t) / 0.02)
 save('lock', np.concatenate([pip(1320), np.zeros(int(0.04 * RATE)), pip(1760)]) * 0.6)
 
+
+def blip(hz0, hz1, seconds, buzz=0.25):
+    """A short electronic chirp sliding from one pitch to another, with a little square-wave edge."""
+    t = np.arange(int(seconds * RATE)) / RATE
+    phase = 2 * np.pi * np.cumsum(np.linspace(hz0, hz1, len(t))) / RATE
+    wave_ = np.sin(phase) + buzz * np.sign(np.sin(phase))
+    return wave_ * np.minimum(1, t / 0.003) * np.minimum(1, (seconds - t) / 0.012)
+
+
+# a target picked: a quick double chirp, as in MechWarrior 4
+save('target_acquire', np.concatenate([blip(900, 1500, 0.045), np.zeros(int(0.025 * RATE)), blip(1300, 2000, 0.05)]) * 0.45)
+def beep(hz, seconds, edge=0.35):
+    """A short instrument beep: a sine with a little of a square wave's edge, filtered soft."""
+    t = np.arange(int(seconds * RATE)) / RATE
+    s = np.sin(2 * np.pi * hz * t)
+    tone = s + edge * np.tanh(4 * s)
+    return tone * np.minimum(1, t / 0.004) * np.minimum(1, (seconds - t) / 0.015)
+
+
+def gap(seconds):
+    return np.zeros(int(seconds * RATE))
+
+
+def radio(a):
+    """Through a cockpit speaker: low and high ends cut, a touch of grit."""
+    a = np.convolve(a, np.ones(6) / 6, 'same')
+    a = a - np.convolve(a, np.ones(90) / 90, 'same')
+    return np.tanh(a * 1.6)
+
+
+# the target is down — three to choose from (the game plays target_destroyed.wav: copy the one you like over it)
+variants = {
+    # a military confirmation: two quick beeps and a lower closing tone
+    'target_destroyed_a': radio(np.concatenate([beep(880, 0.06), gap(0.045), beep(880, 0.06), gap(0.045), beep(587, 0.17)])),
+    # a falling sweep, as of a contact dropping off the scope
+    'target_destroyed_b': radio(np.concatenate([np.sin(2 * np.pi * np.cumsum(np.linspace(1400, 420, int(0.36 * RATE))) / RATE)
+                                                * np.minimum(1, np.arange(int(0.36 * RATE)) / 400) * np.linspace(1, 0.2, int(0.36 * RATE))])),
+    # a low double buzz, short and dry
+    'target_destroyed_c': radio(np.concatenate([beep(330, 0.09, 0.9), gap(0.05), beep(247, 0.16, 0.9)])),
+}
+for name, a in variants.items():
+    save(name, a / np.abs(a).max() * 0.55)
+save('target_destroyed', variants['target_destroyed_a'] / np.abs(variants['target_destroyed_a']).max() * 0.55)
+
+# a falling bomb: a whistle sliding down as it drops, with air rushing past, louder as it nears
+t = np.arange(int(3.2 * RATE)) / RATE
+f = 1900 * np.exp(-t / 2.6) + 650 + 18 * np.sin(2 * np.pi * 5.5 * t)
+ph = 2 * np.pi * np.cumsum(f) / RATE
+air = np.convolve(np.random.default_rng(3).standard_normal(len(t)), np.ones(12) / 12, 'same')
+whistle = (np.sin(ph) + 0.25 * np.sin(2 * ph) + 0.25 * air * np.sin(ph * 0.5)) * np.minimum(1, t / 0.4) * (0.35 + 0.65 * t / 3.2) * np.minimum(1, (3.2 - t) / 0.05)
+save('bomb_whistle', whistle / np.abs(whistle).max() * 0.7)
+
 # the axe: air torn by something heavy — noise swept through a moving filter, with a low rush under it
 n = int(0.55 * RATE)
 t = np.arange(n) / RATE

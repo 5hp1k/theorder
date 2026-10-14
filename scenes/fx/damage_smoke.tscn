@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://scripts/Fx/Burning.cs" id="burning"]
 [ext_resource type="Material" path="res://materials/fx/smoke.tres" id="1"]
 [ext_resource type="Material" path="res://materials/fx/fire.tres" id="2"]
 
@@ -63,6 +64,9 @@ size = Vector2(0.3, 0.3)
 material = ExtResource("2")
 
 [node name="DamageSmoke" type="Node3D"]
+script = ExtResource("burning")
+BurnTime = 100.0
+DieTime = 14.0
 
 [node name="Smoke" type="GPUParticles3D" parent="."]
 amount = 54

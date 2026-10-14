@@ -24,7 +24,11 @@ public partial class NukeBlast : Node3D
     /// <summary>Speed of the blast wave, m/s: things are hurt (and the bang is heard) when it gets to them.</summary>
     [Export] public float WaveSpeed = 170f;
     /// <summary>How far out the heat sets fire to what the blast breaks, as a fraction of the radius.</summary>
-    [Export(PropertyHint.Range, "0,1")] public float BurnReach = 0.55f;
+    [Export(PropertyHint.Range, "0,1")] public float BurnReach = 0.8f;
+    /// <summary>Share of the things it breaks within that reach that are left burning.</summary>
+    [Export(PropertyHint.Range, "0,1")] public float BurnShare = 0.5f;
+    /// <summary>Fires it lights on the bare ground within that reach (see <see cref="Burning.Brush"/>, which caps how many burn at once).</summary>
+    [Export] public int GroundFires = 40;
     /// <summary>The hole it digs: radius and depth.</summary>
     [Export] public Vector2 Crater = new(34f, 5f);
     /// <summary>The scorched ground it leaves (a Crater scene), and its radius.</summary>
@@ -92,6 +96,14 @@ public partial class NukeBlast : Node3D
             if (to.Normalized().Dot(-camera.GlobalTransform.Basis.Z) < 0.2f) _blind *= 0.75f;
         }
 
+        // The ground it scorches catches as the wave passes: scattered over the burnt circle, thicker towards the middle.
+        for (int i = 0; i < GroundFires; i++)
+        {
+            float a = GD.Randf() * Mathf.Tau, d = Crater.X * 0.8f + GD.Randf() * (Radius * BurnReach - Crater.X * 0.8f);
+            _kindling.Add((d, center + new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * d));
+        }
+        _kindling.Sort((x, y) => x.dist.CompareTo(y.dist));
+
         Emp.Pulse(center, EmpRadius, EmpTime);
         if (Net.Authority)
         {
@@ -133,6 +145,12 @@ public partial class NukeBlast : Node3D
     {
         float t = _age;
         float cap = CapHeight(t);
+        for (; _lit < _kindling.Count && _kindling[_lit].dist <= WaveSpeed * t; _lit++)
+        {
+            Vector3 at = _kindling[_lit].at;
+            if (MapTerrain.Instance is { } ground) at.Y = ground.HeightAt(at.X, at.Z) + 0.2f;
+            Burning.Brush(GetParent(), at, (float)GD.RandRange(1.0, 2.2));
+        }
         if (_fireball != null)
         {
             _fireball.Visible = t < FireballTime;
@@ -193,6 +211,8 @@ public partial class NukeBlast : Node3D
     /// <summary>Most props the wave may break in one tick; the rest wait for the next (a forest falls over a second or two, not in one frame).</summary>
     const int PropsPerTick = 10;
     readonly List<ChunkedBuilding> _buildings = new();
+    readonly List<(float dist, Vector3 at)> _kindling = new();
+    int _lit;
     float _swept;
 
     /// <summary>Everything the wave will get to: machines and soldiers, props, buildings.</summary>
@@ -237,7 +257,8 @@ public partial class NukeBlast : Node3D
             // Close in, what the blast breaks the heat sets alight: here and there, not every block of a town.
             Burning.Heat = Kindles(to);
             foreach (var building in _buildings)
-                if (IsInstanceValid(building)) building.BlastShell(center, _swept, to, d => Damage * Falloff(d));
+                // (Nothing is left standing inside the radius: even at its edge the wave still breaks a wall.)
+                if (IsInstanceValid(building)) building.BlastShell(center, _swept, to, d => Damage * Mathf.Max(Falloff(d), 0.06f));
             _swept = to;
         }
 
@@ -253,8 +274,13 @@ public partial class NukeBlast : Node3D
                     if (props >= PropsPerTick) goto done;
                     // Only some of a forest that goes down at once gets its puff of dust.
                     Destructible.Quiet = props++ % 4 != 0;
-                    prop.TakeDamage(Damage * Falloff(dist), center);
+                    // Whatever stands inside the radius goes, however tough: flattened away from ground zero.
+                    Vector3 away = prop.GlobalPosition - center;
+                    away.Y = 0f;
+                    Vector3 place = prop.GlobalPosition;
+                    prop.DestroyWhole(away);
                     Destructible.Quiet = false;
+                    if (dist < Radius * BurnReach && GD.Randf() < BurnShare) Burning.Brush(GetParent(), place + Vector3.Up * 0.3f, (float)GD.RandRange(0.9, 1.8));
                     break;
                 case Mech mech:
                     foreach (var box in Geo.Collect<HitBox>(mech))

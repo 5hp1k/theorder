@@ -1,0 +1,30 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/emp_bomb.tscn" id="2"]
+[ext_resource type="AudioStream" path="res://audio/swing.wav" id="3"]
+
+[node name="Emp_Rack" type="Node3D"]
+script = ExtResource("1")
+DisplayName = "ЭМИ-бомбы"
+Group = 2
+Kind = 2
+Slot = 5
+Slots = 2
+Damage = 8
+Heat = 0
+Cooldown = 10
+Range = 200
+MaxAmmo = 3
+FxColor = Color(0.5, 0.75, 1, 1)
+ProjectileScene = ExtResource("2")
+SalvoSize = 1
+SalvoInterval = 0.2
+RackSize = Vector2(0, 0)
+Emp = true
+
+[node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+stream = ExtResource("3")
+unit_size = 10
+max_distance = 200
+volume_db = -4

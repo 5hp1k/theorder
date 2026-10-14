@@ -16,13 +16,15 @@ public partial class MainMenu : Control
     [Export] public PackedScene HardpointRowScene;
     /// <summary>One fitted weapon inside a hardpoint row.</summary>
     [Export] public PackedScene SlotRowScene;
+    /// <summary>One tick box of the "which machines the enemy fields" lists.</summary>
+    [Export] public PackedScene UnitCheckScene;
     [Export] public float PreviewTurnSpeed = 0.5f;
 
     static readonly string[] SlotNames = { "ЛУЧЕВОЕ", "БАЛЛИСТИКА", "РАКЕТЫ", "ЛЮБОЕ", "РУЧНОЕ", "БОМБЫ" };
     // As in MechWarrior 4: beam mounts red, ballistic yellow, missile green, omni grey.
     static readonly Color[] SlotColors = { new(1f, 0.35f, 0.3f), new(1f, 0.85f, 0.3f), new(0.45f, 0.9f, 0.4f), new(0.8f, 0.82f, 0.85f), new(0.75f, 0.6f, 0.45f), new(0.6f, 0.7f, 1f) };
 
-    record WeaponInfo(string Id, string Name, SlotType Slot, int Slots);
+    record WeaponInfo(string Id, string Name, SlotType Slot, int Slots, int Ammo);
     static WeaponInfo[] _weaponInfo;
 
     /// <summary>What sort of mount each catalog weapon needs and how many slots: read once from its prefab.</summary>
@@ -33,7 +35,7 @@ public partial class MainMenu : Control
         for (int i = 0; i < _weaponInfo.Length; i++)
         {
             var w = GD.Load<PackedScene>(Catalog.Weapons[i].Path).Instantiate<Weapon>();
-            _weaponInfo[i] = new WeaponInfo(Catalog.Weapons[i].Id, Catalog.Weapons[i].Name, w.Slot, w.Slots);
+            _weaponInfo[i] = new WeaponInfo(Catalog.Weapons[i].Id, Catalog.Weapons[i].Name, w.Slot, w.Slots, w.MaxAmmo);
             w.Free();
         }
         return _weaponInfo;
@@ -121,12 +123,10 @@ public partial class MainMenu : Control
     /// </summary>
     void PlaceBattleSettings(bool onNetPage)
     {
-        Control home = GetNode<Control>("%PageBattle"), slot = GetNode<Control>("%NetBattleSlot");
+        Control home = GetNode<Control>("%BattleSettings"), slot = GetNode<Control>("%NetBattleSlot");
         Control from = onNetPage ? home : slot, to = onNetPage ? slot : home;
         foreach (Node child in from.GetChildren())
         {
-            // The page's own heading stays where it is.
-            if (from == home && child.Name == "Heading") continue;
             from.RemoveChild(child);
             to.AddChild(child);
         }
@@ -435,12 +435,9 @@ public partial class MainMenu : Control
             Refresh();
         };
 
-        var type = GetNode<OptionButton>("%EnemyTypeOption");
-        type.Clear();
-        type.AddItem(Loc.T("Случайные"));
-        foreach (var e in Catalog.Mechs) type.AddItem(Loc.T(e.Name));
-        type.Selected = GameConfig.EnemyMechId == "random" ? 0 : Catalog.IndexOf(Catalog.Mechs, GameConfig.EnemyMechId) + 1;
-        type.ItemSelected += index => GameConfig.EnemyMechId = index == 0 ? "random" : Catalog.Mechs[index - 1].Id;
+        // Which machines the enemy fields: a tick box each; only the ticked ones are spawned.
+        FillChecks("%EnemyMechChecks", Catalog.Mechs, "%BtnMechsAll", "%BtnMechsNone");
+        FillChecks("%EnemyVehicleChecks", Catalog.Vehicles, "%BtnVehiclesAll", "%BtnVehiclesNone");
 
         var vehicles = GetNode<HSlider>("%VehicleCount");
         vehicles.Value = GameConfig.EnemyVehicleCount;
@@ -460,6 +457,9 @@ public partial class MainMenu : Control
         var botNukes = GetNode<CheckButton>("%BotNukesCheck");
         botNukes.ButtonPressed = GameConfig.BotNukes;
         botNukes.Toggled += on => GameConfig.BotNukes = on;
+        var botEmp = GetNode<CheckButton>("%BotEmpCheck");
+        botEmp.ButtonPressed = GameConfig.BotEmp;
+        botEmp.Toggled += on => GameConfig.BotEmp = on;
 
         // Battle length: the list's items are minutes, 0 = no limit.
         var time = GetNode<OptionButton>("%TimeLimitOption");
@@ -476,6 +476,33 @@ public partial class MainMenu : Control
         difficulty.ItemSelected += index => GameConfig.Difficulty = (int)index;
     }
 
+    /// <summary>A tick box for every machine of the list; unticked ones are kept out of the enemy's ranks.</summary>
+    void FillChecks(string container, Catalog.Entry[] entries, string allButton, string noneButton)
+    {
+        var box = GetNode<Container>(container);
+        foreach (Node child in box.GetChildren()) child.QueueFree();
+        var checks = new List<CheckBox>();
+        foreach (var e in entries)
+        {
+            string id = e.Id;
+            var check = UnitCheckScene.Instantiate<CheckBox>();
+            check.Text = Loc.T(e.Name);
+            check.TooltipText = Loc.T(e.Description);
+            check.ButtonPressed = !GameConfig.EnemyExcluded.Contains(id);
+            check.Toggled += on =>
+            {
+                if (on) GameConfig.EnemyExcluded.Remove(id);
+                else GameConfig.EnemyExcluded.Add(id);
+                Refresh();
+            };
+            box.AddChild(check);
+            checks.Add(check);
+        }
+        // (Setting the box fires its own signal, which keeps the list of the excluded.)
+        GetNode<Button>(allButton).Pressed += () => checks.ForEach(c => c.ButtonPressed = true);
+        GetNode<Button>(noneButton).Pressed += () => checks.ForEach(c => c.ButtonPressed = false);
+    }
+
     void Refresh()
     {
         var mech = Catalog.Find(Catalog.PlayerUnits, GameConfig.MechId);
@@ -484,7 +511,10 @@ public partial class MainMenu : Control
         _mapInfo.Text = Loc.T(map.Description);
         _enemyCountLabel.Text = Loc.T(GameConfig.EnemyCount.ToString());
         _vehicleCountLabel.Text = Loc.T(GameConfig.EnemyVehicleCount.ToString());
-        _summary.Text = Loc.T($"{mech.Name}  ·  {map.Name}  ·  мехов: {GameConfig.EnemyCount}, техники: {GameConfig.EnemyVehicleCount}");
+        // (With every box of a kind unticked there is nothing of that kind to field.)
+        int mechs = GameConfig.EnemyPool(Catalog.Mechs).Length > 0 ? GameConfig.EnemyCount : 0;
+        int vehicles = GameConfig.EnemyPool(Catalog.Vehicles).Length > 0 ? GameConfig.EnemyVehicleCount : 0;
+        _summary.Text = Loc.T($"{mech.Name}  ·  {map.Name}  ·  мехов: {mechs}, техники: {vehicles}");
     }
 
     // ── Mech preview and weapon slots ───────────────────────────
@@ -544,8 +574,8 @@ public partial class MainMenu : Control
             types[i] = points[i].Type;
             room[i] = points[i].Slots;
         }
-        var fits = new List<(string id, int group)>[points.Count];
-        for (int i = 0; i < points.Count; i++) fits[i] = new List<(string id, int group)>(Hardpoint.Parse(chosen[i]));
+        var fits = new List<(string id, int group, int ammo)>[points.Count];
+        for (int i = 0; i < points.Count; i++) fits[i] = new List<(string id, int group, int ammo)>(Hardpoint.Parse(chosen[i]));
 
         int Used(int point, int except = -1)
         {
@@ -588,6 +618,7 @@ public partial class MainMenu : Control
             shelfList.AddChild(chip);
             Dress(chip, w, w.Id);
             chip.GetNode<Control>("Row/Group").Visible = false;
+            chip.GetNode<Control>("Row/Ammo").Visible = false;
             chip.GetNode<Control>("Row/Remove").Visible = false;
         }
 
@@ -621,13 +652,13 @@ public partial class MainMenu : Control
             };
             row.Dropped = (id, from, index) =>
             {
-                int group = 0;
+                int group = 0, ammo = 0;
                 if (from >= 0 && index >= 0 && index < fits[from].Count)
                 {
-                    group = fits[from][index].group;
+                    (_, group, ammo) = fits[from][index];
                     fits[from].RemoveAt(index);
                 }
-                fits[point].Add((id, group));
+                fits[point].Add((id, group, ammo));
                 Commit(true);
             };
 
@@ -646,9 +677,23 @@ public partial class MainMenu : Control
                 group.Selected = fits[i][k].group;
                 group.ItemSelected += index =>
                 {
-                    fits[point][at] = (fits[point][at].id, (int)index);
+                    fits[point][at] = (fits[point][at].id, (int)index, fits[point][at].ammo);
                     Commit(false);
                 };
+                // Rounds carried, for a weapon that uses them: its usual load, or what the player chose.
+                var rounds = chip.GetNode<SpinBox>("Row/Ammo");
+                rounds.Visible = info is { Ammo: > 0 };
+                if (info is { Ammo: > 0 })
+                {
+                    rounds.MaxValue = info.Ammo * Hardpoint.MaxAmmoTimes;
+                    rounds.Value = fits[i][k].ammo > 0 ? fits[i][k].ammo : info.Ammo;
+                    rounds.ValueChanged += value =>
+                    {
+                        int chosenAmmo = (int)value == info.Ammo ? 0 : (int)value;
+                        fits[point][at] = (fits[point][at].id, fits[point][at].group, chosenAmmo);
+                        Commit(false);
+                    };
+                }
                 chip.GetNode<Button>("Row/Remove").Pressed += () =>
                 {
                     fits[point].RemoveAt(at);

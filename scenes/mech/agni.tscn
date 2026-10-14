@@ -1,0 +1,747 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://materials/camo_desert.tres" id="1"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
+[ext_resource type="Material" path="res://materials/mech_accent.tres" id="3"]
+[ext_resource type="Material" path="res://materials/mech_canopy.tres" id="4"]
+[ext_resource type="Script" path="res://scripts/Combat/HitBox.cs" id="5"]
+[ext_resource type="Material" path="res://materials/insignia.tres" id="6"]
+[ext_resource type="Script" path="res://scripts/Mech/Mech.cs" id="7"]
+[ext_resource type="Material" path="res://materials/mech_charred.tres" id="8"]
+[ext_resource type="Material" path="res://materials/mech_stripped.tres" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/fx/damage_smoke.tscn" id="10"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion.tscn" id="11"]
+[ext_resource type="PackedScene" path="res://scenes/fx/wreck_fire.tscn" id="12"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/medium_laser.tscn" id="13"]
+[ext_resource type="Material" path="res://materials/cockpit_panel.tres" id="17"]
+[ext_resource type="Script" path="res://scripts/Mech/MechLeg.cs" id="20"]
+[ext_resource type="Material" path="res://materials/fx/fire.tres" id="21"]
+[ext_resource type="AudioStream" path="res://audio/jet_loop.wav" id="22"]
+[ext_resource type="Script" path="res://scripts/Mech/MechRagdoll.cs" id="23"]
+[ext_resource type="AudioStream" path="res://audio/footstep.wav" id="24"]
+[ext_resource type="AudioStream" path="res://audio/reactor_loop.wav" id="25"]
+[ext_resource type="AudioStream" path="res://audio/hit.wav" id="26"]
+[ext_resource type="AudioStream" path="res://audio/alarm.wav" id="27"]
+[ext_resource type="Script" path="res://scripts/UI/CockpitDisplays.cs" id="x38"]
+[ext_resource type="Script" path="res://scripts/Combat/Hardpoint.cs" id="hardpoint"]
+[ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/srm.tscn" id="w_srm"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Pelvis.res" id="x1"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/PelvisArmor.res" id="x9"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/HipJoint.res" id="x39"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/KneeJoint.res" id="x40"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/HeelJoint.res" id="x41"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Antenna.res" id="x42"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/UpperArmL.res" id="x43"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/UpperArmR.res" id="x44"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/MetaL.res" id="x45"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/MetaR.res" id="x46"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/FootL_Plate.res" id="x47"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/FootL_Toes.res" id="x48"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/FootR_Plate.res" id="x49"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/FootR_Toes.res" id="x50"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/CenterTorso_Armor.res" id="x51"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/CenterTorso_Frame.res" id="x52"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Head_Armor.res" id="x53"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Head_Visor.res" id="x54"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/LeftTorso_Armor.res" id="x55"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/RightTorso_Armor.res" id="x56"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ThighL_Armor.res" id="x57"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ThighL_Frame.res" id="x58"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ThighR_Armor.res" id="x59"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ThighR_Frame.res" id="x60"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ShinL_Armor.res" id="x61"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ShinL_Frame.res" id="x62"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ShinR_Armor.res" id="x63"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ShinR_Frame.res" id="x64"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ArmL_Armor.res" id="x65"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ArmL_Frame.res" id="x66"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ArmR_Armor.res" id="x67"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/ArmR_Frame.res" id="x68"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/CockpitFrame.res" id="x69"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/CockpitDash.res" id="x70"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Footprint.res" id="x71"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/flamethrower.tscn" id="x2"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/small_laser.tscn" id="x3"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 1.805
+height = 8.871
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_6"]
+size = Vector3(1.425, 2.66, 2.09)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_7"]
+size = Vector3(1.805, 1.14, 0.76)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_10"]
+size = Vector3(1.25, 0.95, 0.75)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_13"]
+size = Vector3(0.95, 2.47, 2.09)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_16"]
+size = Vector3(0.95, 2.47, 2.09)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_24"]
+size = Vector3(1.3, 1.3, 3.4)
+
+[sub_resource type="QuadMesh" id="QuadMesh_25"]
+size = Vector2(0.57, 0.57)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_31"]
+size = Vector3(1.3, 1.3, 3.4)
+
+[sub_resource type="QuadMesh" id="QuadMesh_32"]
+size = Vector2(0.57, 0.57)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_48"]
+size = Vector3(1.118, 2.744, 1.352)
+
+[sub_resource type="QuadMesh" id="QuadMesh_50"]
+size = Vector2(0.7125, 0.7125)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_51"]
+size = Vector3(0.9656, 2.744, 1.0934)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_59"]
+size = Vector3(1.118, 2.744, 1.352)
+
+[sub_resource type="QuadMesh" id="QuadMesh_61"]
+size = Vector2(0.7125, 0.7125)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_62"]
+size = Vector3(0.9656, 2.744, 1.0934)
+
+[sub_resource type="Gradient" id="Gradient_70"]
+offsets = PackedFloat32Array(0, 0.1, 0.55, 1)
+colors = PackedColorArray(1, 0.9, 0.5, 0, 1, 0.75, 0.25, 0.9, 1, 0.3, 0.05, 0.6, 0.3, 0.05, 0.02, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_71"]
+gradient = SubResource("Gradient_70")
+
+[sub_resource type="Curve" id="Curve_72"]
+_limits = [0.0, 1, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_73"]
+curve = SubResource("Curve_72")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_74"]
+emission_shape = 1
+emission_sphere_radius = 0.285
+direction = Vector3(0, -1, 0.15)
+spread = 10
+initial_velocity_min = 13.3
+initial_velocity_max = 20.9
+gravity = Vector3(0, 0, 0)
+scale_min = 0.6
+scale_max = 1.2
+color_ramp = SubResource("GradientTexture1D_71")
+scale_curve = SubResource("CurveTexture_73")
+
+[sub_resource type="QuadMesh" id="QuadMesh_75"]
+size = Vector2(1.71, 1.71)
+material = ExtResource("21")
+
+[sub_resource type="Gradient" id="Gradient_76"]
+offsets = PackedFloat32Array(0, 0.1, 0.55, 1)
+colors = PackedColorArray(1, 0.9, 0.5, 0, 1, 0.75, 0.25, 0.9, 1, 0.3, 0.05, 0.6, 0.3, 0.05, 0.02, 0)
+
+[sub_resource type="GradientTexture1D" id="GradientTexture1D_77"]
+gradient = SubResource("Gradient_76")
+
+[sub_resource type="Curve" id="Curve_78"]
+_limits = [0.0, 1, 0.0, 1.0]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 0.3), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[sub_resource type="CurveTexture" id="CurveTexture_79"]
+curve = SubResource("Curve_78")
+
+[sub_resource type="ParticleProcessMaterial" id="ParticleProcessMaterial_80"]
+emission_shape = 1
+emission_sphere_radius = 0.285
+direction = Vector3(0, -1, 0.15)
+spread = 10
+initial_velocity_min = 13.3
+initial_velocity_max = 20.9
+gravity = Vector3(0, 0, 0)
+scale_min = 0.6
+scale_max = 1.2
+color_ramp = SubResource("GradientTexture1D_77")
+scale_curve = SubResource("CurveTexture_79")
+
+[sub_resource type="QuadMesh" id="QuadMesh_81"]
+size = Vector2(1.71, 1.71)
+material = ExtResource("21")
+
+[node name="Agni" type="CharacterBody3D"]
+floor_max_angle = 0.69813
+floor_snap_length = 1.2
+script = ExtResource("7")
+DisplayName = "Агни"
+HipHeight = 5.831
+CharredMaterial = ExtResource("8")
+StrippedMaterial = ExtResource("9")
+DamageSmokeScene = ExtResource("10")
+ExplosionScene = ExtResource("11")
+WreckFireScene = ExtResource("12")
+ArmorMaterial = ExtResource("1")
+AccentMaterial = ExtResource("3")
+TrampleRadius = 2.47
+MaxForwardSpeed = 26.9
+Acceleration = 9
+Deceleration = 13
+TurnRateStanding = 1.9
+TurnRateFull = 1.25
+StepLength = 7
+StepHeight = 1.05
+RunSwing = 0.64
+HipSwing = 0.24
+TwistRate = 2.8
+ArmorScale = 0.8
+HasJumpJets = true
+FootprintMesh = ExtResource("x71")
+HeatDissipation = 0.1
+JumpFuelTime = 4
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4355, 0)
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="Hips" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.831, 0)
+
+[node name="Pelvis" type="MeshInstance3D" parent="Hips"]
+mesh = ExtResource("x1")
+material_override = ExtResource("2")
+
+[node name="PelvisArmor" type="MeshInstance3D" parent="Hips"]
+mesh = ExtResource("x9")
+material_override = ExtResource("1")
+
+[node name="HipL" type="Marker3D" parent="Hips"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2825, -0.19, 0)
+
+[node name="HipR" type="Marker3D" parent="Hips"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2825, -0.19, 0)
+
+[node name="Torso" type="Node3D" parent="Hips"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.665, 0)
+
+[node name="CenterTorso" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 1
+
+[node name="Armor" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
+mesh = ExtResource("x51")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/CenterTorso"]
+mesh = ExtResource("x52")
+material_override = ExtResource("2")
+
+[node name="ShapeHull" type="CollisionShape3D" parent="Hips/Torso/CenterTorso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.425, 0)
+shape = SubResource("BoxShape3D_6")
+
+[node name="ShapeChest" type="CollisionShape3D" parent="Hips/Torso/CenterTorso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -1.3)
+shape = SubResource("BoxShape3D_7")
+
+[node name="Head" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 0
+
+[node name="Skull" type="MeshInstance3D" parent="Hips/Torso/Head"]
+mesh = ExtResource("x53")
+material_override = ExtResource("1")
+
+[node name="Visor" type="MeshInstance3D" parent="Hips/Torso/Head"]
+mesh = ExtResource("x54")
+material_override = ExtResource("4")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.98, -1.5)
+shape = SubResource("BoxShape3D_10")
+
+[node name="LeftTorso" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 2
+
+[node name="Hull" type="MeshInstance3D" parent="Hips/Torso/LeftTorso"]
+mesh = ExtResource("x55")
+material_override = ExtResource("1")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/LeftTorso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.1875, 1.425, 0)
+shape = SubResource("BoxShape3D_13")
+
+[node name="RightTorso" type="AnimatableBody3D" parent="Hips/Torso"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 3
+
+[node name="Hull" type="MeshInstance3D" parent="Hips/Torso/RightTorso"]
+mesh = ExtResource("x56")
+material_override = ExtResource("1")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/RightTorso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1875, 1.425, 0)
+shape = SubResource("BoxShape3D_16")
+
+[node name="Antenna" type="MeshInstance3D" parent="Hips/Torso"]
+mesh = ExtResource("x42")
+material_override = ExtResource("2")
+
+[node name="UpperArmL" type="MeshInstance3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.09, 1.8525, 0)
+mesh = ExtResource("x43")
+material_override = ExtResource("1")
+
+[node name="ArmL" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.09, 1.0925, 0)
+
+[node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmL"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 4
+
+[node name="Forearm" type="MeshInstance3D" parent="Hips/Torso/ArmL/Hit"]
+mesh = ExtResource("x65")
+material_override = ExtResource("1")
+
+[node name="Hand" type="MeshInstance3D" parent="Hips/Torso/ArmL/Hit"]
+mesh = ExtResource("x66")
+material_override = ExtResource("2")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/ArmL/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.235)
+shape = SubResource("BoxShape3D_24")
+
+[node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmL"]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -1.08, -0.1, -1.25)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_25")
+material_override = ExtResource("6")
+
+[node name="HardpointArm" type="Node3D" parent="Hips/Torso/ArmL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3.15)
+script = ExtResource("hardpoint")
+DisplayName = "Левая рука"
+Type = 3
+Slots = 3
+Mount = 4
+Spacing = Vector3(0, 0.56, 0)
+
+[node name="Flamer" parent="Hips/Torso/ArmL/HardpointArm" instance=ExtResource("x2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0, -0.28, -0)
+Mount = 4
+Group = 2
+
+[node name="Laser" parent="Hips/Torso/ArmL/HardpointArm" instance=ExtResource("13")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.28, 0)
+Mount = 4
+Group = 1
+
+[node name="UpperArmR" type="MeshInstance3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.09, 1.8525, 0)
+mesh = ExtResource("x44")
+material_override = ExtResource("1")
+
+[node name="ArmR" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.09, 1.0925, 0)
+
+[node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmR"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 5
+
+[node name="Forearm" type="MeshInstance3D" parent="Hips/Torso/ArmR/Hit"]
+mesh = ExtResource("x67")
+material_override = ExtResource("1")
+
+[node name="Hand" type="MeshInstance3D" parent="Hips/Torso/ArmR/Hit"]
+mesh = ExtResource("x68")
+material_override = ExtResource("2")
+
+[node name="Shape" type="CollisionShape3D" parent="Hips/Torso/ArmR/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.235)
+shape = SubResource("BoxShape3D_31")
+
+[node name="Insignia" type="MeshInstance3D" parent="Hips/Torso/ArmR"]
+transform = Transform3D(0, 0, 1, 0, 1, 0, -1, 0, 0, 1.08, -0.1, -1.25)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_32")
+material_override = ExtResource("6")
+
+[node name="HardpointArm" type="Node3D" parent="Hips/Torso/ArmR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3.15)
+script = ExtResource("hardpoint")
+DisplayName = "Правая рука"
+Type = 3
+Slots = 3
+Mount = 5
+Spacing = Vector3(0, 0.56, 0)
+
+[node name="Flamer" parent="Hips/Torso/ArmR/HardpointArm" instance=ExtResource("x2")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0, -0.28, -0)
+Mount = 5
+Group = 2
+
+[node name="Laser" parent="Hips/Torso/ArmR/HardpointArm" instance=ExtResource("13")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.28, 0)
+Mount = 5
+Group = 1
+
+[node name="HardpointLeftTorso" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 1.25, -1.2)
+script = ExtResource("hardpoint")
+DisplayName = "Левый торс"
+Type = 3
+Slots = 2
+Mount = 2
+
+[node name="Srm" parent="Hips/Torso/HardpointLeftTorso" instance=ExtResource("w_srm")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+Mount = 2
+Group = 3
+
+[node name="HardpointRightTorso" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 1.25, -1.2)
+script = ExtResource("hardpoint")
+DisplayName = "Правый торс"
+Type = 3
+Slots = 2
+Mount = 3
+
+[node name="Srm" parent="Hips/Torso/HardpointRightTorso" instance=ExtResource("w_srm")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+Mount = 3
+Group = 3
+
+[node name="HardpointChest" type="Node3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2, -2.05)
+script = ExtResource("hardpoint")
+DisplayName = "Корпус"
+Type = 3
+Slots = 1
+Mount = 1
+
+[node name="Laser" parent="Hips/Torso/HardpointChest" instance=ExtResource("x3")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+Mount = 1
+Group = 1
+
+[node name="HeadlightL" parent="Hips/Torso" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2, 2.2, -1.25)
+
+[node name="HeadlightR" parent="Hips/Torso" instance=ExtResource("headlight")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 2.2, -1.25)
+
+[node name="CockpitCam" type="Marker3D" parent="Hips/Torso"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -1.95)
+
+[node name="Cockpit" type="Node3D" parent="Hips/Torso/CockpitCam"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.36, -0.55)
+visible = false
+script = ExtResource("x38")
+
+[node name="Frame" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+mesh = ExtResource("x69")
+material_override = ExtResource("17")
+
+[node name="Dash" type="Node3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 0.882948, 0.469472, 0, -0.469472, 0.882948, 0, -0.43, -0.98)
+
+[node name="Console" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+mesh = ExtResource("x70")
+material_override = ExtResource("17")
+cast_shadow = 0
+
+[node name="HomeL" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.52, 0, 0.05)
+
+[node name="LegL" type="Node3D" parent="."]
+script = ExtResource("20")
+Side = -1
+HipMarker = NodePath("../Hips/HipL")
+HomeMarker = NodePath("../HomeL")
+ThighLength = 2.744
+ShinLength = 2.744
+MetaLength = 0.441
+AnkleHeight = 0.3325
+MetaRestAngle = 0.04
+MetaSwingAngle = 0.3
+ToeReach = 1.03809
+HeelReach = 1.03809
+
+[node name="Thigh" type="Node3D" parent="LegL"]
+transform = Transform3D(0.99911, -0.04224, 0, -0.0366, -0.86569, 0.49925, -0.02109, -0.4988, -0.86646, -1.34045, 4.45328, -0.68435)
+
+[node name="Hit" type="AnimatableBody3D" parent="LegL/Thigh"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 6
+
+[node name="Shape" type="CollisionShape3D" parent="LegL/Thigh/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_48")
+
+[node name="Mesh" type="MeshInstance3D" parent="LegL/Thigh/Hit"]
+mesh = ExtResource("x57")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegL/Thigh/Hit"]
+mesh = ExtResource("x58")
+material_override = ExtResource("2")
+
+[node name="Insignia" type="MeshInstance3D" parent="LegL/Thigh"]
+transform = Transform3D(0, 0, -1, 0, -1, 0, -1, 0, 0, -0.634611, -0.355704, 0)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_50")
+material_override = ExtResource("6")
+
+[node name="Shin" type="Node3D" parent="LegL"]
+transform = Transform3D(0.99902, -0.04432, 0, -0.04029, -0.90831, -0.41635, 0.01845, 0.41594, -0.9092, -1.4592, 2.01935, -0.79804)
+
+[node name="Hit" type="AnimatableBody3D" parent="LegL/Shin"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 6
+
+[node name="Shape" type="CollisionShape3D" parent="LegL/Shin/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_51")
+
+[node name="Mesh" type="MeshInstance3D" parent="LegL/Shin/Hit"]
+mesh = ExtResource("x61")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegL/Shin/Hit"]
+mesh = ExtResource("x62")
+material_override = ExtResource("2")
+
+[node name="Meta" type="Node3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, -0.9992, 0.03999, 0, -0.03999, -0.9992, -1.52, 0.55282, -0.23618)
+
+[node name="Mesh" type="MeshInstance3D" parent="LegL/Meta"]
+mesh = ExtResource("x45")
+material_override = ExtResource("2")
+
+[node name="Foot" type="Node3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.52, 0.16625, -0.245)
+
+[node name="Plate" type="MeshInstance3D" parent="LegL/Foot"]
+mesh = ExtResource("x47")
+material_override = ExtResource("1")
+
+[node name="Toes" type="MeshInstance3D" parent="LegL/Foot"]
+mesh = ExtResource("x48")
+material_override = ExtResource("2")
+
+[node name="HipJoint" type="MeshInstance3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2825, 5.641, 0)
+mesh = ExtResource("x39")
+material_override = ExtResource("2")
+
+[node name="KneeJoint" type="MeshInstance3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.3984, 3.26555, -1.36871)
+mesh = ExtResource("x40")
+material_override = ExtResource("2")
+
+[node name="HeelJoint" type="MeshInstance3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.52, 0.77315, -0.22736)
+mesh = ExtResource("x41")
+material_override = ExtResource("2")
+
+[node name="HomeR" type="Marker3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.52, 0, 0.05)
+
+[node name="LegR" type="Node3D" parent="."]
+script = ExtResource("20")
+Side = 1
+HipMarker = NodePath("../Hips/HipR")
+HomeMarker = NodePath("../HomeR")
+ThighLength = 2.744
+ShinLength = 2.744
+MetaLength = 0.441
+AnkleHeight = 0.3325
+MetaRestAngle = 0.04
+MetaSwingAngle = 0.3
+ToeReach = 1.03809
+HeelReach = 1.03809
+
+[node name="Thigh" type="Node3D" parent="LegR"]
+transform = Transform3D(0.99911, 0.04224, 0, 0.0366, -0.86569, 0.49925, 0.02109, -0.4988, -0.86646, 1.34045, 4.45328, -0.68435)
+
+[node name="Hit" type="AnimatableBody3D" parent="LegR/Thigh"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 7
+
+[node name="Shape" type="CollisionShape3D" parent="LegR/Thigh/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_59")
+
+[node name="Mesh" type="MeshInstance3D" parent="LegR/Thigh/Hit"]
+mesh = ExtResource("x59")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegR/Thigh/Hit"]
+mesh = ExtResource("x60")
+material_override = ExtResource("2")
+
+[node name="Insignia" type="MeshInstance3D" parent="LegR/Thigh"]
+transform = Transform3D(0, 0, 1, 0, -1, 0, 1, 0, 0, 0.634611, -0.355704, 0)
+visible = false
+cast_shadow = 0
+mesh = SubResource("QuadMesh_61")
+material_override = ExtResource("6")
+
+[node name="Shin" type="Node3D" parent="LegR"]
+transform = Transform3D(0.99902, 0.04432, 0, 0.04029, -0.90831, -0.41635, -0.01845, 0.41594, -0.9092, 1.4592, 2.01935, -0.79804)
+
+[node name="Hit" type="AnimatableBody3D" parent="LegR/Shin"]
+sync_to_physics = false
+collision_layer = 16
+collision_mask = 0
+script = ExtResource("5")
+Section = 7
+
+[node name="Shape" type="CollisionShape3D" parent="LegR/Shin/Hit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+shape = SubResource("BoxShape3D_62")
+
+[node name="Mesh" type="MeshInstance3D" parent="LegR/Shin/Hit"]
+mesh = ExtResource("x63")
+material_override = ExtResource("1")
+
+[node name="Frame" type="MeshInstance3D" parent="LegR/Shin/Hit"]
+mesh = ExtResource("x64")
+material_override = ExtResource("2")
+
+[node name="Meta" type="Node3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, -0.9992, 0.03999, 0, -0.03999, -0.9992, 1.52, 0.55282, -0.23618)
+
+[node name="Mesh" type="MeshInstance3D" parent="LegR/Meta"]
+mesh = ExtResource("x46")
+material_override = ExtResource("2")
+
+[node name="Foot" type="Node3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.52, 0.16625, -0.245)
+
+[node name="Plate" type="MeshInstance3D" parent="LegR/Foot"]
+mesh = ExtResource("x49")
+material_override = ExtResource("1")
+
+[node name="Toes" type="MeshInstance3D" parent="LegR/Foot"]
+mesh = ExtResource("x50")
+material_override = ExtResource("2")
+
+[node name="HipJoint" type="MeshInstance3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2825, 5.641, 0)
+mesh = ExtResource("x39")
+material_override = ExtResource("2")
+
+[node name="KneeJoint" type="MeshInstance3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.3984, 3.26555, -1.36871)
+mesh = ExtResource("x40")
+material_override = ExtResource("2")
+
+[node name="HeelJoint" type="MeshInstance3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.52, 0.77315, -0.22736)
+mesh = ExtResource("x41")
+material_override = ExtResource("2")
+
+[node name="JumpJets" type="Node3D" parent="Hips"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.38, 1.045)
+
+[node name="FlameL" type="GPUParticles3D" parent="Hips/JumpJets"]
+amount = 34
+lifetime = 0.45
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_74")
+draw_pass_1 = SubResource("QuadMesh_75")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.855, 0, 0)
+emitting = false
+
+[node name="FlameR" type="GPUParticles3D" parent="Hips/JumpJets"]
+amount = 34
+lifetime = 0.45
+cast_shadow = 0
+process_material = SubResource("ParticleProcessMaterial_80")
+draw_pass_1 = SubResource("QuadMesh_81")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.855, 0, 0)
+emitting = false
+
+[node name="Glow" type="OmniLight3D" parent="Hips/JumpJets"]
+light_color = Color(1, 0.6, 0.25, 1)
+light_energy = 4
+omni_range = 17.1
+visible = false
+
+[node name="Sound" type="AudioStreamPlayer3D" parent="Hips/JumpJets"]
+stream = ExtResource("22")
+unit_size = 13.3
+max_distance = 350
+volume_db = 0
+
+[node name="Ragdoll" type="Node" parent="."]
+script = ExtResource("23")
+TotalMass = 45000
+
+[node name="Sounds" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.831, 0)
+
+[node name="Footstep" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("24")
+unit_size = 22
+max_distance = 350
+volume_db = 2
+max_polyphony = 2
+
+[node name="Reactor" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("25")
+unit_size = 7
+max_distance = 120
+volume_db = -10
+
+[node name="Hit" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("26")
+unit_size = 16
+max_distance = 300
+volume_db = -2
+max_polyphony = 3
+
+[node name="Alarm" type="AudioStreamPlayer3D" parent="Sounds"]
+stream = ExtResource("27")
+unit_size = 6
+max_distance = 40
+volume_db = -8

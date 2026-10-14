@@ -67,6 +67,36 @@ public partial class Weapon : Node3D
     /// group, only on its own decision — see <see cref="WeaponSystem.HoldStrategic"/>.
     /// </summary>
     [Export] public bool Strategic;
+    /// <summary>An electromagnetic bomb: a computer pilot drops it only if the battle allows (see <see cref="WeaponSystem.HoldEmp"/>).</summary>
+    [Export] public bool Emp;
+
+    [ExportGroup("Recoil")]
+    /// <summary>How hard each shot jolts the machine that fires it (a heavy gun rocks a tank on its springs).</summary>
+    [Export] public float Kick;
+    /// <summary>How far the gun (the arm, the barrel) is driven back by a shot, metres, and the seconds it takes to run out again.</summary>
+    [Export] public float RecoilTravel;
+    [Export] public float RecoilReturn = 0.35f;
+    /// <summary>The cloud of smoke a shot leaves at the muzzle (scenes/fx/muzzle_smoke*.tscn); none for a beam.</summary>
+    [Export] public PackedScene MuzzleSmoke;
+    /// <summary>The flame out of the muzzle (scenes/fx/muzzle_flash*.tscn), in place of the plain glow.</summary>
+    [Export] public PackedScene MuzzleFlash;
+    /// <summary>Seconds the barrel goes on smoking after a shot (its "BarrelSmoke" particles, which stay where they were let out: a moving machine leaves a trail).</summary>
+    [Export] public float SmokeTime = 3f;
+    public GpuParticles3D BarrelSmoke { get; private set; }
+    public float SmokeLeft { get; set; }
+
+    [ExportGroup("Flame")]
+    /// <summary>
+    /// Heat a full burst pours into a mech it is held on, as a share of that mech's shutdown threshold
+    /// (a flamethrower). Vehicles have no reactor heat: they only take the damage.
+    /// </summary>
+    [Export] public float TargetHeat;
+    /// <summary>Sets fire to the ground and to whatever else it plays on (a flamethrower), not only to what it destroys.</summary>
+    [Export] public bool Ignites;
+    /// <summary>Seconds a machine it plays on goes on burning afterwards (see <see cref="UnitFire"/>); 0 = it doesn't catch.</summary>
+    [Export] public float Afterburn;
+    /// <summary>Seconds until it may light the next fire.</summary>
+    public float KindleLeft { get; set; }
 
     [ExportGroup("Melee")]
     [Export] public float SwingTime = 0.5f;
@@ -80,6 +110,18 @@ public partial class Weapon : Node3D
     [Export] public float SalvoInterval = 0.07f;
     /// <summary>Size of the rack the salvo leaves from (each projectile from a random tube); zero for a single barrel.</summary>
     [Export] public Vector2 RackSize = new(1.1f, 0.9f);
+
+    [ExportGroup("Shells")]
+    /// <summary>
+    /// Over 0, the projectile is a shell thrown on a ballistic arc at this speed, m/s (a howitzer): the
+    /// gun is laid so that it comes down on the point aimed at, lobbed high if a hill is in the way.
+    /// </summary>
+    [Export] public float MuzzleSpeed;
+    /// <summary>How fast the shell falls, m/s² (with the muzzle speed this sets the reach: speed² / gravity).</summary>
+    [Export] public float ShellGravity = 20f;
+
+    /// <summary>Thrown on an arc rather than flown or fired flat.</summary>
+    public bool Lobbed => MuzzleSpeed > 0f && Kind == WeaponKind.Missile;
 
     public int Ammo { get; set; }
     public bool Destroyed { get; set; }
@@ -95,6 +137,8 @@ public partial class Weapon : Node3D
     public float SwingPhase => SwingLeft > 0f && SwingTime > 0f ? Mathf.Clamp(1f - SwingLeft / SwingTime, 0f, 1f) : 0f;
     public Vector3 RestRotation { get; private set; }
     public MeshInstance3D BeamMesh { get; private set; }
+    /// <summary>The jet of a flamethrower: particles thrown along the node's -Z while it burns.</summary>
+    public GpuParticles3D Flame { get; private set; }
     public AudioStreamPlayer3D FireSound { get; private set; }
 
     public bool HasAmmo => Ammo != 0;
@@ -106,7 +150,19 @@ public partial class Weapon : Node3D
         Ammo = MaxAmmo;
         RestRotation = Rotation;
         BeamMesh = GetNodeOrNull<MeshInstance3D>("Beam");
+        Flame = GetNodeOrNull<GpuParticles3D>("Flame");
+        BarrelSmoke = GetNodeOrNull<GpuParticles3D>("BarrelSmoke");
+        if (Flame != null) SetFlame(false);
         FireSound = GetNodeOrNull<AudioStreamPlayer3D>("FireSound");
+    }
+
+    /// <summary>Lights or puts out the jet: the flame and whatever rides with it (its smoke).</summary>
+    public void SetFlame(bool on)
+    {
+        if (Flame == null || Flame.Emitting == on) return;
+        Flame.Emitting = on;
+        foreach (Node child in Flame.GetChildren())
+            if (child is GpuParticles3D p) p.Emitting = on;
     }
 
     public void StopFiring()
@@ -116,6 +172,11 @@ public partial class Weapon : Node3D
         BeamLeft = 0f;
         SalvoLeft = 0;
         if (BeamMesh != null) BeamMesh.Visible = false;
+        if (Flame != null)
+        {
+            SetFlame(false);
+            FireSound?.Stop();
+        }
     }
 }
 
@@ -135,8 +196,12 @@ public sealed class WeaponSystem
     /// beside the pilot doesn't appear to fire through the cab. The shots themselves are unaffected.
     /// </summary>
     public (Vector3 eye, Vector3 forward, float depth)? CabClip;
-    /// <summary>Hand weapons are only swung when the aim point is within their reach.</summary>
+    /// <summary>Hand weapons are only swung, and flamethrowers only lit, when the aim point is within their reach.</summary>
     public bool MeleeInReachOnly;
+    /// <summary>Electromagnetic bombs stay on the rack (a computer pilot, when the battle doesn't allow them).</summary>
+    public bool HoldEmp;
+    /// <summary>A shot has left the weapon (each missile of a salvo, each burst of a beam): the machine rocks, the gun recoils.</summary>
+    public System.Action<Weapon> Fired;
     /// <summary>Strategic weapons stay on the rack whatever group is fired (a computer pilot's safety catch)…</summary>
     public bool HoldStrategic;
     /// <summary>…until the pilot clears them, for the tick it is set in.</summary>
@@ -195,6 +260,9 @@ public sealed class WeaponSystem
         {
             if (w.Group != group || w.Kind == WeaponKind.Melee || !w.IsReady) continue;
             if (w.Strategic && HoldStrategic && !ReleaseStrategic) continue;
+            if (w.Emp && HoldEmp) continue;
+            // A computer pilot doesn't burn fuel (and its own heat) at something the flame can't reach.
+            if (MeleeInReachOnly && w.TargetHeat > 0f && w.GlobalPosition.DistanceTo(aimPoint) > w.Range) continue;
             heat += Fire(w, aimPoint, space);
         }
         // Hand weapons strike one at a time (a machine throws its whole body into a blow), taking turns.
@@ -278,7 +346,7 @@ public sealed class WeaponSystem
             case WeaponKind.Ballistic:
                 Vector3 end = Trace(w, from, aimPoint, space, out var hit, out bool didHit);
                 Vector3 shown = Seen(from, end, out bool muzzle);
-                Shot(w, from, muzzle ? 0.5f : 0f);
+                Shot(w, from, muzzle ? 0.5f : 0f, end - from);
                 TimedFx.Tracer(_fxRoot, shown, end, w.FxColor, 0.06f);
                 Impacts.Water(_fxRoot, from, end, 0.5f + w.CraterSize);
                 if (didHit)
@@ -307,15 +375,38 @@ public sealed class WeaponSystem
         return w.Heat;
     }
 
-    void Shot(Weapon w, Vector3 from, float flash)
+    void Shot(Weapon w, Vector3 from, float flash, Vector3 way = default)
     {
-        if (flash > 0f) TimedFx.Flash(_fxRoot, from, w.FxColor, flash, 0.07f);
+        Basis facing = Basis.Identity;
+        if (way.LengthSquared() > 1e-4f)
+        {
+            Vector3 dir = way.Normalized();
+            facing = Basis.LookingAt(dir, Mathf.Abs(dir.Y) > 0.95f ? Vector3.Right : Vector3.Up);
+        }
+        if (flash > 0f && w.MuzzleFlash != null && way.LengthSquared() > 1e-4f)
+        {
+            var fire = w.MuzzleFlash.Instantiate<Node3D>();
+            _fxRoot.AddChild(fire);
+            fire.GlobalTransform = new Transform3D(facing, from);
+        }
+        else if (flash > 0f) TimedFx.Flash(_fxRoot, from, w.FxColor, flash, 0.07f);
+        // Smoke at the muzzle (not inside the player's own cab, where it would only blind the pilot).
+        if (flash > 0f && w.MuzzleSmoke != null && way.LengthSquared() > 1e-4f)
+        {
+            var smoke = w.MuzzleSmoke.Instantiate<Node3D>();
+            _fxRoot.AddChild(smoke);
+            smoke.GlobalTransform = new Transform3D(facing, from);
+        }
+        Fired?.Invoke(w);
+        w.SmokeLeft = w.SmokeTime;
         PlaySound(w);
     }
 
     static void PlaySound(Weapon w)
     {
         if (w.FireSound == null) return;
+        // A flamethrower roars for as long as it burns: its sound is not started afresh with every burst.
+        if (w.Flame != null && w.FireSound.Playing) return;
         w.FireSound.PitchScale = (float)GD.RandRange(0.94, 1.06);
         w.FireSound.Play();
     }
@@ -324,6 +415,14 @@ public sealed class WeaponSystem
     {
         foreach (var w in Weapons)
         {
+            if (w.BarrelSmoke != null)
+            {
+                // The barrel smokes after a shot, thinning out; it is the smoke left behind as the machine moves on.
+                w.SmokeLeft = Mathf.Max(0f, w.SmokeLeft - dt);
+                bool smoking = w.SmokeLeft > 0f && !w.Destroyed;
+                if (w.BarrelSmoke.Emitting != smoking) w.BarrelSmoke.Emitting = smoking;
+                if (smoking) w.BarrelSmoke.AmountRatio = Mathf.Clamp(w.SmokeLeft / Mathf.Max(w.SmokeTime, 0.01f) * 1.3f, 0.05f, 1f);
+            }
             if (w.CooldownLeft > 0f) w.CooldownLeft -= dt;
             if (w.BeamLeft > 0f)
             {
@@ -396,12 +495,21 @@ public sealed class WeaponSystem
         Basis rack = w.GlobalTransform.Basis.Orthonormalized();
         from += rack.X * (float)GD.RandRange(-0.5, 0.5) * w.RackSize.X + rack.Y * (float)GD.RandRange(-0.5, 0.5) * w.RackSize.Y;
         Seen(from, aimPoint, out bool rackInView);
-        Shot(w, from, rackInView ? 0.4f : 0f);
+        Shot(w, from, rackInView ? 0.4f : 0f, aimPoint - from);
 
         var projectile = w.ProjectileScene.Instantiate<Projectile>();
         projectile.Shooter = _owner;
+        Vector3 velocity = CarrierVelocity;
+        if (w.Lobbed)
+        {
+            // A shell: thrown so as to come down on the point aimed at (as near as the gun can reach).
+            velocity = Ballistics.Lay(from, aimPoint, w.MuzzleSpeed, w.ShellGravity, out _);
+            if (w.Spread > 0f)
+                velocity = velocity.Rotated(Vector3.Up, (float)GD.RandRange(-1.0, 1.0) * w.Spread) * (1f + (float)GD.RandRange(-1.0, 1.0) * w.Spread);
+            if (projectile is Bomb shell) shell.Gravity = w.ShellGravity;
+        }
         _fxRoot.AddChild(projectile);
-        projectile.Launch(from, aimPoint, lockTarget, w.Damage * DamageScale, w.Range, Mask, _exclude, CarrierVelocity);
+        projectile.Launch(from, aimPoint, lockTarget, w.Damage * DamageScale, w.Range, Mask, _exclude, velocity);
     }
 
     void UpdateBeam(Weapon w, Vector3 aimPoint, PhysicsDirectSpaceState3D space, float dt)
@@ -413,12 +521,36 @@ public sealed class WeaponSystem
             w.BeamMesh.Visible = true;
             Geo.PlaceSegment(w.BeamMesh, Seen(from, end, out _), end, Vector3.Up);
         }
+        if (w.Flame != null)
+        {
+            // The jet is thrown at the point aimed at (and not drawn inside the player's own cab).
+            Vector3 nozzle = Seen(from, end, out _);
+            if (nozzle.DistanceSquaredTo(end) > 0.25f)
+                w.Flame.LookAtFromPosition(nozzle, end, Mathf.Abs((end - nozzle).Normalized().Y) > 0.95f ? Vector3.Right : Vector3.Up);
+            w.SetFlame(true);
+        }
         if (didHit && dt > 0f)
         {
             // What a beam destroys, it sets alight.
             Burning.Heat = true;
             Hurt(hit, w.Damage * DamageScale * dt / w.BeamTime);
             Burning.Heat = false;
+            // A flamethrower cooks the machine it plays on: its reactor has that much more heat to get rid of.
+            if (w.Ignites && hit.Collider is not HitBox and not Vehicle)
+            {
+                // The ground, a tree, a wall: it is left burning (a row of fires where the jet is swept along).
+                w.KindleLeft -= dt;
+                if (w.KindleLeft <= 0f)
+                {
+                    w.KindleLeft = 0.25f;
+                    Burning.Kindle(_fxRoot, hit.Position + hit.Normal * 0.2f, 0.9f);
+                }
+            }
+            // A machine caught in the jet catches fire itself, and goes on burning for a while.
+            if (w.Afterburn > 0f && hit.Collider is Node3D body and (HitBox or Vehicle) && hit.Collider is not HitBox { Unit: null })
+                UnitFire.Ignite(body, hit.Position + hit.Normal * 0.3f, w.Afterburn);
+            if (w.TargetHeat > 0f && hit.Collider is HitBox { Unit: Mech scorched })
+                scorched.AddHeat(w.TargetHeat * DamageScale * dt / w.BeamTime);
             if (GD.Randf() < 0.35f) TimedFx.Flash(_fxRoot, end, w.FxColor, 0.45f, 0.08f);
             // A beam held on the ground scorches a line of marks; on water it boils the surface now and then.
             if (GD.Randf() < 0.06f) Impacts.Ground(_fxRoot, hit, w.CraterSize, Mark.Burn);

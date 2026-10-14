@@ -10,6 +10,7 @@
 [ext_resource type="Script" uid="uid://cnqwirantwt6o" path="res://scripts/UI/PauseMenu.cs" id="8"]
 [ext_resource type="PackedScene" path="res://scenes/ui/fps_counter.tscn" id="fps_counter"]
 [ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="settings_panel"]
+[ext_resource type="PackedScene" path="res://scenes/fx/shell_arc.tscn" id="shell_arc"]
 
 [node name="Game" type="Node3D" unique_id=2107216893]
 process_mode = 3
@@ -24,6 +25,9 @@ SuitScene = ExtResource("6")
 process_mode = 1
 
 [node name="Units" type="Node3D" parent="." unique_id=1364212635]
+process_mode = 1
+
+[node name="ShellArc" parent="." instance=ExtResource("shell_arc")]
 process_mode = 1
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1007976663]

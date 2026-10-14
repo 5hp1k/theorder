@@ -6,6 +6,9 @@
 
 [node name="Ppc" type="Node3D"]
 script = ExtResource("1")
+Kick = 0.25
+RecoilTravel = 0.18
+RecoilReturn = 0.45
 DisplayName = "ППЦ"
 Group = 1
 Kind = 2

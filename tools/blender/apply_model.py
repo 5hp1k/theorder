@@ -51,6 +51,15 @@ for path, origin in data.get('move', {}).items():
     if n is None: continue
     m, _ = parse_xf(n.get('transform'))
     n.set('transform', fmt_xf(m, np.array(origin)))
+import re
+for path, size in data.get('shapes', {}).items():
+    n = sc.node(path)
+    ref = re.search(r'SubResource\("([^"]+)"\)', n.get('shape') or '') if n is not None else None
+    if ref and sc.sub(ref.group(1)) is not None: sc.sub(ref.group(1)).set('size', 'Vector3(%s)' % ', '.join('%.6g' % v for v in size))
+for path, props in data.get('props', {}).items():
+    n = sc.node(path)
+    if n is None: continue
+    for key, value in props.items(): n.set(key, '%.6g' % value)
 root = sc.nodes()[0]
 for prop, mesh in data.get('root', {}).items():
     root.set(prop, f'ExtResource("{sc.ext(models + "/" + mesh + ".res", "ArrayMesh")}")')
