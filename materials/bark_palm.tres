@@ -1,0 +1,17 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://textures/palm_tree_bark/palm_tree_bark_diff.jpg" id="1"]
+[ext_resource type="Texture2D" path="res://textures/palm_tree_bark/palm_tree_bark_nor.jpg" id="2"]
+[ext_resource type="Texture2D" path="res://textures/palm_tree_bark/palm_tree_bark_arm.jpg" id="3"]
+
+[resource]
+albedo_texture = ExtResource("1")
+roughness_texture = ExtResource("3")
+roughness_texture_channel = 1
+normal_enabled = true
+normal_scale = 1.3
+normal_texture = ExtResource("2")
+ao_enabled = true
+ao_texture = ExtResource("3")
+ao_texture_channel = 0
+texture_filter = 5

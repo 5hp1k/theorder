@@ -28,6 +28,6 @@ public partial class FpsCounter : Label
         if (_wait > 0f) return;
         _wait = 0.25f;
         double fps = Engine.GetFramesPerSecond();
-        Text = $"{fps:0} к/с  ·  {(fps > 0 ? 1000.0 / fps : 0):0.0} мс";
+        Text = Loc.T($"{fps:0} к/с  ·  {(fps > 0 ? 1000.0 / fps : 0):0.0} мс");
     }
 }

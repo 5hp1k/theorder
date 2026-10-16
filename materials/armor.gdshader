@@ -44,6 +44,7 @@ uniform sampler2D noise_tex : filter_linear_mipmap, repeat_enable;
 instance uniform float grime_level : hint_range(0.0, 1.0) = 0.0;
 /// How wet the part is (just out of the water), 0..1: darker and glossier while it dries.
 instance uniform float wetness : hint_range(0.0, 1.0) = 0.0;
+#include "res://materials/in_front.gdshaderinc"
 
 varying vec3 part_pos;
 varying vec3 part_normal;
@@ -53,6 +54,7 @@ void vertex() {
 	part_pos = VERTEX;
 	part_normal = NORMAL;
 	to_view = MODELVIEW_NORMAL_MATRIX;
+	IN_FRONT_VERTEX
 }
 
 // A texture seen from the three sides of the part and mixed by which way the surface faces.
@@ -120,6 +122,31 @@ float pattern_tone(vec3 p) {
 	} else if (pattern == 12) {    // cracked: thin dark veins between plates of the base colour
 		float a = abs(noise3(p * 1.7) - 0.5), b = abs(noise3(p * 1.7 + 31.0) - 0.5);
 		return min(a, b) < 0.022 ? 1.0 : (noise3(p * 0.6 + 7.0) > 0.68 ? 2.0 : 0.0);
+	} else if (pattern == 13) {    // honeycomb: hexagonal cells, each of one tone, thin seams of the base between
+		vec2 q = vec2(p.x + p.z * 0.7, p.y) * 1.3;
+		vec2 r = vec2(1.0, 1.732), h = r * 0.5;
+		vec2 a = mod(q, r) - h, b = mod(q - h, r) - h;
+		vec2 g = dot(a, a) < dot(b, b) ? a : b;
+		vec2 id = floor((q - g) * 4.0 + 0.5);
+		vec2 ga = abs(g);
+		if (max(ga.x * 0.866 + ga.y * 0.5, ga.y) > 0.46) return 0.0;
+		float t = hash3(vec3(id, 7.0));
+		return t < 0.4 ? 0.0 : (t < 0.75 ? 1.0 : 2.0);
+	} else if (pattern == 14) {    // dazzle: bold zigzag bands in all three tones
+		float zig = abs(fract(p.x * 0.45 + p.z * 0.3) - 0.5) * 2.0;
+		float band = floor((p.y * 0.9 + zig * 0.8) * 1.6);
+		return mod(band, 3.0);
+	} else if (pattern == 15) {    // large digital: the blotches again, in big squares
+		vec3 q = floor(p * 2.2) / 2.2;
+		float n = fbm3(q * 0.8) + (hash3(floor(p * 2.2)) - 0.5) * 0.12;
+		return n < 0.44 ? 0.0 : (n < 0.56 ? 1.0 : 2.0);
+	} else if (pattern == 16) {    // harlequin: diamonds, with thin lines of the third tone across them
+		float d = abs(fract((p.x + p.z) * 0.3) - 0.5) + abs(fract(p.y * 0.3) - 0.5);
+		if (abs(fract((p.x + p.z + p.y) * 0.6) - 0.5) < 0.03) return 2.0;
+		return d < 0.25 ? 1.0 : 0.0;
+	} else if (pattern == 17) {    // bands: plain horizontal stripes with a thin edge
+		float s = fract(p.y * 1.2);
+		return s < 0.18 ? 1.0 : (s < 0.24 ? 2.0 : 0.0);
 	}
 	return 0.0;
 }

@@ -4,6 +4,9 @@
   siren_loop      an air-raid siren (two rotors a minor third apart), winding up and down
   masonry_1..3    a block of a building breaking away: a thud and a slide of rubble (from collapse)
   collapse_loop   a building coming down, as a loop: a deep roar with rubble pouring through it
+  missile_warning two quick pips and a pause, looped while missiles locked on the player are in the air
+  gauss           the gauss rifle: the coils' whine dropping away, a hard crack (the cannon's, sped up)
+                  and the barrel ringing after it
 Run build_sounds.py first if explosion_big.wav or collapse.wav are missing. Needs numpy."""
 import os, wave
 import numpy as np
@@ -133,3 +136,31 @@ for k in range(70):
 out += lowpass(highpass(rng.standard_normal(n), 2500), 6000) * 0.01   # dust and grit in the air
 # (Squashed, so that no one lump stands out of the roar and it can be played loud.)
 save('collapse_loop', norm(loop(np.tanh(norm(out, 1.0) * 3.5), 0.5), 0.85))
+
+
+# ── Gauss rifle ──
+n = int(1.6 * RATE)
+t = np.arange(n) / RATE
+out = np.zeros(n)
+# The coils firing one after another down the barrel: a whine that drops away in a few hundredths.
+sweep = np.sin(2 * np.pi * np.cumsum(np.interp(t, [0, 0.12], [4200, 700])) / RATE) * np.exp(-t / 0.05)
+put(out, sweep, 0.0, 0.35)
+# The slug leaving: a sharp crack, the cannon's report played fast and thinned out at the bottom.
+crack = highpass(pitch(load('cannon'), 1.6), 220)[:int(0.9 * RATE)]
+put(out, fade(norm(crack), 0.001, 0.6), 0.012, 0.9)
+put(out, fade(norm(highpass(rng.standard_normal(int(0.05 * RATE)), 1800)), 0.0005, 0.9), 0.012, 0.5)
+# The barrel ringing: a few tones that are not in tune with each other, as struck steel.
+ring = sum(np.sin(2 * np.pi * hz * t) * np.exp(-t / d) * g for hz, d, g in ((517, 0.55, 1.0), (1263, 0.35, 0.6), (2391, 0.2, 0.4), (3810, 0.12, 0.25)))
+put(out, ring, 0.015, 0.12)
+save('gauss', norm(fade(out, 0.0005, 0.4), 0.92))
+
+# ── Missile warning ──
+# Missiles locked on the player are in the air: two quick high pips, then a breath; played as a loop.
+n = int(0.42 * RATE)
+t = np.arange(n) / RATE
+out = np.zeros(n)
+pip = np.sin(2 * np.pi * 1750 * t[:int(0.065 * RATE)]) + 0.3 * np.sin(2 * np.pi * 3500 * t[:int(0.065 * RATE)])
+pip = fade(np.sign(pip) * np.abs(pip) ** 0.6, 0.003, 0.15)
+put(out, pip, 0.0, 0.8)
+put(out, pip, 0.11, 0.8)
+save('missile_warning', norm(out, 0.6))

@@ -53,9 +53,7 @@ public partial class PropPart : StaticBody3D, IDamageable
         Burning.Ignite(scene, at, 0.8f);
         if (BreakFx != null)
         {
-            var fx = BreakFx.Instantiate<Node3D>();
-            scene.AddChild(fx);
-            fx.GlobalPosition = at;
+            OneShotFx.Spawn(BreakFx, scene, at);
         }
         // The piece itself comes away and falls, then lies there a while.
         var shove = new Vector3((float)GD.RandRange(-2.0, 2.0), (float)GD.RandRange(0.5, 2.5), (float)GD.RandRange(-2.0, 2.0));

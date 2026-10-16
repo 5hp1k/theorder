@@ -137,7 +137,7 @@ directional_shadow_max_distance = 420.0
 [node name="City" type="Node3D" parent="."]
 script = ExtResource("2")
 Seed = 2024
-Blocks = 12
+Blocks = 20
 BlockSize = 56
 RoadWidth = 16
 Towers = Array[PackedScene]([ExtResource("4"), ExtResource("5"), ExtResource("6")])

@@ -28,6 +28,7 @@ FxColor = Color(1, 0.8, 0.4, 1)
 CraterSize = 2.2
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("2")
 unit_size = 26
 max_distance = 700

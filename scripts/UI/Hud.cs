@@ -17,6 +17,8 @@ public partial class Hud : Control
     [Export] public Color Panel = new(0f, 0.05f, 0.02f, 0.45f);
 
     public ICockpit Seat => Game.Cockpit;
+    /// <summary>The whole interface switched off (key I); stays so for the rest of the session.</summary>
+    public static bool Off;
     public float Time { get; private set; }
 
     Label _view, _timer, _unit;
@@ -35,10 +37,25 @@ public partial class Hud : Control
         _helpHint.Visible = !_help.Visible;
         foreach (string name in PanelInstruments)
             if (GetNodeOrNull<Control>(name) is { } widget) _panel.Add(widget);
+        // The water on the lens is not part of the interface: it stays when the rest is switched off.
+        // (Taken out once the scene is set up: not while its parent is still adding children.)
+        Callable.From(() =>
+        {
+            if (GetNodeOrNull<Control>("WaterOverlay") is not { } water || GetParent() is not { } layer) return;
+            water.Reparent(layer, false);
+            layer.MoveChild(water, GetIndex());
+        }).CallDeferred();
+        Visible = !Off;
     }
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (@event.IsActionPressed("toggle_hud"))
+        {
+            Off = !Off;
+            Visible = !Off;
+            return;
+        }
         if (!@event.IsActionPressed("toggle_help")) return;
         _help.Visible = !_help.Visible;
         _helpHint.Visible = !_help.Visible;

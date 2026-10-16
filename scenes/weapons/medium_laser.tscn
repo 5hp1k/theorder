@@ -41,6 +41,7 @@ mesh = SubResource("CylinderMesh_1")
 material_override = SubResource("StandardMaterial3D_2")
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("2")
 unit_size = 14
 max_distance = 450

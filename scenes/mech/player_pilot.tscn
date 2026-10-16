@@ -4,7 +4,6 @@
 [ext_resource type="AudioStream" uid="uid://i586k4kdv5oh" path="res://audio/lock.wav" id="2"]
 [ext_resource type="AudioStream" uid="uid://ctadlsffimsnu" path="res://audio/target_acquire.wav" id="acquire"]
 [ext_resource type="AudioStream" uid="uid://bio08h4gox10m" path="res://audio/alarm.wav" id="ff_alarm"]
-[ext_resource type="AudioStream" uid="uid://6s61c5emym5y" path="res://audio/target_destroyed.wav" id="target_down"]
 
 [node name="PlayerPilot" type="Node3D" unique_id=1110326241]
 script = ExtResource("1")
@@ -15,18 +14,17 @@ current = true
 far = 8000.0
 
 [node name="LockSound" type="AudioStreamPlayer" parent="." unique_id=735957067]
+bus = &"Signals"
 stream = ExtResource("2")
 volume_db = -8.0
 
 [node name="AcquireSound" type="AudioStreamPlayer" parent="." unique_id=25585380]
+bus = &"Signals"
 stream = ExtResource("acquire")
 volume_db = -9.0
 
-[node name="TargetDownSound" type="AudioStreamPlayer" parent="." unique_id=2089680284]
-stream = ExtResource("target_down")
-volume_db = -8.0
-
 [node name="FriendlyFireSound" type="AudioStreamPlayer" parent="." unique_id=1543979674]
+bus = &"Signals"
 stream = ExtResource("ff_alarm")
 volume_db = -6.0
 pitch_scale = 1.5

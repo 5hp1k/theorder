@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Texture2D" path="res://textures/footprints/hades.png" id="fp_tex"]
 [ext_resource type="Material" path="res://materials/camo_desert.tres" id="1"]
 [ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
 [ext_resource type="Material" path="res://materials/mech_accent.tres" id="3"]
@@ -69,6 +70,9 @@
 [ext_resource type="ArrayMesh" path="res://models/mechs/hades/LeftTorso_RackFace.res" id="x9"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hades/RightTorso_Rack.res" id="x39"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hades/RightTorso_RackFace.res" id="x40"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_burst.tscn" id="x41"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_puff.tscn" id="x42"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/ams.tscn" id="w_ams"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 1.805
@@ -205,11 +209,14 @@ TurnRateFull = 0.95
 StepLength = 5.6
 StepHeight = 1
 RunSwing = 0.5
-HipSwing = 0.2
-TwistRate = 2.4
+HipSwing = 0.26
+TwistRate = 1.25
 ArmorScale = 1.65
+Tonnage = 75
 HasJumpJets = true
-FootprintMesh = ExtResource("x2")
+FootprintTexture = ExtResource("fp_tex")
+FootprintSize = Vector2(1.817, 3.23)
+FootprintCentre = Vector2(0, -0.745)
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4355, 0)
@@ -323,6 +330,9 @@ material_override = ExtResource("2")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.1875, 1.425, 0)
 shape = SubResource("BoxShape3D_16")
 
+[node name="Ams" parent="Hips/Torso" instance=ExtResource("w_ams")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.05, 0.6)
+
 [node name="Antenna" type="MeshInstance3D" parent="Hips/Torso"]
 mesh = ExtResource("x10")
 material_override = ExtResource("2")
@@ -338,12 +348,17 @@ Mount = 1
 Mount = 1
 
 [node name="UpperArmL" type="MeshInstance3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.09, 1.8525, 0)
+transform = Transform3D(0.99863, -0.05234, 0, 0.05234, 0.99863, 0, 0, 0, 1, -2.5408, 1.8538, 0)
 mesh = ExtResource("x11")
 material_override = ExtResource("1")
 
+[node name="ShoulderJointL" type="MeshInstance3D" parent="Hips/Torso"]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, -2.3000, 2.3725, 0)
+mesh = ExtResource("x33")
+material_override = ExtResource("2")
+
 [node name="ArmL" type="Node3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.09, 1.0925, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.5805, 1.0949, 0)
 
 [node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmL"]
 sync_to_physics = false
@@ -392,12 +407,17 @@ Mount = 4
 Mount = 4
 
 [node name="UpperArmR" type="MeshInstance3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.09, 1.8525, 0)
+transform = Transform3D(0.99863, 0.05234, 0, -0.05234, 0.99863, 0, 0, 0, 1, 2.5408, 1.8538, 0)
 mesh = ExtResource("x12")
 material_override = ExtResource("1")
 
+[node name="ShoulderJointR" type="MeshInstance3D" parent="Hips/Torso"]
+transform = Transform3D(0.5, 0, 0, 0, 0.5, 0, 0, 0, 0.5, 2.3000, 2.3725, 0)
+mesh = ExtResource("x33")
+material_override = ExtResource("2")
+
 [node name="ArmR" type="Node3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.09, 1.0925, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.5805, 1.0949, 0)
 
 [node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmR"]
 sync_to_physics = false
@@ -722,6 +742,7 @@ omni_range = 17.1
 visible = false
 
 [node name="Sound" type="AudioStreamPlayer3D" parent="Hips/JumpJets"]
+bus = &"Effects"
 stream = ExtResource("22")
 unit_size = 13.3
 max_distance = 350
@@ -730,11 +751,14 @@ volume_db = 0
 [node name="Ragdoll" type="Node" parent="."]
 script = ExtResource("23")
 TotalMass = 45000
+HullImpactScene = ExtResource("x41")
+LimbImpactScene = ExtResource("x42")
 
 [node name="Sounds" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.831, 0)
 
 [node name="Footstep" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("24")
 unit_size = 22
 max_distance = 350
@@ -742,12 +766,14 @@ volume_db = 2
 max_polyphony = 2
 
 [node name="Reactor" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("25")
 unit_size = 7
 max_distance = 120
 volume_db = -10
 
 [node name="Hit" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("26")
 unit_size = 16
 max_distance = 300
@@ -755,6 +781,7 @@ volume_db = -2
 max_polyphony = 3
 
 [node name="Alarm" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Signals"
 stream = ExtResource("27")
 unit_size = 6
 max_distance = 40

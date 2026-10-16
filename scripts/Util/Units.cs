@@ -78,9 +78,8 @@ public interface IDrivable : ITarget
     /// <summary>Where the turret should point, relative to the hull / the horizon (radians).</summary>
     float TargetYaw { get; set; }
     float TargetPitch { get; set; }
-    bool Fire1 { get; set; }
-    bool Fire2 { get; set; }
-    bool Fire3 { get; set; }
+    /// <summary>Weapon groups fired this tick, one bit per group (<see cref="WeaponSystem.Bit"/>).</summary>
+    int Fire { get; set; }
     /// <summary>Jump jets; climb, for aircraft.</summary>
     bool Jump { get; set; }
     /// <summary>Descend, for aircraft.</summary>
@@ -111,6 +110,12 @@ public interface ICockpit
     float RestartProgress { get; }
     float Twist { get; }
     float MaxTwist { get; }
+    /// <summary>Where the torso or the guns are tipped, up or down, and how far they can go (radians).</summary>
+    float Pitch { get; }
+    float MinPitch { get; }
+    float MaxPitch { get; }
+    /// <summary>The torso turns back against the legs' turning (see <see cref="PlayerPilot.CounterRotate"/>).</summary>
+    bool CounterRotate { get; }
     float HeadingDeg { get; }
     WeaponSystem Weapons { get; }
     DamageModel Damage { get; }
@@ -127,6 +132,11 @@ public interface ICockpit
     float Magnification { get; }
     Vector3 AimPoint { get; }
     GodotObject AimCollider { get; }
+    /// <summary>
+    /// Where the guns are getting to, when it isn't where the sight is: a mech's arms reaching ahead of its
+    /// torso, a turret still turning to where the mouse sent it. Null when it's the same.
+    /// </summary>
+    Vector3? LeadAim { get; }
     /// <summary>Whether this seat has a target lock (E/T/Q).</summary>
     bool CanLock { get; }
     ITarget Target { get; }

@@ -32,6 +32,30 @@ public partial class Missile : Projectile
     [Export] public bool Burns;
     /// <summary>Spawned where it hits.</summary>
     [Export] public PackedScene ImpactScene;
+    /// <summary>
+    /// A warhead that anti-missile guns shoot at and that the pilot it is locked on is warned of (not
+    /// an energy bolt).
+    /// </summary>
+    [Export] public bool Interceptable = true;
+
+    /// <summary>Every missile in the air (for anti-missile guns and the HUD's warning).</summary>
+    public static readonly System.Collections.Generic.List<Missile> Flying = new();
+
+    /// <summary>What it is homing on, while it still has it.</summary>
+    public ITarget Target => _target is Node node && IsInstanceValid(node) && !_target.IsDestroyed ? _target : null;
+    /// <summary>Which way it is flying (unit vector).</summary>
+    public Vector3 Heading => _dir;
+
+    public override void _EnterTree() => Flying.Add(this);
+    public override void _ExitTree() => Flying.Remove(this);
+
+    /// <summary>Hit by an anti-missile gun: it bursts in the air, harming nobody.</summary>
+    public void ShootDown()
+    {
+        if (IsQueuedForDeletion()) return;
+        if (ImpactScene != null && OneShotFx.Spawn(ImpactScene, GetParent(), GlobalPosition, 1f) is { } burst) burst.Scale = Vector3.One * 0.5f;
+        QueueFree();
+    }
 
     Vector3 _dir, _aimPoint;
     ITarget _target;
@@ -123,9 +147,7 @@ public partial class Missile : Projectile
     {
         if (ImpactScene != null)
         {
-            var fx = ImpactScene.Instantiate<Node3D>();
-            GetParent().AddChild(fx);
-            fx.GlobalPosition = at;
+            OneShotFx.Spawn(ImpactScene, GetParent(), at);
         }
         QueueFree();
     }

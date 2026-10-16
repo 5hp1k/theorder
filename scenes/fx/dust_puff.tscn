@@ -88,6 +88,7 @@ explosiveness = 0.9
 emitting = true
 
 [node name="Sound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("3")
 unit_size = 22.5
 max_distance = 460

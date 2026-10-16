@@ -24,6 +24,7 @@ material_override = ExtResource("3")
 cast_shadow = 0
 
 [node name="Whistle" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("whistle")
 unit_size = 40
 max_distance = 700

@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/fps_counter.tscn" id="fps_counter"]
 [ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="settings_panel"]
 [ext_resource type="PackedScene" path="res://scenes/fx/shell_arc.tscn" id="shell_arc"]
+[ext_resource type="PackedScene" path="res://scenes/ui/weapon_group_row.tscn" id="weapon_group_row"]
 
 [node name="Game" type="Node3D" unique_id=2107216893]
 process_mode = 3
@@ -49,6 +50,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("8")
+GroupRowScene = ExtResource("weapon_group_row")
 
 [node name="Dim" type="ColorRect" parent="Menu/PauseMenu" unique_id=1842024308]
 layout_mode = 1
@@ -79,6 +81,14 @@ theme_override_font_sizes/font_size = 40
 text = "ПАУЗА"
 horizontal_alignment = 1
 
+[node name="PauseTally" type="Label" parent="Menu/PauseMenu/Center/Box"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.88, 0.9, 1)
+theme_override_font_sizes/font_size = 20
+horizontal_alignment = 1
+
 [node name="BtnResume" type="Button" parent="Menu/PauseMenu/Center/Box" unique_id=1133099289]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 46)
@@ -100,6 +110,13 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Настройки"
 
+[node name="BtnGroups" type="Button" parent="Menu/PauseMenu/Center/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Группы оружия"
+
 [node name="BtnMenu" type="Button" parent="Menu/PauseMenu/Center/Box" unique_id=1427957952]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 46)
@@ -118,6 +135,65 @@ theme_override_constants/separation = 18
 layout_mode = 2
 
 [node name="BtnSettingsBack" type="Button" parent="Menu/PauseMenu/Center/SettingsBox" unique_id=427706203]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 20
+text = "Назад"
+
+[node name="GroupsBox" type="VBoxContainer" parent="Menu/PauseMenu/Center"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(560, 0)
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="Menu/PauseMenu/Center/GroupsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 32
+text = "Группы оружия"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="Menu/PauseMenu/Center/GroupsBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+theme_override_font_sizes/font_size = 15
+text = "ЛКМ — группа 1,  ПКМ — группа 2,  СКМ / R — группа 3,  4 / 5 / 6 — группы 4–6"
+horizontal_alignment = 1
+
+[node name="Header" type="HBoxContainer" parent="Menu/PauseMenu/Center/GroupsBox"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Weapon" type="Label" parent="Menu/PauseMenu/Center/GroupsBox/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+theme_override_font_sizes/font_size = 15
+text = "Оружие"
+
+[node name="Group" type="Label" parent="Menu/PauseMenu/Center/GroupsBox/Header"]
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+theme_override_font_sizes/font_size = 15
+text = "Группа"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="Menu/PauseMenu/Center/GroupsBox"]
+custom_minimum_size = Vector2(0, 360)
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="GroupList" type="VBoxContainer" parent="Menu/PauseMenu/Center/GroupsBox/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="BtnGroupsBack" type="Button" parent="Menu/PauseMenu/Center/GroupsBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 46)
 layout_mode = 2

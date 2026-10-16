@@ -67,6 +67,7 @@ preprocess = 5
 visibility_aabb = AABB(-70, -25, -70, 140, 50, 140)
 
 [node name="Loop" type="AudioStreamPlayer" parent="."]
+bus = &"Ambience"
 stream = ExtResource("3")
 volume_db = -18
 autoplay = true

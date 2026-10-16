@@ -55,7 +55,7 @@ public partial class Hardpoint : Node3D
             int group = 0, ammo = 0;
             if (p.Length > 1) int.TryParse(p[1], out group);
             if (p.Length > 2) int.TryParse(p[2], out ammo);
-            list.Add((p[0], Mathf.Clamp(group, 0, 3), Mathf.Max(ammo, 0)));
+            list.Add((p[0], Mathf.Clamp(group, 0, WeaponSystem.GroupCount), Mathf.Max(ammo, 0)));
         }
         return list.ToArray();
     }
@@ -82,9 +82,30 @@ public partial class Hardpoint : Node3D
         return result;
     }
 
+    /// <summary>What the unit carries right now, with each weapon's group as it is set now.</summary>
+    public static string[] Current(Node unit)
+    {
+        var points = Of(unit);
+        var result = new string[points.Count];
+        for (int i = 0; i < points.Count; i++)
+        {
+            var fit = new List<(string, int, int)>();
+            foreach (var w in points[i].Fitted())
+                if (Catalog.WeaponIdByPath(w.SceneFilePath) is { } id) fit.Add((id, w.Group, Mathf.Max(w.MaxAmmo, 0)));
+            result[i] = Format(fit);
+        }
+        return result;
+    }
+
     /// <summary>Refits the unit. Call before it enters the tree. A loadout made for another layout is ignored.</summary>
     public static void Apply(Node unit, string[] loadout)
     {
+        // (The equipment, if any, rides at the end: see GameConfig.LoadoutFor.)
+        if (loadout is { Length: > 0 } && Equipment.IsPacked(loadout[^1]))
+        {
+            Equipment.Apply(unit, Equipment.Unpack(loadout[^1]));
+            loadout = loadout.Length > 1 ? loadout[..^1] : null;
+        }
         var points = Of(unit);
         if (loadout == null || loadout.Length != points.Count) return;
         for (int i = 0; i < points.Count; i++) points[i].Fit(Parse(loadout[i]));

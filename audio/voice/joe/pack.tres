@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="VoicePack" format=3]
+
+[ext_resource type="AudioStream" path="res://audio/voice/joe/TargetDestroyed.wav" id="1_50h26"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/Startup.wav" id="2_n0k53"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/HeatCritical.wav" id="3_l1wnu"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/Shutdown.wav" id="4_eanih"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/Incoming.wav" id="5_ys26x"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/DamageCritical.wav" id="6_0wvj3"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/WeaponLost.wav" id="7_qinny"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/AmmoOut.wav" id="8_l7bn1"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/LeftArm.wav" id="9_44nkv"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/RightArm.wav" id="10_d0wyu"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/LeftLeg.wav" id="11_evbwr"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/RightLeg.wav" id="12_gqku5"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/LeftTorso.wav" id="13_5em4m"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/RightTorso.wav" id="14_vdwbc"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/Emp.wav" id="15_mcfmf"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/SystemsOnline.wav" id="16_43b10"]
+[ext_resource type="AudioStream" path="res://audio/voice/joe/OutOfBounds.wav" id="17_8bgj6"]
+[ext_resource type="Script" path="res://scripts/UI/VoicePack.cs" id="18_tq76b"]
+
+[resource]
+script = ExtResource("18_tq76b")
+Id = "joe"
+Title = "Джо (мужской, США)"
+Lines = Dictionary[String, AudioStream]({
+"AmmoOut": ExtResource("8_l7bn1"),
+"DamageCritical": ExtResource("6_0wvj3"),
+"Emp": ExtResource("15_mcfmf"),
+"HeatCritical": ExtResource("3_l1wnu"),
+"Incoming": ExtResource("5_ys26x"),
+"LeftArm": ExtResource("9_44nkv"),
+"LeftLeg": ExtResource("11_evbwr"),
+"LeftTorso": ExtResource("13_5em4m"),
+"OutOfBounds": ExtResource("17_8bgj6"),
+"RightArm": ExtResource("10_d0wyu"),
+"RightLeg": ExtResource("12_gqku5"),
+"RightTorso": ExtResource("14_vdwbc"),
+"Shutdown": ExtResource("4_eanih"),
+"Startup": ExtResource("2_n0k53"),
+"SystemsOnline": ExtResource("16_43b10"),
+"TargetDestroyed": ExtResource("1_50h26"),
+"WeaponLost": ExtResource("7_qinny")
+})

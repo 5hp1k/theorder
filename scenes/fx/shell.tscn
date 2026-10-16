@@ -53,6 +53,7 @@ process_material = SubResource("ParticleProcessMaterial_3")
 draw_pass_1 = SubResource("QuadMesh_4")
 
 [node name="Whistle" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("whistle")
 unit_size = 30
 max_distance = 700

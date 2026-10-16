@@ -12,7 +12,7 @@ public partial class StatusText : HudWidget
         if (game is { TimeUp: true })
         {
             Text("ВРЕМЯ ВЫШЛО", new Vector2(0f, 30f), 30, Amber, HorizontalAlignment.Center, w);
-            Text($"Уничтожено: {Game.Kills}", new Vector2(0f, 62f), 20, Green, HorizontalAlignment.Center, w);
+            Text($"Уничтожено командой: {Score.KillsOf(Game.PlayerUnit?.Team ?? Team.Player)}", new Vector2(0f, 62f), 20, Green, HorizontalAlignment.Center, w);
         }
         else if (game is { Victory: true })
         {
@@ -35,7 +35,7 @@ public partial class StatusText : HudWidget
         else if (Jam > 0f)
         {
             if (Mathf.PosMod(Hud.Time, 1f) < 0.7f) Text("ЭМИ — ПРИБОРЫ ОТКЛЮЧЕНЫ", new Vector2(0f, 30f), 26, Red, HorizontalAlignment.Center, w);
-            Text($"Навигация и наведение: перезапуск через {Mathf.CeilToInt(Jam)} с", new Vector2(0f, 62f), 18, Amber, HorizontalAlignment.Center, w);
+            Text($"Приборы оживут через {Mathf.CeilToInt(Jam)} с", new Vector2(0f, 62f), 18, Amber, HorizontalAlignment.Center, w);
         }
         else if (Seat.HasHeat && Seat.Heat > 0.85f && Mathf.PosMod(Hud.Time, 0.6f) < 0.35f)
         {

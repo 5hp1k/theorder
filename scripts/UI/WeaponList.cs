@@ -10,7 +10,9 @@ public partial class WeaponList : HudWidget
     protected override void Paint()
     {
         var list = Seat.Weapons.Weapons;
-        float top = Size.Y - list.Count * RowHeight - 14f;
+        var ams = Ams.Of(Game.PlayerUnit as Node);
+        int rows = list.Count + (ams != null ? 1 : 0);
+        float top = Size.Y - rows * RowHeight - 14f;
         DrawRect(new Rect2(0f, top, Size.X, Size.Y - top), Panel);
         for (int i = 0; i < list.Count; i++)
         {
@@ -24,11 +26,27 @@ public partial class WeaponList : HudWidget
                 Text("УНИЧТОЖЕНО", new Vector2(210f, y), 13, Red);
                 continue;
             }
+            if (w.Jammed)
+            {
+                Text("ЭМИ", new Vector2(210f, y), 13, Amber);
+                continue;
+            }
             if (w.MaxAmmo >= 0) Text($"{w.Ammo}", new Vector2(150f, y), 14, col, HorizontalAlignment.Right, 50f);
 
             var bar = new Rect2(210f, y - 12f, 100f, 10f);
             DrawRect(bar, Dim, false, 1f);
             DrawRect(new Rect2(bar.Position, new Vector2(bar.Size.X * w.ReadyFraction, bar.Size.Y)), col);
+        }
+        // The anti-missile system fires by itself: no group, just what is left of its rounds.
+        if (ams != null)
+        {
+            float y = top + 26f + list.Count * RowHeight;
+            bool off = Jam > 0f || ams.Ammo <= 0;
+            Color col = off ? (ams.Ammo <= 0 ? Red : Dim) : Green;
+            Text("—", new Vector2(10f, y), 16, Amber);
+            Text("AMS", new Vector2(32f, y), 16, col);
+            Text($"{ams.Ammo}", new Vector2(150f, y), 14, col, HorizontalAlignment.Right, 50f);
+            if (Jam > 0f) Text("ЭМИ", new Vector2(210f, y), 13, Amber);
         }
     }
 }

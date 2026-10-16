@@ -19,6 +19,7 @@ ChunkFx = ExtResource("2")
 DebrisMaterial = ExtResource("x1")
 BlockCollision = true
 Trample = false
+Span = true
 
 [node name="Chunks" type="MultiMeshInstance3D" parent="."]
 material_override = ExtResource("3")

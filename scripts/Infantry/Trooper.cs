@@ -84,6 +84,10 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
     public float RestartProgress => 0f;
     public float Twist => 0f;
     public float MaxTwist => 0f;
+    public float Pitch => 0f;
+    public float MinPitch => 0f;
+    public float MaxPitch => 0f;
+    public bool CounterRotate => false;
     public float HeadingDeg => Mathf.PosMod(Mathf.RadToDeg(-Rotation.Y), 360f);
     public bool HasJump => HasJetpack;
     public float JumpFuel => JetFuel;
@@ -94,6 +98,7 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
     public bool FreeLook => false;
     public float Magnification => 1f;
     public GodotObject AimCollider { get; private set; }
+    public Vector3? LeadAim => null;
     public bool CanLock => false;
     public ITarget Target => _lock;
     public float LockProgress => Mathf.Clamp(_lockTime / LockTime, 0f, 1f);
@@ -307,14 +312,12 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
         UpdateAim(space);
         FindSuit();
 
-        bool g1 = Input.IsActionPressed("fire_group_1"), g2 = Input.IsActionPressed("fire_group_2"), g3 = Input.IsActionPressed("fire_group_3");
-        if (_suppressFire && !g1 && !g2 && !g3) _suppressFire = false;
+        int fire = 0;
+        for (int g = 1; g <= WeaponSystem.GroupCount; g++)
+            if (Input.IsActionPressed($"fire_group_{g}")) fire |= WeaponSystem.Bit(g);
+        if (_suppressFire && fire == 0) _suppressFire = false;
         if (driving && !_suppressFire && Input.MouseMode == Input.MouseModeEnum.Captured)
-        {
-            if (g1) Weapons.FireGroup(1, AimPoint, space);
-            if (g2) Weapons.FireGroup(2, AimPoint, space);
-            if (g3) Weapons.FireGroup(3, AimPoint, space);
-        }
+            Weapons.FireGroups(fire, AimPoint, space);
         Weapons.Update(dt, AimPoint, space, _lock);
         Wade(dt, flat.Length());
     }

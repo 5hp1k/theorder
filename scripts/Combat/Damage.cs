@@ -43,6 +43,14 @@ public sealed class DamageModel
 
     public bool Dead { get; private set; }
 
+    /// <summary>Armour and structure of all the sections together, for a mech of this armour scale.</summary>
+    public static float Total(float scale)
+    {
+        float sum = 0f;
+        for (int i = 0; i < Count; i++) sum += DefaultArmor[i] + DefaultStructure[i];
+        return sum * scale;
+    }
+
     public DamageModel(float scale = 1f)
     {
         _maxArmor = new float[Count];

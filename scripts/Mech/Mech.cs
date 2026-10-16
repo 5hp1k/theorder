@@ -14,6 +14,15 @@ public partial class Mech : CharacterBody3D, IDrivable
     public static readonly List<Mech> All = new();
 
     [Export] public string DisplayName { get; set; } = "Мех";
+    /// <summary>Mass in tonnes: what the hangar shows, and what the class (light, medium, heavy) is reckoned from.</summary>
+    [Export] public int Tonnage = DefaultTonnage;
+    public const int DefaultTonnage = 50;
+
+    /// <summary>Weight classes, as in BattleTech: the singular for a machine, the plural for a heading.</summary>
+    public static readonly string[] ClassNames = { "Лёгкий", "Средний", "Тяжёлый", "Штурмовой" };
+    public static readonly string[] ClassHeadings = { "Лёгкие", "Средние", "Тяжёлые", "Штурмовые" };
+    /// <summary>The weight class of a mech of this many tonnes: 0 light (under 40), 1 medium, 2 heavy, 3 assault (80 and over).</summary>
+    public static int WeightClass(int tonnage) => tonnage < 40 ? 0 : tonnage < 60 ? 1 : tonnage < 80 ? 2 : 3;
 
     [ExportGroup("Movement")]
     [Export] public float MaxForwardSpeed { get; set; } = 13.9f;   // m/s (~50 km/h)
@@ -35,9 +44,9 @@ public partial class Mech : CharacterBody3D, IDrivable
     /// <summary>Share of the cycle a foot is in the air at top speed; over 0.5 is a run.</summary>
     [Export(PropertyHint.Range, "0.3,0.7")] public float RunSwing = 0.5f;
     /// <summary>Sideways shift of the body onto the standing leg, metres.</summary>
-    [Export] public float BodySway = 0.3f;
+    [Export] public float BodySway = 0.38f;
     /// <summary>How far the pelvis swings round with each stride, radians.</summary>
-    [Export] public float HipSwing = 0.16f;
+    [Export] public float HipSwing = 0.21f;
     /// <summary>How much the pelvis drops onto the leg that has just taken the weight (1 = as designed, 0 = rigid).</summary>
     [Export] public float HipGive = 1f;
 
@@ -55,13 +64,30 @@ public partial class Mech : CharacterBody3D, IDrivable
 
     [ExportGroup("Torso")]
     [Export] public float MaxTwist { get; set; } = 1.75f;          // rad (~100°)
-    [Export] public float TwistRate = 2.0f;          // rad/s
-    [Export] public float PitchRate = 1.5f;
+    [Export] public float TwistRate = 1.1f;          // rad/s (the arms are quicker, see ArmTrackRate)
+    [Export] public float PitchRate = 1.0f;
     [Export] public float MinPitch { get; set; } = -0.35f;
     [Export] public float MaxPitch { get; set; } = 0.45f;
 
+    [ExportGroup("Arms")]
+    /// <summary>
+    /// How far the arms reach out from where the torso points, each way, radians: as in MechWarrior 5 the
+    /// mouse sets where to aim, the arms get there first and the torso follows at its own pace. Weapons in
+    /// the arms fire where the arms point (the HUD's second circle); the rest fire where the torso does.
+    /// </summary>
+    [Export] public float ArmYawReach = 0.55f;
+    [Export] public float ArmPitchReach = 0.5f;
+    /// <summary>How fast the arms swing to the aim, radians per second.</summary>
+    [Export] public float ArmTrackRate = 8f;
+
     [ExportGroup("Heat")]
     [Export] public float HeatDissipation = 0.085f;  // per second
+    /// <summary>
+    /// How much faster the heat goes in water, standing in it up to the hips (<see cref="WaterCoolingDepth"/>)
+    /// or deeper: 3 = four times as fast. Shallower water cools in proportion.
+    /// </summary>
+    [Export] public float WaterCooling = 3f;
+    [Export] public float WaterCoolingDepth = 2f;
     [Export] public float RestartHeat { get; set; } = 0.4f;
     [Export] public float RestartTime = 1.5f;
 
@@ -96,10 +122,13 @@ public partial class Mech : CharacterBody3D, IDrivable
 
     [ExportGroup("Paint")]
     /// <summary>
-    /// Outline of the sole, lying on the ground with the toes to -Z: the shape of the mark each step
-    /// leaves. Without it the map's stock footprint is used as it is.
+    /// The shape this mech's foot leaves in the ground: a soft mask (textures/footprints, made by
+    /// tools/footprint_textures.gd), the size in metres it covers (X across, Y along) and where on it
+    /// the middle of the foot is.
     /// </summary>
-    [Export] public Mesh FootprintMesh;
+    [Export] public Texture2D FootprintTexture;
+    [Export] public Vector2 FootprintSize = new(2f, 4f);
+    [Export] public Vector2 FootprintCentre;
     /// <summary>The material the repaintable armour uses in this scene; replaced by the chosen camouflage.</summary>
     [Export] public Material ArmorMaterial;
     /// <summary>The material of the stripe; recoloured.</summary>
@@ -125,6 +154,16 @@ public partial class Mech : CharacterBody3D, IDrivable
     public WeaponSystem Weapons { get; private set; }
     public GodotObject AimCollider { get; private set; }
     public Vector3 AimPoint { get; private set; }
+    /// <summary>Where the arms are pointing (see <see cref="ArmYawReach"/>).</summary>
+    public Vector3 ArmAimPoint { get; private set; }
+    /// <summary>Whether this mech's arms aim on their own (it has shoulders for them to swing from).</summary>
+    public bool ArmsAim { get; private set; }
+    /// <summary>
+    /// Where the pilot is pointing the arms apart from the torso (held Alt), radians from where the torso
+    /// aims; the arms reach as far as <see cref="ArmYawReach"/> allows. Zero = with the torso.
+    /// </summary>
+    public float ArmLookYaw { get; set; }
+    public float ArmLookPitch { get; set; }
     public DamageModel Damage { get; private set; }
     public bool IsDestroyed => Damage != null && Damage.Dead;
     public float RespawnLeft { get; private set; }
@@ -156,9 +195,7 @@ public partial class Mech : CharacterBody3D, IDrivable
     /// <summary>Where the torso should point, relative to the legs / the horizon (radians).</summary>
     public float TargetYaw { get; set; }
     public float TargetPitch { get; set; }
-    public bool Fire1 { get; set; }
-    public bool Fire2 { get; set; }
-    public bool Fire3 { get; set; }
+    public int Fire { get; set; }
     /// <summary>Hold to burn the jump jets.</summary>
     public bool Jump { get; set; }
     public bool Descend { get; set; }
@@ -188,7 +225,7 @@ public partial class Mech : CharacterBody3D, IDrivable
     bool _legsInitialized, _exploded;
     Transform3D _spawn;
     uint _bodyLayer, _bodyMask;
-    float _yaw, _pitch;
+    float _yaw, _pitch, _armYaw, _armPitch;
     float _hipY, _bob, _bobVel, _lean, _roll, _list, _listVel;
     float _restartTimer, _explodeTimer, _hitSoundCooldown;
     float _yawRate;
@@ -214,7 +251,10 @@ public partial class Mech : CharacterBody3D, IDrivable
         Torso = GetNode<Node3D>("Hips/Torso");
         AimAnchor = GetNode<Node3D>("Hips/Torso/CockpitCam");
         _arms = new[] { GetNode<Node3D>("Hips/Torso/ArmL"), GetNode<Node3D>("Hips/Torso/ArmR") };
+        // Only arms that hang from shoulders swing to aim; pods bolted to the hull stay put.
+        ArmsAim = GetNodeOrNull("Hips/Torso/UpperArmL") != null;
         _armRest = new[] { _arms[0].Position, _arms[1].Position };
+        _armRestBasis = new[] { _arms[0].Basis, _arms[1].Basis };
         Legs = new[] { GetNode<MechLeg>("LegL"), GetNode<MechLeg>("LegR") };
         _ragdoll = GetNodeOrNull<MechRagdoll>("Ragdoll");
         _sFoot = GetNodeOrNull<AudioStreamPlayer3D>("Sounds/Footstep");
@@ -281,9 +321,33 @@ public partial class Mech : CharacterBody3D, IDrivable
 
     public override void _PhysicsProcess(double delta)
     {
+        // Far off, a computer-driven machine is simulated every other tick (half of them on the odd
+        // ticks, half on the even), over the time that has passed. See Lod.SimInterval.
+        _simTime += delta;
+        int every = Lod.SimInterval(this, Pilot is AiPilot);
+        if (every > 1 && (Engine.GetPhysicsFrames() + GetInstanceId()) % (ulong)every != 0) return;
+        double step = _simTime;
+        _simTime = 0.0;
+        _simScale = (float)(step / delta);
         long prof = Prof.Now();
-        Tick(delta);
+        Tick(step);
         Prof.Add(0, prof);
+    }
+
+    double _simTime;
+    float _simScale = 1f;
+
+    /// <summary>MoveAndSlide over the time this tick stands for (it moves by one physics step's worth of the velocity).</summary>
+    void Slide()
+    {
+        if (Mathf.IsEqualApprox(_simScale, 1f))
+        {
+            MoveAndSlide();
+            return;
+        }
+        Velocity *= _simScale;
+        MoveAndSlide();
+        Velocity /= _simScale;
     }
 
     void Tick(double delta)
@@ -300,6 +364,9 @@ public partial class Mech : CharacterBody3D, IDrivable
             return;
         }
         if (!_legsInitialized) InitLegs();
+        // What is only for show (the body's sway, the legs' joints) is brought up to date less often far from the camera.
+        _showDt += dt;
+        bool show = ++_showTick >= Lod.Interval(this, 6f);
 
         var terrain = MapTerrain.Instance;
         WaterDepth = terrain?.WaterDepthAt(GlobalPosition.X, GlobalPosition.Z) ?? 0f;
@@ -314,8 +381,11 @@ public partial class Mech : CharacterBody3D, IDrivable
         }
         UpdateHeat(dt);
         TurnInput = 0f;
-        Fire1 = Fire2 = Fire3 = Jump = Descend = false;
+        Fire = 0;
+        Jump = Descend = false;
+        long profT = Prof.Now();
         Pilot?.Think(dt);
+        Prof.Add(8, profT);
         Throttle = Mathf.Clamp(Throttle, -ReverseFraction, 1f);
 
         // Legs: steering and speed.
@@ -348,12 +418,16 @@ public partial class Mech : CharacterBody3D, IDrivable
         Vector3 forward = -GlobalTransform.Basis.Z;
         Vector3 v = forward * Speed;
         if (Thrusting) v.Y = Mathf.Min(Velocity.Y + (JumpThrust - Gravity) * dt, JumpClimbSpeed);
-        else v.Y = IsOnFloor() ? -1f : Velocity.Y - Gravity * dt;
+        // (On the ground the floor snap keeps it down: pressing into the ground as well would cost a collision every tick.)
+        else v.Y = IsOnFloor() ? 0f : Velocity.Y - Gravity * dt;
         Velocity = v;
         // The floor snap would glue a mech that is trying to lift off.
         FloorSnapLength = Thrusting || Airborne ? 0f : 1.2f;
-        MoveAndSlide();
+        long profM = Prof.Now();
+        Slide();
+        Prof.Add(6, profM);
         KeepOnMap();
+        if (Boundary.Track(this, GlobalPosition, dt) && Net.Authority) SelfDestruct();
 
         bool wasAirborne = Airborne;
         // (Falling fast counts too, wherever it is: off a bridge, into a crater. Otherwise the feet stay
@@ -396,18 +470,33 @@ public partial class Mech : CharacterBody3D, IDrivable
             _gait.StepHeight = StepHeight;
             _gait.RunSwing = RunSwing;
             _gait.HipWidth = Mathf.Abs(Legs[0].HomeLocal.X);
+            long profG = Prof.Now();
             _gait.Update(dt, GlobalTransform, hv, forward * targetSpeed, rate, _yawRate, Legs, GroundAt);
+            Prof.Add(4, profG);
         }
-        UpdateHips(dt, hv);
+        if (show)
+        {
+            long profH = Prof.Now();
+            UpdateHips(_showDt, hv);
+            Prof.Add(4, profH);
+            _lastHorizontalVel = hv;
+            _showTick = 0;
+            _showDt = 0f;
+        }
         Pilot?.UpdateView(dt);
-        UpdateAim(space);
+        long profA = Prof.Now();
+        UpdateAim(space, dt);
+        Prof.Add(7, profA);
+        long profW = Prof.Now();
         UpdateWeapons(dt, space);
+        Prof.Add(5, profW);
         UpdateSounds(dt, speedNorm);
         _grime.Update(dt, speedNorm);
         for (int i = 0; i < 2; i++) _armRecoil[i] = Mathf.MoveToward(_armRecoil[i], 0f, _armReturn[i] * dt);
-
-        _lastHorizontalVel = hv;
     }
+
+    int _showTick;
+    float _showDt;
 
     void KeepOnMap()
     {
@@ -415,6 +504,20 @@ public partial class Mech : CharacterBody3D, IDrivable
         if (terrain == null) return;
         Vector3 p = terrain.Contain(GlobalPosition, out bool outside);
         if (outside) GlobalPosition = p;
+    }
+
+    /// <summary>Stayed beyond the battlefield too long: the reactor is let go.</summary>
+    void SelfDestruct()
+    {
+        Boundary.Forget(this);
+        // (Nobody's kill: whoever fired last somewhere else isn't to be credited with it.)
+        Score.Attacker = null;
+        foreach (var box in _hitBoxes)
+            if (box.Section == Section.CenterTorso)
+            {
+                box.TakeDamage(1e6f, box.Center);
+                return;
+            }
     }
 
     void InitLegs()
@@ -448,9 +551,13 @@ public partial class Mech : CharacterBody3D, IDrivable
         }
     }
 
+    // -1 = not known yet: the first call always goes through.
+    int _jetsShown = -1;
+
     void SetJetsBurning(bool on)
     {
-        if (_jets == null) return;
+        if (_jets == null || _jetsShown == (on ? 1 : 0)) return;
+        _jetsShown = on ? 1 : 0;
         foreach (Node child in _jets.GetChildren())
         {
             if (child is GpuParticles3D p) p.Emitting = on;
@@ -465,6 +572,7 @@ public partial class Mech : CharacterBody3D, IDrivable
 
     Grime _grime;
     Vector3[] _armRest;
+    Basis[] _armRestBasis;
     readonly float[] _armRecoil = new float[2], _armReturn = new float[2];
 
     /// <summary>A gun has fired: its arm is driven back, and the body rocks back from the kick, more to that side.</summary>
@@ -488,7 +596,7 @@ public partial class Mech : CharacterBody3D, IDrivable
     void UpdateHeat(float dt)
     {
         // Standing in water cools the mech faster.
-        float dissipation = HeatDissipation * (IsShutdown ? 1.6f : 1f) * (1f + Mathf.Clamp(WaterDepth / 3f, 0f, 1f));
+        float dissipation = HeatDissipation * (IsShutdown ? 1.6f : 1f) * (1f + WaterCooling * Mathf.Clamp(WaterDepth / Mathf.Max(WaterCoolingDepth, 0.1f), 0f, 1f));
         Heat = Mathf.Max(0f, Heat - dissipation * dt);
 
         if (!IsShutdown && Heat >= 1f)
@@ -572,10 +680,17 @@ public partial class Mech : CharacterBody3D, IDrivable
             float footW = TrampleRadius * 0.3f, footL = TrampleRadius * 0.5f;
             foreach (var unit in Units.All)
             {
-                if (unit is not Vehicle { IsAircraft: false, IsDestroyed: false } vehicle || vehicle.Kind == Vehicle.MoveKind.Ship) continue;
+                if (unit is not Vehicle { IsAircraft: false } vehicle || vehicle.Kind == Vehicle.MoveKind.Ship || (vehicle.IsDestroyed && !vehicle.Sunk)) continue;
                 Vector3 d = vehicle.GlobalTransform.AffineInverse() * leg.Contact;
                 if (Mathf.Abs(d.Y) < 3.5f && Mathf.Abs(d.X) < vehicle.HalfExtents.X + footW && Mathf.Abs(d.Z) < vehicle.HalfExtents.Y + footL)
                 {
+                    // (One that drowned goes up now, under the foot.)
+                    if (vehicle.Sunk)
+                    {
+                        vehicle.BlowSunk(leg.Contact);
+                        Shake += 0.45f;
+                        continue;
+                    }
                     vehicle.TakeDamage(vehicle.MaxHp * 2f, leg.Contact);
                     // It goes up under the foot: the leg takes some of it, and the whole machine is shaken.
                     Shake += 0.45f;
@@ -617,26 +732,8 @@ public partial class Mech : CharacterBody3D, IDrivable
             return;
         }
         var print = scene.Instantiate<Node3D>();
-        if (FootprintMesh != null)
-        {
-            // The map decides what a print is made of (packed sand, snow, cracked asphalt); the mech, its shape.
-            MeshInstance3D mark = null;
-            foreach (Node child in print.GetChildren())
-            {
-                if (child is not MeshInstance3D mesh) continue;
-                if (mark == null) mark = mesh;
-                else
-                {
-                    print.RemoveChild(mesh);
-                    mesh.QueueFree();
-                }
-            }
-            if (mark != null)
-            {
-                mark.Mesh = FootprintMesh;
-                mark.Transform = Transform3D.Identity;
-            }
-        }
+        // The map decides what a print looks like in its ground (packed sand, snow, asphalt); the mech, its shape.
+        if (print is Footprint footprint) footprint.Shape(FootprintTexture, FootprintSize, FootprintCentre);
         GetParent().AddChild(print);
         Basis basis = Geo.BasisFromUpForward(leg.Normal, -GlobalTransform.Basis.Z);
         print.GlobalTransform = new Transform3D(basis, leg.Contact);
@@ -682,7 +779,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         float stride = -0.45f * Mathf.Abs(speedNorm);
         // "lift" peaks mid-step: the body vaults up over the standing leg and falls into the next footfall.
         Hips.Position = new Vector3(-roll * BodySway, _hipY + _bob + lift * 0.32f * (HipHeight / 5.6f) + slump + stride, 0);
-        Hips.Rotation = new Vector3(_lean - 0.04f * speedNorm + _nod, _twist, _roll * 1.6f + _list);
+        Hips.Rotation = new Vector3(_lean - 0.04f * speedNorm + _nod, _twist, _roll * 2f + _list);
 
         var hips = Hips.GlobalTransform;
         var basis = GlobalTransform.Basis;
@@ -711,10 +808,16 @@ public partial class Mech : CharacterBody3D, IDrivable
 
     // ── Aim & weapons ───────────────────────────────────────────
 
-    void UpdateAim(PhysicsDirectSpaceState3D space)
+    float _aimDt;
+
+    void UpdateAim(PhysicsDirectSpaceState3D space, float dt)
     {
+        _aimDt += dt;
         // The long sight-line ray is the costliest thing a mech does; the AI can do with every other tick.
-        if (Pilot is not PlayerPilot && (_tick & 1) == 1) return;
+        // (Unless it is only simulated every other tick anyway, see Lod.SimInterval: then it aims as often as ever.)
+        if (Pilot is not PlayerPilot && _simScale < 1.5f && (_tick & 1) == 1) return;
+        float step = _aimDt;
+        _aimDt = 0f;
         Transform3D view = default;
         if (Pilot == null || !Pilot.TryGetAimView(out view))
             view = AimAnchor.GlobalTransform.Orthonormalized();
@@ -736,13 +839,32 @@ public partial class Mech : CharacterBody3D, IDrivable
             AimCollider = null;
         }
 
-        // Arms converge on the aim point (the ones still attached).
+        // The arms aim where the pilot wants, as far as they reach from where the torso is pointing
+        // (and the torso is still turning to catch up). Their own ray finds what they are on.
+        float wantYaw = Mathf.Clamp(Mathf.AngleDifference(_yaw, Mathf.Clamp(TargetYaw, -MaxTwist, MaxTwist)) + ArmLookYaw, -ArmYawReach, ArmYawReach);
+        float wantPitch = Mathf.Clamp(Mathf.Clamp(TargetPitch, MinPitch - ArmPitchReach, MaxPitch + ArmPitchReach) - _pitch + ArmLookPitch, -ArmPitchReach, ArmPitchReach);
+        if (!ArmsAim) wantYaw = wantPitch = 0f;
+        _armYaw = Mathf.MoveToward(_armYaw, wantYaw, ArmTrackRate * step);
+        _armPitch = Mathf.MoveToward(_armPitch, wantPitch, ArmTrackRate * step);
+        if (Mathf.Abs(_armYaw) < 1e-3f && Mathf.Abs(_armPitch) < 1e-3f) ArmAimPoint = AimPoint;
+        else
+        {
+            Vector3 right = dir.Cross(Vector3.Up);
+            if (right.LengthSquared() < 1e-6f) right = view.Basis.X;
+            Vector3 armDir = dir.Rotated(right.Normalized(), _armPitch).Rotated(Vector3.Up, _armYaw);
+            Vector3 armTo = from + armDir * (Pilot is PlayerPilot ? 1500f : 700f);
+            ArmAimPoint = Phys.Ray(space, from, armTo, FireMask, _exclude, out var armHit) ? armHit.Position : armTo;
+        }
+        Weapons.ArmAim = ArmsAim ? ArmAimPoint : null;
+
+        // Arms converge on where they aim (the ones still attached).
         for (int i = 0; i < _arms.Length; i++)
         {
             var arm = _arms[i];
             if (_tornArms[i] != null) continue;
-            if (arm.GlobalPosition.DistanceSquaredTo(AimPoint) > 4f)
-                arm.LookAt(AimPoint, Vector3.Up);
+            if (!ArmsAim) arm.Basis = _armRestBasis[i];
+            else if (arm.GlobalPosition.DistanceSquaredTo(ArmAimPoint) > 4f)
+                arm.LookAt(ArmAimPoint, Vector3.Up);
             // Driven back along itself by the last shot, and running out again.
             arm.Position = _armRest[i] + arm.Basis.Z * _armRecoil[i];
             // The striking arm goes up and back, then comes down through the target.
@@ -757,9 +879,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         Weapons.Mask = FireMask;
         if (!Offline && (Pilot?.CanFire ?? false))
         {
-            if (Fire1) Heat += Weapons.FireGroup(1, AimPoint, space);
-            if (Fire2) Heat += Weapons.FireGroup(2, AimPoint, space);
-            if (Fire3) Heat += Weapons.FireGroup(3, AimPoint, space);
+            Heat += Weapons.FireGroups(Fire, AimPoint, space);
         }
         Weapons.Update(dt, AimPoint, space, LockTarget);
     }
@@ -814,6 +934,8 @@ public partial class Mech : CharacterBody3D, IDrivable
                 if (box.Section == s) box.SetEnabled(false);
             var toss = _arms[armIndex].GlobalTransform.Basis.X.Normalized() * (armIndex == 0 ? -3f : 3f) + Vector3.Up * 2f + Velocity;
             _tornArms[armIndex] = Debris.Detach(_arms[armIndex], GetParent(), toss, 2500f);
+            // (Lying on the ground it is part of the map again.)
+            SetInFront(_arms[armIndex], false);
         }
 
         bool smoking = false;
@@ -851,7 +973,6 @@ public partial class Mech : CharacterBody3D, IDrivable
         CollisionMask = 0;
         _ragdoll?.Activate(this, Velocity);
         Pilot?.OnKilled();
-        if (Team == Team.Enemy) Game.Kills++;
         Score.Killed(this);
     }
 
@@ -873,9 +994,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         Vector3 center = TorsoCenter;
         if (ExplosionScene != null)
         {
-            var boom = ExplosionScene.Instantiate<Node3D>();
-            GetParent().AddChild(boom);
-            boom.GlobalPosition = center;
+            OneShotFx.Spawn(ExplosionScene, GetParent(), center);
         }
         _ragdoll?.Blast(center - Vector3.Up * 2f);
         // The reactor going up tears plating off in all directions and digs a hole under the mech.
@@ -891,6 +1010,27 @@ public partial class Mech : CharacterBody3D, IDrivable
         Shake += 0.6f;
     }
 
+    bool _drawOver;
+
+    /// <summary>
+    /// The torso — cab, arms, guns — drawn over everything else on the map, or not: on for the player's
+    /// own machine seen from the cockpit, so that nothing of it is seen cut by a wall or a hill it pokes
+    /// into (parts painted with materials/armor.gdshader or that have its in_front switch).
+    /// </summary>
+    public void DrawOver(bool on)
+    {
+        _drawOver = on;
+        if (GetNodeOrNull("Hips/Torso") is { } torso) SetInFront(torso, on);
+        for (int i = 0; i < _tornArms.Length; i++)
+            if (_tornArms[i] != null) SetInFront(_arms[i], false);
+    }
+
+    static void SetInFront(Node root, bool on)
+    {
+        foreach (var part in Geo.Collect<GeometryInstance3D>(root))
+            if (part is MeshInstance3D) part.SetInstanceShaderParameter("in_front", on ? 1f : 0f);
+    }
+
     /// <summary>Puts back everything that was shot off, mends every section and refills the magazines.</summary>
     void Mend()
     {
@@ -900,6 +1040,7 @@ public partial class Mech : CharacterBody3D, IDrivable
             _tornArms[i]?.Restore();
             _tornArms[i] = null;
         }
+        DrawOver(_drawOver);
         foreach (Node fx in _damageFx)
             if (IsInstanceValid(fx)) fx.QueueFree();
         _damageFx.Clear();
@@ -908,6 +1049,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         _grime.Clean();
         for (int i = 0; i < DamageModel.Count; i++) Weapons.SetSectionDestroyed((Section)i, false);
         Weapons.Rearm();
+        Ams.Of(this)?.Rearm();
         foreach (var box in _hitBoxes) box.Restore();
         CollisionLayer = _bodyLayer;
         CollisionMask = _bodyMask;

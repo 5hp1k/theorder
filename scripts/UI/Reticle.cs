@@ -8,8 +8,17 @@ namespace MechSim;
 /// </summary>
 public partial class Reticle : HudWidget
 {
+    // Follows the aim and the target across the screen: drawn every frame.
+    public Reticle() => RedrawRate = 0f;
+
     /// <summary>Colour of the sight over a machine of one's own side.</summary>
     [Export] public Color FriendColor = new(0.35f, 0.65f, 1f, 0.95f);
+    [ExportGroup("Torso scales")]
+    /// <summary>How far from the sight the twist arc (above it) and the pitch scale (to its left) are drawn, pixels.</summary>
+    [Export] public float ScaleRadius = 74f;
+    /// <summary>Half the length of each scale: the arc's half-angle in degrees, the pitch scale's half-height in pixels.</summary>
+    [Export] public float TwistArc = 32f;
+    [Export] public float PitchHalf = 44f;
 
     protected override void Paint()
     {
@@ -47,12 +56,25 @@ public partial class Reticle : HudWidget
             DrawLine(aim + new Vector2(-24, 24), aim + new Vector2(24, -24), col, 2.5f);
             Text($"{aimed.DisplayName}   СВОЙ   {Mathf.RoundToInt(aimed.Integrity * 100f)}%", aim + new Vector2(-200f, 70f), 15, col, HorizontalAlignment.Center, 400f);
         }
+        // Where the guns are getting to (the arms reaching ahead of the torso, a turret still turning):
+        // a small open circle, with a thin line back to the sight.
+        if (Seat.LeadAim is { } lead && !cam.IsPositionBehind(lead))
+        {
+            Vector2 p = cam.UnprojectPosition(lead);
+            if (p.DistanceTo(aim) > 10f)
+            {
+                DrawArc(p, 9f, 0f, Mathf.Tau, 20, new Color(col, 0.85f), 1.5f, true);
+                DrawCircle(p, 1.5f, col);
+                DrawLine(aim + (p - aim).Normalized() * 20f, p - (p - aim).Normalized() * 10f, new Color(col, 0.3f), 1f);
+            }
+        }
         DrawArc(aim, 18f, 0f, Mathf.Tau, 32, col, 1.5f, true);
         DrawLine(aim + new Vector2(-30, 0), aim + new Vector2(-20, 0), col, 2f);
         DrawLine(aim + new Vector2(20, 0), aim + new Vector2(30, 0), col, 2f);
         DrawLine(aim + new Vector2(0, -30), aim + new Vector2(0, -20), col, 2f);
         DrawLine(aim + new Vector2(0, 20), aim + new Vector2(0, 30), col, 2f);
         DrawCircle(aim, 2f, col);
+        DrawTorsoScales(aim);
 
         // A howitzer's rangefinder: how far the sight's point is, how long the shell will fly, whether it gets there.
         if (ShellArc.Active && Jam <= 0f)
@@ -74,6 +96,49 @@ public partial class Reticle : HudWidget
             : $"{Mathf.RoundToInt(aimed.Integrity * 100f)}%";
         Text($"{aimed.DisplayName}   {Mathf.RoundToInt(dist)} м   {state}",
              aim + new Vector2(-200f, 70f), 15, Red, HorizontalAlignment.Center, 400f);
+    }
+
+    /// <summary>
+    /// How the torso stands against the legs, as in MechWarrior: an arc over the sight with a bar running
+    /// from its middle to where the legs point (twist), and a scale left of it with a bar from the horizon
+    /// mark up or down to where the guns are tipped (pitch).
+    /// </summary>
+    void DrawTorsoScales(Vector2 aim)
+    {
+        float r = ScaleRadius;
+        var line = new Color(Green, Green.A * 0.6f);
+        if (Seat.MaxTwist > 0.01f)
+        {
+            float half = Mathf.DegToRad(TwistArc), up = -Mathf.Pi / 2f;
+            DrawArc(aim, r, up - half, up + half, 24, line, 2f, true);
+            foreach (float a in new[] { up - half, up, up + half })
+            {
+                var dir = Vector2.FromAngle(a);
+                DrawLine(aim + dir * (r - 5f), aim + dir * (r + 5f), line, 2f);
+            }
+            // The torso turned left (twist > 0) leaves the legs pointing right of the sight.
+            float legs = up + Mathf.Clamp(Seat.Twist / Seat.MaxTwist, -1f, 1f) * half;
+            Color bar = Seat.CounterRotate ? Green : Amber;
+            if (Mathf.Abs(legs - up) > 0.01f) DrawArc(aim, r, Mathf.Min(up, legs), Mathf.Max(up, legs), 16, bar, 4f, true);
+            var at = aim + Vector2.FromAngle(legs) * (r + 7f);
+            var outward = Vector2.FromAngle(legs);
+            var side = new Vector2(-outward.Y, outward.X) * 5f;
+            DrawColoredPolygon(new[] { at - outward * 5f, at + outward * 4f + side, at + outward * 4f - side }, bar);
+        }
+        if (Seat.MaxPitch - Seat.MinPitch > 0.01f)
+        {
+            float x = aim.X - r, h = PitchHalf;
+            DrawLine(new Vector2(x, aim.Y - h), new Vector2(x, aim.Y + h), line, 2f);
+            foreach (float k in new[] { -1f, -0.5f, 0.5f, 1f })
+                DrawLine(new Vector2(x - 3f, aim.Y + k * h), new Vector2(x + 3f, aim.Y + k * h), line, 1.5f);
+            DrawLine(new Vector2(x - 6f, aim.Y), new Vector2(x + 6f, aim.Y), line, 2f);
+            float p = Seat.Pitch;
+            float share = p >= 0f ? p / Mathf.Max(Seat.MaxPitch, 0.01f) : p / Mathf.Max(-Seat.MinPitch, 0.01f);
+            float y = aim.Y - Mathf.Clamp(share, -1f, 1f) * h;
+            if (Mathf.Abs(y - aim.Y) > 0.5f) DrawLine(new Vector2(x, aim.Y), new Vector2(x, y), Amber, 4f);
+            var tip = new Vector2(x + 4f, y);
+            DrawColoredPolygon(new[] { tip, tip + new Vector2(9f, -5f), tip + new Vector2(9f, 5f) }, Amber);
+        }
     }
 
     /// <summary>Brackets around the locked target, or an arrow pointing towards it when it's off-screen.</summary>

@@ -1,36 +1,17 @@
 [gd_scene format=3]
 
-[ext_resource type="Material" path="res://materials/footprint_city.tres" id="1"]
 [ext_resource type="Script" path="res://scripts/Fx/Footprint.cs" id="2"]
-
-[sub_resource type="BoxMesh" id="BoxMesh_1"]
-size = Vector3(1.3, 0.06, 2.3)
-
-[sub_resource type="BoxMesh" id="BoxMesh_2"]
-size = Vector3(1.5, 0.06, 0.5)
-
-[sub_resource type="BoxMesh" id="BoxMesh_3"]
-size = Vector3(0.4, 0.06, 1)
+[ext_resource type="Texture2D" path="res://textures/footprints/ostrich.png" id="3"]
 
 [node name="Footprint" type="Node3D"]
 script = ExtResource("2")
 Lifetime = 30
 FadeTime = 6
 
-[node name="Sole" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
-mesh = SubResource("BoxMesh_1")
-material_override = ExtResource("1")
-cast_shadow = 0
-
-[node name="Toes" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.2)
-mesh = SubResource("BoxMesh_2")
-material_override = ExtResource("1")
-cast_shadow = 0
-
-[node name="Spur" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.35)
-mesh = SubResource("BoxMesh_3")
-material_override = ExtResource("1")
-cast_shadow = 0
+[node name="Print" type="Decal" parent="."]
+size = Vector3(2, 0.8, 4.3)
+texture_albedo = ExtResource("3")
+modulate = Color(0.1, 0.1, 0.1, 0.35)
+upper_fade = 0.4
+lower_fade = 0.4
+cull_mask = 1024

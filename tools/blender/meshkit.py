@@ -11,9 +11,11 @@ the kinds end up as vertex colours that materials/armor.gdshader reads: red = pa
 edges), green = exposed (0 down in seams).
 """
 import math
+from contextlib import contextmanager
 import bmesh
 import bpy
 from mathutils import Vector, Matrix
+from mathutils.bvhtree import BVHTree
 
 PAINT, EDGE, SOFT, RECESS, FRAME = range(5)
 COLORS = {PAINT: (1, 1, 1, 1), EDGE: (0, 1, 1, 1), SOFT: (0.45, 0.8, 1, 1), RECESS: (1, 0, 1, 1), FRAME: (1, 0.55, 1, 1)}
@@ -45,6 +47,14 @@ class Part:
         self.name = name
         self.bm = bmesh.new()
         self.kind = self.bm.faces.layers.int.new("kind")
+        self._layers()
+
+    def _layers(self):
+        """Per-vertex marks of the small fittings (see detail()): which fitting a vertex belongs to (0 =
+        the body), and the two loose points that say where the fitting is fixed and which way is out."""
+        lay = self.bm.verts.layers.int
+        self.detail_id = lay.get("detail") or lay.new("detail")
+        self.marker = lay.get("marker") or lay.new("marker")
 
     # ── solids ──────────────────────────────────────────────────────────────
 
@@ -167,6 +177,61 @@ class Part:
 
     # ── detail ──────────────────────────────────────────────────────────────
 
+    @contextmanager
+    def detail(self, anchor, normal):
+        """A small fitting (bolts, a grille, a lifting eye) built inside the with-block, meant to sit on the
+        surface at anchor, facing out along normal. The body is often pushed out or in after it was drawn
+        (the house style squares sections up), so when the part is finished every fitting is slid along
+        its normal onto the outer surface actually there (settle()): none is left buried in the plating,
+        flush with it or hanging off it."""
+        before = set(self.bm.verts)
+        yield
+        ident = 1 + max((v[self.detail_id] for v in self.bm.verts), default=0)
+        for v in self.bm.verts:
+            if v not in before:
+                v[self.detail_id] = ident
+        a = gd(anchor)
+        for role, at in ((1, a), (2, a + gd(Vector(normal).normalized()) * 0.1)):
+            v = self.bm.verts.new(at)
+            v[self.detail_id] = ident
+            v[self.marker] = role
+
+    def settle(self, reach=0.4):
+        """Slides every fitting onto the outer surface of the body under it (see detail()). A fitting with
+        no body within reach along its normal is left where it is (it sits on another part)."""
+        bm = self.bm
+        groups = {}
+        for v in bm.verts:
+            if v[self.detail_id]:
+                groups.setdefault(v[self.detail_id], []).append(v)
+        if not groups:
+            return
+        body = [f for f in bm.faces if all(not v[self.detail_id] for v in f.verts)]
+        if body:
+            index = {}
+            verts = []
+            for f in body:
+                for v in f.verts:
+                    if v not in index:
+                        index[v] = len(verts)
+                        verts.append(v.co.copy())
+            tree = BVHTree.FromPolygons(verts, [[index[v] for v in f.verts] for f in body])
+            for ident, vs in groups.items():
+                marks = {v[self.marker]: v.co for v in vs if v[self.marker]}
+                if 1 not in marks or 2 not in marks:
+                    continue
+                a, n = marks[1].copy(), (marks[2] - marks[1]).normalized()
+                hit, _, _, _ = tree.ray_cast(a + n * 2.0, -n, 2.0 + reach)
+                if hit is None:
+                    continue
+                shift = (hit - a).dot(n)
+                if abs(shift) > reach or abs(shift) < 1e-4:
+                    continue
+                bmesh.ops.translate(bm, vec=n * shift, verts=[v for v in vs if not v[self.marker]])
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if v[self.marker]], context="VERTS")
+        for v in bm.verts:
+            v[self.detail_id] = 0
+
     def _dress(self, faces, kind, bevel, seams, cuts):
         bm = self.bm
         bmesh.ops.recalc_face_normals(bm, faces=faces)
@@ -209,22 +274,49 @@ class Part:
         return face.calc_area() < longest * width * 2.2
 
     def seams(self, faces, margin=0.06, width=0.018, depth=0.02, min_area=0.25, facing=None):
-        """Sinks a V-groove round the inside of every large face: the gap between armour plates."""
+        """Sinks a V-groove round the inside of every large face: the gap between armour plates.
+        On a face with short edges (the cut corners of a squared-up section) a groove of the full size
+        would pull those edges inside out and fold the face over itself; there it is drawn narrower,
+        and left off a face too cramped even for that."""
         bm = self.bm
-        chosen = []
+        whole = margin + 2 * width
         for f in faces:
-            if f.calc_area() < min_area:
+            if not f.is_valid or f.calc_area() < min_area:
                 continue
             if facing is not None and f.normal.dot(gd(facing).normalized()) < 0.5:
                 continue
-            chosen.append(f)
-        if not chosen:
-            return
-        bmesh.ops.inset_individual(bm, faces=chosen, thickness=margin, depth=0.0, use_even_offset=True)
-        down = bmesh.ops.inset_individual(bm, faces=chosen, thickness=width, depth=-depth, use_even_offset=True)["faces"]
-        up = bmesh.ops.inset_individual(bm, faces=chosen, thickness=width, depth=depth, use_even_offset=True)["faces"]
-        for f in down + up:
-            f[self.kind] = RECESS
+            k = min(1.0, self._room(f) / whole)
+            if k < 0.35:
+                continue
+            bmesh.ops.inset_individual(bm, faces=[f], thickness=margin * k, depth=0.0, use_even_offset=True)
+            down = bmesh.ops.inset_individual(bm, faces=[f], thickness=width * k, depth=-depth, use_even_offset=True)["faces"]
+            up = bmesh.ops.inset_individual(bm, faces=[f], thickness=width * k, depth=depth, use_even_offset=True)["faces"]
+            for g in down + up:
+                g[self.kind] = RECESS
+
+    @staticmethod
+    def _room(face):
+        """How far in the face's outline can be drawn before one of its edges shrinks away: an inset by t
+        shortens an edge by t·(cot(a/2) + cot(b/2)), a and b being the corners at its ends."""
+        face.normal_update()
+        n = face.normal
+        vs = [v.co for v in face.verts]
+        count = len(vs)
+
+        def cot_half(i):
+            to_prev, to_next = (vs[i - 1] - vs[i]).normalized(), (vs[(i + 1) % count] - vs[i]).normalized()
+            angle = to_prev.angle(to_next, 0.0)
+            # a corner that turns the other way (reflex) opens up as the outline is drawn in
+            if (vs[i] - vs[i - 1]).cross(vs[(i + 1) % count] - vs[i]).dot(n) < 0:
+                angle = math.tau - angle
+            return 1.0 / math.tan(max(angle, 1e-3) / 2)
+
+        room = float("inf")
+        for i in range(count):
+            shrink = cot_half(i) + cot_half((i + 1) % count)
+            if shrink > 1e-6:
+                room = min(room, 0.85 * (vs[(i + 1) % count] - vs[i]).length / shrink)
+        return room
 
     def plate(self, faces_or_none, centre, normal, size, height=0.03, along=(0, 1, 0), kind=PAINT, bevel=0.012):
         """A raised slab lying on a surface: centre on the surface, normal out of it, size (across, along)."""
@@ -240,7 +332,8 @@ class Part:
         n = Vector(normal).normalized()
         for c in centres:
             c = Vector(c)
-            self.cyl(tuple(c - n * 0.01), tuple(c + n * h), r, segs=6, kind=SOFT, bevel=0)
+            with self.detail(c, n):
+                self.cyl(tuple(c - n * 0.01), tuple(c + n * h), r, segs=6, kind=SOFT, bevel=0)
 
     def slats(self, centre, normal, across, size, count=5, depth=0.05):
         """A grille: dark bars side by side. size = (length of a bar, total run)."""
@@ -249,16 +342,21 @@ class Part:
         run = n.cross(a)
         m = Matrix((a, n, run)).transposed()
         pitch = size[1] / count
-        for i in range(count):
-            c = Vector(centre) + run * ((i + 0.5) * pitch - size[1] / 2) + n * depth / 2
-            self.box(tuple(c), (size[0], depth, pitch * 0.5), RECESS, 0, None, m)
+        with self.detail(centre, n):
+            for i in range(count):
+                c = Vector(centre) + run * ((i + 0.5) * pitch - size[1] / 2) + n * depth / 2
+                self.box(tuple(c), (size[0], depth, pitch * 0.5), RECESS, 0, None, m)
 
     def sole(self, name, lift=0.03):
         """The part's underside as a flat shape lying just above the ground: the print it leaves."""
         flat = Part(name)
-        low = min(v.co.z for v in self.bm.verts)
+        low = min(v.co.z for v in self.bm.verts if not v[self.marker])
+        high = max(v.co.z for v in self.bm.verts if not v[self.marker])
         for f in self.bm.faces:
-            if max(v.co.z for v in f.verts) > low + 0.03 or f.calc_area() < 1e-5:
+            # Everything of the underside that faces the ground, pressed flat: a sole that is not quite
+            # level (its sections pushed out to the house style) still leaves its whole outline.
+            f.normal_update()
+            if f.normal.z > -0.3 or f.calc_center_median().z > low + (high - low) * 0.45 or f.calc_area() < 1e-5:
                 continue
             vs = [flat.bm.verts.new((v.co.x, v.co.y, lift)) for v in f.verts]
             face = flat.bm.faces.new(vs)
@@ -272,11 +370,19 @@ class Part:
         mesh = bpy.data.meshes.new("tmp")
         other.bm.to_mesh(mesh)
         kinds = [f[other.kind] for f in other.bm.faces]
-        start = len(self.bm.faces)
+        details = [(v[other.detail_id], v[other.marker]) for v in other.bm.verts]
+        start, vstart = len(self.bm.faces), len(self.bm.verts)
+        offset = max((v[self.detail_id] for v in self.bm.verts), default=0)
         self.bm.from_mesh(mesh)
+        self._layers()
         self.bm.faces.ensure_lookup_table()
+        self.bm.verts.ensure_lookup_table()
         for i, k in enumerate(kinds):
             self.bm.faces[start + i][self.kind] = k
+        for i, (ident, role) in enumerate(details):
+            v = self.bm.verts[vstart + i]
+            v[self.detail_id] = ident + offset if ident else 0
+            v[self.marker] = role
         bpy.data.meshes.remove(mesh)
         return self
 
@@ -298,11 +404,13 @@ class Part:
         other.bm.free()
         other.bm = self.bm.copy()
         other.kind = other.bm.faces.layers.int["kind"]
+        other._layers()
         bmesh.ops.scale(other.bm, vec=(-1, 1, 1), verts=other.bm.verts)
         bmesh.ops.reverse_faces(other.bm, faces=other.bm.faces)
         return other
 
     def to_object(self, collection):
+        self.settle()
         bm = self.bm
         bmesh.ops.triangulate(bm, faces=[f for f in bm.faces if len(f.verts) > 4])
         mesh = bpy.data.meshes.new(self.name)

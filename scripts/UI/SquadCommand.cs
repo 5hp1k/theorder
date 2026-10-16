@@ -28,6 +28,12 @@ public partial class SquadCommand : HudWidget
 
     /// <summary>-2 = the list is closed, -1 = the whole lance, otherwise the lancemate's index.</summary>
     int _who = -2;
+
+    static SquadCommand _shown;
+    /// <summary>The list of orders is open: the number keys give orders, they don't fire weapon groups.</summary>
+    public static bool Listening => _shown != null && IsInstanceValid(_shown) && _shown._who != -2;
+
+    public override void _EnterTree() => _shown = this;
     float _menuLeft, _noteLeft;
     string _note = "";
 
@@ -65,7 +71,7 @@ public partial class SquadCommand : HudWidget
         bool needsTarget = order is 0 or 1;
         if (needsTarget && (target == null || target.IsDestroyed || (order == 0 && target.Team == Team.Player)))
         {
-            Say(order == 0 ? "Нет цели: выберите противника (E / T / Q)" : "Нет цели: выберите, кого защищать (Y — свои)");
+            Say(order == 0 ? "Сначала возьмите цель (E / T / Q)" : "Сначала выберите, кого прикрывать (Y)");
             return;
         }
         string what = Orders[order];

@@ -11,12 +11,14 @@ namespace MechSim;
 public struct PilotInput
 {
     public float Throttle, Turn, Yaw, Pitch;
-    public bool Fire1, Fire2, Fire3, Jump, Descend;
+    /// <summary>Weapon groups fired, one bit each.</summary>
+    public int Fire;
+    public bool Jump, Descend;
 
     public static PilotInput Capture(IDrivable unit) => new()
     {
         Throttle = unit.Throttle, Turn = unit.TurnInput, Yaw = unit.TargetYaw, Pitch = unit.TargetPitch,
-        Fire1 = unit.Fire1, Fire2 = unit.Fire2, Fire3 = unit.Fire3, Jump = unit.Jump, Descend = unit.Descend,
+        Fire = unit.Fire, Jump = unit.Jump, Descend = unit.Descend,
     };
 
     public readonly void Apply(IDrivable unit)
@@ -25,14 +27,12 @@ public struct PilotInput
         unit.TurnInput = Turn;
         unit.TargetYaw = Yaw;
         unit.TargetPitch = Pitch;
-        unit.Fire1 = Fire1;
-        unit.Fire2 = Fire2;
-        unit.Fire3 = Fire3;
+        unit.Fire = Fire;
         unit.Jump = Jump;
         unit.Descend = Descend;
     }
 
-    /// <summary>Nine bytes: throttle and steering as signed bytes, the two angles as 16-bit, the buttons as bits.</summary>
+    /// <summary>Nine bytes: throttle and steering as signed bytes, the two angles as 16-bit, the buttons as bits (six groups, then jump and descend).</summary>
     public readonly byte[] Pack()
     {
         var data = new byte[7];
@@ -44,7 +44,7 @@ public struct PilotInput
         data[3] = (byte)((yaw >> 8) & 0xff);
         data[4] = (byte)(pitch & 0xff);
         data[5] = (byte)((pitch >> 8) & 0xff);
-        data[6] = (byte)((Fire1 ? 1 : 0) | (Fire2 ? 2 : 0) | (Fire3 ? 4 : 0) | (Jump ? 8 : 0) | (Descend ? 16 : 0));
+        data[6] = (byte)((Fire & 63) | (Jump ? 64 : 0) | (Descend ? 128 : 0));
         return data;
     }
 
@@ -57,8 +57,8 @@ public struct PilotInput
             Turn = (sbyte)data[1] / 127f,
             Yaw = (short)(data[2] | (data[3] << 8)) / 32767f * Mathf.Pi,
             Pitch = (short)(data[4] | (data[5] << 8)) / 32767f * (Mathf.Pi / 2f),
-            Fire1 = (data[6] & 1) != 0, Fire2 = (data[6] & 2) != 0, Fire3 = (data[6] & 4) != 0,
-            Jump = (data[6] & 8) != 0, Descend = (data[6] & 16) != 0,
+            Fire = data[6] & 63,
+            Jump = (data[6] & 64) != 0, Descend = (data[6] & 128) != 0,
         };
     }
 }

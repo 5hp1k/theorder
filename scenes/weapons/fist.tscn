@@ -21,6 +21,7 @@ SwingAngle = 0.0
 CraterSize = 0.9
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("2")
 unit_size = 12
 max_distance = 160

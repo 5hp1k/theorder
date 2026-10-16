@@ -4,6 +4,7 @@
 [ext_resource type="AudioStream" path="res://audio/collapse_loop.wav" id="2"]
 
 [node name="CollapseRumble" type="AudioStreamPlayer3D"]
+bus = &"Effects"
 script = ExtResource("1")
 stream = ExtResource("2")
 unit_size = 45.0

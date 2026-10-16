@@ -35,6 +35,7 @@ MuzzleSpeed = 105
 ShellGravity = 20
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("3")
 unit_size = 40
 max_distance = 900

@@ -69,6 +69,7 @@ ArmTime = 60.0
 Loft = 0.0
 Scatter = 0.004
 MarkKind = 2
+Interceptable = false
 Burns = true
 ImpactScene = ExtResource("2")
 

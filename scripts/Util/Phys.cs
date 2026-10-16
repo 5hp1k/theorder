@@ -41,25 +41,46 @@ public static class Phys
         bool Refine(Vector3 from, Vector3 to, ref Hit hit);
     }
 
+    // Rays are cast by the hundred every tick (aim, every shot, missiles, feet, the AI's line of sight):
+    // one query object and the result's keys are made once and reused, not allocated for every ray.
+    static PhysicsRayQueryParameters3D _query;
+    static Godot.Collections.Array<Rid> _queryExclude;
+    static int _queryExcludeCount;
+    static readonly Variant KeyPosition = "position", KeyNormal = "normal", KeyCollider = "collider", KeyRid = "rid";
+
     public static bool Ray(PhysicsDirectSpaceState3D space, Vector3 from, Vector3 to, uint mask,
                            Godot.Collections.Array<Rid> exclude, out Hit hit)
     {
         hit = default;
         hit.From = from;
+        exclude ??= NoExclude;
+        _query ??= new PhysicsRayQueryParameters3D();
+        _query.From = from;
+        _query.To = to;
+        _query.CollisionMask = mask;
+        // (Setting the list crosses into the engine and copies it: only when it is another list, or this one has grown.)
+        if (!ReferenceEquals(exclude, _queryExclude) || exclude.Count != _queryExcludeCount)
+        {
+            _query.Exclude = exclude;
+            _queryExclude = exclude;
+            _queryExcludeCount = exclude.Count;
+        }
         // A shot can pass through several broken-open things in a row; each one is skipped in turn.
         for (int pass = 0; pass < 6; pass++)
         {
-            var query = PhysicsRayQueryParameters3D.Create(from, to, mask, exclude);
-            var result = space.IntersectRay(query);
+            var result = space.IntersectRay(_query);
             if (result.Count == 0) return false;
-            hit.Position = result["position"].AsVector3();
-            hit.Normal = result["normal"].AsVector3();
-            hit.Collider = result["collider"].AsGodotObject();
+            hit.Position = result[KeyPosition].AsVector3();
+            hit.Normal = result[KeyNormal].AsVector3();
+            hit.Collider = result[KeyCollider].AsGodotObject();
             hit.Part = -1;
             if (hit.Collider is not IPenetrable holed || holed.Refine(from, to, ref hit)) return true;
 
             exclude = exclude.Duplicate();
-            exclude.Add(result["rid"].AsRid());
+            exclude.Add(result[KeyRid].AsRid());
+            _query.Exclude = exclude;
+            _queryExclude = exclude;
+            _queryExcludeCount = exclude.Count;
         }
         return false;
     }

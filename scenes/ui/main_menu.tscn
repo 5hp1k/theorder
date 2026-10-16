@@ -1,21 +1,30 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://cjh152qn62qbq"]
 
-[ext_resource type="PackedScene" path="res://scenes/ui/unit_check.tscn" id="unit_check"]
-[ext_resource type="Script" path="res://scripts/UI/MainMenu.cs" id="1"]
+[ext_resource type="Script" uid="uid://bgrixffnsyem6" path="res://scripts/UI/MainMenu.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/ui/weapon_slot_row.tscn" id="2"]
-[ext_resource type="PackedScene" path="res://scenes/ui/hardpoint_row.tscn" id="hardpoint_row"]
-[ext_resource type="AudioStream" path="res://audio/ui_click.wav" id="3"]
-[ext_resource type="Shader" path="res://materials/sky.gdshader" id="sky_shader"]
-[ext_resource type="Texture2D" path="res://textures/sky/kloofendal_48d_partly_cloudy_puresky_8k.jpg" id="sky_tex"]
-[ext_resource type="Texture2D" path="res://textures/sky/kloofendal_48d_partly_cloudy_puresky_1k.hdr" id="sky_hdr"]
-[ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="settings_panel"]
+[ext_resource type="AudioStream" uid="uid://vlsw34aqu0gy" path="res://audio/ui_click.wav" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/ui/fps_counter.tscn" id="fps_counter"]
+[ext_resource type="PackedScene" path="res://scenes/ui/hardpoint_row.tscn" id="hardpoint_row"]
+[ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="settings_panel"]
+[ext_resource type="Texture2D" uid="uid://ddx6qnwl6h0ks" path="res://textures/sky/kloofendal_48d_partly_cloudy_puresky_1k.hdr" id="sky_hdr"]
+[ext_resource type="Shader" uid="uid://dphogp8xjt2f7" path="res://materials/sky.gdshader" id="sky_shader"]
+[ext_resource type="Texture2D" uid="uid://ovc2ne3uq0i" path="res://textures/sky/kloofendal_48d_partly_cloudy_puresky_8k.jpg" id="sky_tex"]
+[ext_resource type="PackedScene" path="res://scenes/ui/stat_row.tscn" id="stat_row"]
+[ext_resource type="PackedScene" path="res://scenes/ui/unit_check.tscn" id="unit_check"]
+[ext_resource type="Script" uid="uid://8gj1p1rrtssi" path="res://scripts/UI/UnitStats.cs" id="unit_stats"]
 
 [sub_resource type="ShaderMaterial" id="SkyMaterial_1"]
 shader = ExtResource("sky_shader")
 shader_parameter/sky_tex = ExtResource("sky_tex")
 shader_parameter/light_tex = ExtResource("sky_hdr")
+shader_parameter/background_energy = 1.0
+shader_parameter/highlight_boost = 1.5
+shader_parameter/light_energy = 1.0
+shader_parameter/light_clamp = 8.0
 shader_parameter/ground_color = Color(0.2, 0.2, 0.22, 1)
+shader_parameter/tint = Color(1, 1, 1, 1)
+shader_parameter/saturation = 1.0
+shader_parameter/rotation = 0.0
 
 [sub_resource type="Sky" id="Sky_1"]
 sky_material = SubResource("SkyMaterial_1")
@@ -32,50 +41,49 @@ tonemap_mode = 4
 tonemap_exposure = 0.9
 ssao_enabled = true
 ssao_radius = 2.0
-ssao_intensity = 2.0
 glow_enabled = true
 glow_intensity = 0.4
 glow_hdr_threshold = 1.4
 adjustment_enabled = true
 adjustment_contrast = 1.1
 
-[sub_resource type="CylinderMesh" id="CylinderMesh_2"]
-top_radius = 7
-bottom_radius = 7.5
-height = 0.3
-radial_segments = 48
-
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3"]
 albedo_color = Color(0.13, 0.14, 0.16, 1)
 roughness = 0.9
 
-[node name="MainMenu" type="Control"]
+[sub_resource type="CylinderMesh" id="CylinderMesh_2"]
+top_radius = 7.0
+bottom_radius = 7.5
+height = 0.3
+radial_segments = 48
+
+[node name="MainMenu" type="Control" unique_id=726802262]
 layout_mode = 3
 anchors_preset = 15
-anchor_right = 1
-anchor_bottom = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
+HardpointRowScene = ExtResource("hardpoint_row")
 SlotRowScene = ExtResource("2")
 UnitCheckScene = ExtResource("unit_check")
-HardpointRowScene = ExtResource("hardpoint_row")
 
-[node name="Background" type="ColorRect" parent="."]
-color = Color(0.06, 0.07, 0.08, 1)
-mouse_filter = 2
+[node name="Background" type="ColorRect" parent="." unique_id=1551246216]
 layout_mode = 1
 anchors_preset = 15
-anchor_right = 1
-anchor_bottom = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
+color = Color(0.06, 0.07, 0.08, 1)
 
-[node name="Layout" type="MarginContainer" parent="."]
+[node name="Layout" type="MarginContainer" parent="." unique_id=2036202631]
 layout_mode = 1
 anchors_preset = 15
-anchor_right = 1
-anchor_bottom = 1
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
@@ -84,1012 +92,1024 @@ theme_override_constants/margin_top = 30
 theme_override_constants/margin_right = 36
 theme_override_constants/margin_bottom = 26
 
-[node name="Rows" type="VBoxContainer" parent="Layout"]
+[node name="Rows" type="VBoxContainer" parent="Layout" unique_id=1365084005]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 22
 
-[node name="Header" type="VBoxContainer" parent="Layout/Rows"]
+[node name="Header" type="VBoxContainer" parent="Layout/Rows" unique_id=739085515]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="Title" type="Label" parent="Layout/Rows/Header"]
+[node name="Title" type="Label" parent="Layout/Rows/Header" unique_id=1799888834]
 layout_mode = 2
-text = "THE ORDER"
-theme_override_font_sizes/font_size = 60
 theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 60
+text = "THE ORDER"
 
-[node name="Subtitle" type="Label" parent="Layout/Rows/Header"]
+[node name="Subtitle" type="Label" parent="Layout/Rows/Header" unique_id=1324305540]
 layout_mode = 2
-text = "симулятор боевого меха"
-theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+theme_override_font_sizes/font_size = 18
+text = "симулятор боевого меха"
 
-[node name="Body" type="HBoxContainer" parent="Layout/Rows"]
+[node name="Body" type="HBoxContainer" parent="Layout/Rows" unique_id=949021783]
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
 theme_override_constants/separation = 34
 
-[node name="Nav" type="VBoxContainer" parent="Layout/Rows/Body"]
-layout_mode = 2
+[node name="Nav" type="VBoxContainer" parent="Layout/Rows/Body" unique_id=918480101]
 custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 0
 theme_override_constants/separation = 12
 
-[node name="BtnPlay" type="Button" parent="Layout/Rows/Body/Nav"]
-layout_mode = 2
+[node name="BtnPlay" type="Button" parent="Layout/Rows/Body/Nav" unique_id=880893547]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 60)
-text = "В БОЙ"
+layout_mode = 2
 theme_override_font_sizes/font_size = 26
-unique_name_in_owner = true
+text = "В БОЙ"
 
-[node name="BtnNet" type="Button" parent="Layout/Rows/Body/Nav"]
-layout_mode = 2
+[node name="BtnNet" type="Button" parent="Layout/Rows/Body/Nav" unique_id=1345822521]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
 text = "Сетевая игра"
-theme_override_font_sizes/font_size = 20
-unique_name_in_owner = true
 
-[node name="BtnHangar" type="Button" parent="Layout/Rows/Body/Nav"]
-layout_mode = 2
+[node name="BtnHangar" type="Button" parent="Layout/Rows/Body/Nav" unique_id=174579941]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
 text = "Ангар"
-theme_override_font_sizes/font_size = 20
-unique_name_in_owner = true
 
-[node name="BtnBattle" type="Button" parent="Layout/Rows/Body/Nav"]
-layout_mode = 2
+[node name="BtnBattle" type="Button" parent="Layout/Rows/Body/Nav" unique_id=967321398]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
 text = "Карта и противники"
-theme_override_font_sizes/font_size = 20
-unique_name_in_owner = true
 
-[node name="BtnSettings" type="Button" parent="Layout/Rows/Body/Nav"]
-layout_mode = 2
+[node name="BtnSettings" type="Button" parent="Layout/Rows/Body/Nav" unique_id=1146916282]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
 text = "Настройки"
-theme_override_font_sizes/font_size = 20
-unique_name_in_owner = true
 
-[node name="BtnQuit" type="Button" parent="Layout/Rows/Body/Nav"]
-layout_mode = 2
+[node name="BtnQuit" type="Button" parent="Layout/Rows/Body/Nav" unique_id=284465117]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 46)
-text = "Выход"
-theme_override_font_sizes/font_size = 20
-unique_name_in_owner = true
-
-[node name="Pages" type="Control" parent="Layout/Rows/Body"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Выход"
+
+[node name="Pages" type="Control" parent="Layout/Rows/Body" unique_id=1974450619]
 custom_minimum_size = Vector2(640, 0)
-size_flags_horizontal = 3
 clip_contents = true
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="PageHangar" type="VBoxContainer" parent="Layout/Rows/Body/Pages"]
+[node name="PageHangar" type="VBoxContainer" parent="Layout/Rows/Body/Pages" unique_id=1460978557]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
-anchor_right = 1
-anchor_bottom = 1
-grow_horizontal = 2
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_vertical = 2
-unique_name_in_owner = true
 theme_override_constants/separation = 10
 
-[node name="Heading" type="Label" parent="Layout/Rows/Body/Pages/PageHangar"]
+[node name="Heading" type="Label" parent="Layout/Rows/Body/Pages/PageHangar" unique_id=1650195480]
 layout_mode = 2
-text = "Ангар"
-theme_override_font_sizes/font_size = 28
 theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 28
+text = "Ангар"
 
-[node name="MechList" type="ItemList" parent="Layout/Rows/Body/Pages/PageHangar"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 330)
-theme_override_font_sizes/font_size = 20
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 118)
-max_columns = 3
-same_column_width = true
-
-[node name="MechInfo" type="Label" parent="Layout/Rows/Body/Pages/PageHangar"]
-layout_mode = 2
-text = ""
-theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
-autowrap_mode = 3
-custom_minimum_size = Vector2(0, 64)
-unique_name_in_owner = true
-
-[node name="HangarTabs" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar"]
+[node name="UnitPicker" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar" unique_id=1543543473]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="BtnTabWeapons" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/HangarTabs"]
+[node name="UnitKindOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageHangar/UnitPicker" unique_id=335053842]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_stretch_ratio = 0.8
+theme_override_font_sizes/font_size = 19
+clip_text = true
+fit_to_longest_item = false
+
+[node name="UnitOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageHangar/UnitPicker" unique_id=1446616548]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 42)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 19
+clip_text = true
+fit_to_longest_item = false
+
+[node name="MechStats" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar" unique_id=1023341651]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+script = ExtResource("unit_stats")
+RowScene = ExtResource("stat_row")
+
+[node name="HangarTabs" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar" unique_id=793082858]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="BtnTabWeapons" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/HangarTabs" unique_id=336241221]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
 toggle_mode = true
 button_pressed = true
 text = "Оружие"
-theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="BtnTabPaint" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/HangarTabs"]
+[node name="BtnTabPaint" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/HangarTabs" unique_id=551000406]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 38)
+theme_override_font_sizes/font_size = 18
 toggle_mode = true
 text = "Покраска"
-theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="Hint" type="Label" parent="Layout/Rows/Body/Pages/PageHangar"]
-layout_mode = 2
-text = "Выберите машину, затем перетаскивайте оружие с полки в точки подвески. Тип точки — цвет: лучевое красное, баллистика жёлтая, ракеты зелёные, любое серое. Чтобы снять — крестик или перетащите обратно на полку."
-autowrap_mode = 3
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
-
-[node name="Bench" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar"]
+[node name="Bench" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar" unique_id=877329856]
 layout_mode = 2
 size_flags_vertical = 3
 theme_override_constants/separation = 14
 
-[node name="ShelfScroll" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageHangar/Bench"]
-layout_mode = 2
+[node name="ShelfScroll" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageHangar/Bench" unique_id=1602195456]
 custom_minimum_size = Vector2(262, 0)
+layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="Shelf" parent="Layout/Rows/Body/Pages/PageHangar/Bench/ShelfScroll" instance=ExtResource("hardpoint_row")]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="Shelf" parent="Layout/Rows/Body/Pages/PageHangar/Bench/ShelfScroll" unique_id=6934877 instance=ExtResource("hardpoint_row")]
 unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
 
-[node name="Points" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageHangar/Bench"]
+[node name="Points" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageHangar/Bench" unique_id=1754009889]
 layout_mode = 2
 size_flags_horizontal = 3
 horizontal_scroll_mode = 0
 
-[node name="SlotList" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/Bench/Points"]
+[node name="SlotList" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/Bench/Points" unique_id=452537877]
+unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 8
-unique_name_in_owner = true
-size_flags_horizontal = 3
 
-[node name="BtnStock" type="Button" parent="Layout/Rows/Body/Pages/PageHangar"]
+[node name="LoadoutButtons" type="HFlowContainer" parent="Layout/Rows/Body/Pages/PageHangar" unique_id=1432588729]
+unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(0, 40)
-text = "Вернуть штатное оружие и группы"
-theme_override_font_sizes/font_size = 16
-unique_name_in_owner = true
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
 
-[node name="PageCustom" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageHangar"]
+[node name="ChkJumpJets" type="CheckButton" parent="Layout/Rows/Body/Pages/PageHangar/LoadoutButtons" unique_id=1429833465]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Прыжковые двигатели"
+
+[node name="ChkAms" type="CheckButton" parent="Layout/Rows/Body/Pages/PageHangar/LoadoutButtons" unique_id=779446390]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Противоракетная система"
+
+[node name="BtnStock" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/LoadoutButtons" unique_id=847405395]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Штатное вооружение"
+
+[node name="BtnStrip" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/LoadoutButtons" unique_id=349320898]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+text = "Снять всё вооружение"
+
+[node name="PageCustom" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageHangar" unique_id=536742890]
+unique_name_in_owner = true
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
-unique_name_in_owner = true
 
-[node name="Column" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom"]
+[node name="Column" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom" unique_id=606890922]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="PresetRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="PresetRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=835984624]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PresetRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PresetRow" unique_id=43764606]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Заготовка"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="PresetOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PresetRow"]
+[node name="PresetOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PresetRow" unique_id=117346919]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="BaseRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="BaseRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=1960808387]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/BaseRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/BaseRow" unique_id=1958938034]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Цвет краски"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="BasePicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/BaseRow"]
+[node name="BasePicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/BaseRow" unique_id=1009679570]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 34)
 edit_alpha = false
-unique_name_in_owner = true
 
-[node name="PatternKindRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="PatternKindRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=1332030719]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternKindRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternKindRow" unique_id=1411815587]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Узор"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="PatternOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternKindRow"]
+[node name="PatternOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternKindRow" unique_id=1259799149]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="PatternARow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="PatternARow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=1934187497]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternARow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternARow" unique_id=1859414343]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Цвет узора 1"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="PatternAPicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternARow"]
+[node name="PatternAPicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternARow" unique_id=118997078]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 34)
 edit_alpha = false
-unique_name_in_owner = true
 
-[node name="PatternBRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="PatternBRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=781211675]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternBRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternBRow" unique_id=754546609]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Цвет узора 2"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="PatternBPicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternBRow"]
+[node name="PatternBPicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternBRow" unique_id=1930527873]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 34)
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 34)
 edit_alpha = false
-unique_name_in_owner = true
 
-[node name="PatternRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="PatternRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=1399154420]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternRow"]
-layout_mode = 2
-text = "Размер узора"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternRow" unique_id=1619364847]
 custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Размер узора"
 
-[node name="PatternSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternRow"]
+[node name="PatternSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/PatternRow" unique_id=252534062]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 min_value = 0.4
 max_value = 2.5
 step = 0.01
-unique_name_in_owner = true
+value = 0.4
 
-[node name="StripeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="StripeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=788748203]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/StripeRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/StripeRow" unique_id=1383495123]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Второй цвет"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="StripePicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/StripeRow"]
+[node name="StripePicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/StripeRow" unique_id=85183312]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 36)
 edit_alpha = false
-unique_name_in_owner = true
 
-[node name="SchemeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="SchemeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=892802888]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/SchemeRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/SchemeRow" unique_id=1948134933]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Второй цвет на"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="SchemeOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/SchemeRow"]
+[node name="SchemeOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/SchemeRow" unique_id=1255985486]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="WearRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="WearRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=916804030]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/WearRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/WearRow" unique_id=713933319]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Износ"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="WearSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/WearRow"]
+[node name="WearSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/WearRow" unique_id=1555286634]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-min_value = 0
-max_value = 1
+max_value = 1.0
 step = 0.01
-unique_name_in_owner = true
 
-[node name="DirtRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="DirtRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=1126778559]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/DirtRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/DirtRow" unique_id=352810370]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Грязь"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="DirtSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/DirtRow"]
+[node name="DirtSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/DirtRow" unique_id=538993274]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-min_value = 0
-max_value = 1
+max_value = 1.0
 step = 0.01
-unique_name_in_owner = true
 
-[node name="GlossRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="GlossRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=454411145]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/GlossRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/GlossRow" unique_id=1487127395]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Глянец"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="GlossSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/GlossRow"]
+[node name="GlossSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/GlossRow" unique_id=1266240964]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-min_value = 0
-max_value = 1
+max_value = 1.0
 step = 0.01
-unique_name_in_owner = true
 
-[node name="GlassRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="GlassRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=1718661828]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/GlassRow"]
-layout_mode = 2
-text = "Стекло кабины"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/GlassRow" unique_id=1253198720]
 custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Стекло кабины"
 
-[node name="GlassPicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/GlassRow"]
+[node name="GlassPicker" type="ColorPickerButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/GlassRow" unique_id=777779996]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 size_flags_horizontal = 3
-custom_minimum_size = Vector2(0, 36)
 edit_alpha = false
-unique_name_in_owner = true
 
-[node name="InsigniaRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="InsigniaRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=92119829]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaRow"]
-layout_mode = 2
-text = "Эмблема"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaRow" unique_id=1655845222]
 custom_minimum_size = Vector2(210, 0)
-
-[node name="InsigniaPreview" type="TextureRect" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaRow"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Эмблема"
+
+[node name="InsigniaPreview" type="TextureRect" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaRow" unique_id=931594772]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(56, 56)
+layout_mode = 2
 expand_mode = 1
 stretch_mode = 5
-unique_name_in_owner = true
 
-[node name="BtnInsignia" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaRow"]
-layout_mode = 2
+[node name="BtnInsignia" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaRow" unique_id=940873457]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 36)
-text = "Выбрать картинку…"
-theme_override_font_sizes/font_size = 16
-size_flags_horizontal = 3
-unique_name_in_owner = true
-
-[node name="BtnInsigniaClear" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaRow"]
 layout_mode = 2
-custom_minimum_size = Vector2(90, 36)
-text = "Убрать"
+size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 16
-unique_name_in_owner = true
+text = "Выбрать картинку…"
 
-[node name="InsigniaSizeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column"]
+[node name="BtnInsigniaClear" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaRow" unique_id=1127842011]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Убрать"
+
+[node name="InsigniaSizeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=182723855]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaSizeRow"]
-layout_mode = 2
-text = "Размер эмблемы"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaSizeRow" unique_id=389013525]
 custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Размер эмблемы"
 
-[node name="InsigniaSizeSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaSizeRow"]
+[node name="InsigniaSizeSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaSizeRow" unique_id=574628827]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 min_value = 0.5
 max_value = 1.8
 step = 0.01
-unique_name_in_owner = true
+value = 0.5
 
-[node name="PageNet" type="ScrollContainer" parent="Layout/Rows/Body/Pages"]
+[node name="PageNet" type="ScrollContainer" parent="Layout/Rows/Body/Pages" unique_id=2027477515]
+unique_name_in_owner = true
 visible = false
 layout_mode = 1
 anchors_preset = 15
-anchor_right = 1
-anchor_bottom = 1
-grow_horizontal = 2
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_vertical = 2
 horizontal_scroll_mode = 0
-unique_name_in_owner = true
 
-[node name="Column" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageNet"]
+[node name="Column" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageNet" unique_id=1532977181]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="Heading" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column"]
+[node name="Heading" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=2000740722]
 layout_mode = 2
-text = "Сетевая игра"
-theme_override_font_sizes/font_size = 28
 theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 28
+text = "Сетевая игра"
 
-[node name="NameRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column"]
+[node name="NameRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=49319771]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/NameRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/NameRow" unique_id=151044985]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Имя пилота"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="NetNameEdit" type="LineEdit" parent="Layout/Rows/Body/Pages/PageNet/Column/NameRow"]
+[node name="NetNameEdit" type="LineEdit" parent="Layout/Rows/Body/Pages/PageNet/Column/NameRow" unique_id=31526020]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
 placeholder_text = "Пилот"
-theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="NetUnit" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column"]
+[node name="NetUnit" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=1442236972]
+unique_name_in_owner = true
 layout_mode = 2
-text = ""
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
-unique_name_in_owner = true
+theme_override_font_sizes/font_size = 16
 
-[node name="ModeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column"]
+[node name="ModeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=1741371849]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/ModeRow"]
-layout_mode = 2
-text = "Режим"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/ModeRow" unique_id=2143718985]
 custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Режим"
 
-[node name="NetModeOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageNet/Column/ModeRow"]
+[node name="NetModeOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageNet/Column/ModeRow" unique_id=2091580146]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="NetRespawnRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column"]
+[node name="NetRespawnRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=755171793]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/NetRespawnRow"]
-layout_mode = 2
-text = "Возрождение игроков"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/NetRespawnRow" unique_id=690284560]
 custom_minimum_size = Vector2(210, 0)
-
-[node name="NetRespawnCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageNet/Column/NetRespawnRow"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Возрождение игроков"
+
+[node name="NetRespawnCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageNet/Column/NetRespawnRow" unique_id=1925789300]
 unique_name_in_owner = true
-
-[node name="HostSettings" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageNet/Column"]
 layout_mode = 2
+
+[node name="HostSettings" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=167935133]
 custom_minimum_size = Vector2(0, 300)
+layout_mode = 2
 horizontal_scroll_mode = 0
 
-[node name="NetBattleSlot" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column/HostSettings"]
+[node name="NetBattleSlot" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column/HostSettings" unique_id=82399331]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
+
+[node name="BtnHost" type="Button" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=324389193]
 unique_name_in_owner = true
-
-[node name="HostNote" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column"]
-layout_mode = 2
-text = "Бой настраивает хост — здесь же, выше. Без возрождения выбывший игрок наблюдает за остальными."
-autowrap_mode = 3
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
-
-[node name="BtnHost" type="Button" parent="Layout/Rows/Body/Pages/PageNet/Column"]
-layout_mode = 2
 custom_minimum_size = Vector2(0, 46)
-text = "Создать игру"
+layout_mode = 2
 theme_override_font_sizes/font_size = 20
-unique_name_in_owner = true
+text = "Создать игру"
 
-[node name="LobbyBox" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column"]
+[node name="LobbyBox" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=1095858598]
+unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
-unique_name_in_owner = true
 
-[node name="LobbyList" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox"]
+[node name="LobbyList" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox" unique_id=1606424139]
+unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/font_size = 16
 text = "В лобби:"
 autowrap_mode = 3
-theme_override_font_sizes/font_size = 16
-unique_name_in_owner = true
 
-[node name="ChatLog" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox"]
-layout_mode = 2
+[node name="ChatLog" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox" unique_id=1500203265]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 90)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.75, 0.85, 0.8, 1)
+theme_override_font_sizes/font_size = 14
 vertical_alignment = 2
 autowrap_mode = 3
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.75, 0.85, 0.8, 1)
-unique_name_in_owner = true
 
-[node name="ChatEdit" type="LineEdit" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox"]
+[node name="ChatEdit" type="LineEdit" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox" unique_id=1120102263]
+unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/font_size = 15
 placeholder_text = "сообщение — Enter отправить"
 max_length = 200
-theme_override_font_sizes/font_size = 15
-unique_name_in_owner = true
 
-[node name="Buttons" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox"]
+[node name="Buttons" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox" unique_id=1864779885]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="BtnStartNet" type="Button" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox/Buttons"]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="BtnStartNet" type="Button" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox/Buttons" unique_id=658477430]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 46)
-text = "Начать бой"
-theme_override_font_sizes/font_size = 20
-unique_name_in_owner = true
-
-[node name="BtnLeaveNet" type="Button" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox/Buttons"]
-layout_mode = 2
-custom_minimum_size = Vector2(180, 46)
-text = "Выйти из лобби"
-theme_override_font_sizes/font_size = 16
-unique_name_in_owner = true
-
-[node name="LanHeading" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column"]
-layout_mode = 2
-text = "Игры в локальной сети (щёлкните, чтобы подставить адрес):"
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
-
-[node name="LanList" type="ItemList" parent="Layout/Rows/Body/Pages/PageNet/Column"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 70)
-theme_override_font_sizes/font_size = 15
-unique_name_in_owner = true
-
-[node name="AddressRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/AddressRow"]
-layout_mode = 2
-text = "Адрес хоста"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
-
-[node name="NetAddressEdit" type="LineEdit" parent="Layout/Rows/Body/Pages/PageNet/Column/AddressRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-placeholder_text = "IP-адрес или имя"
-theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
+theme_override_font_sizes/font_size = 20
+text = "Начать бой"
 
-[node name="PortRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column"]
+[node name="BtnLeaveNet" type="Button" parent="Layout/Rows/Body/Pages/PageNet/Column/LobbyBox/Buttons" unique_id=82693234]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(180, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Выйти из лобби"
+
+[node name="LanHeading" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=2118766569]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
+theme_override_font_sizes/font_size = 14
+text = "Игры в локальной сети"
+
+[node name="LanList" type="ItemList" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=324978300]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 70)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+
+[node name="AddressRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=684089424]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/PortRow"]
-layout_mode = 2
-text = "Порт (UDP)"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/AddressRow" unique_id=1128481774]
 custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Адрес хоста"
 
-[node name="NetPortSpin" type="SpinBox" parent="Layout/Rows/Body/Pages/PageNet/Column/PortRow"]
+[node name="NetAddressEdit" type="LineEdit" parent="Layout/Rows/Body/Pages/PageNet/Column/AddressRow" unique_id=1380677288]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+placeholder_text = "IP-адрес или имя"
+
+[node name="PortRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=967496297]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/PortRow" unique_id=1765969484]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Порт (UDP)"
+
+[node name="NetPortSpin" type="SpinBox" parent="Layout/Rows/Body/Pages/PageNet/Column/PortRow" unique_id=1197383402]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 1024.0
 max_value = 65535.0
 value = 27800.0
-unique_name_in_owner = true
 
-[node name="BtnJoin" type="Button" parent="Layout/Rows/Body/Pages/PageNet/Column"]
-layout_mode = 2
+[node name="BtnJoin" type="Button" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=1932614627]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 46)
-text = "Подключиться"
+layout_mode = 2
 theme_override_font_sizes/font_size = 20
-unique_name_in_owner = true
+text = "Подключиться"
 
-[node name="NetStatus" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column"]
+[node name="NetStatus" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=1505009319]
+unique_name_in_owner = true
 layout_mode = 2
-text = ""
-autowrap_mode = 3
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
-unique_name_in_owner = true
-
-[node name="NetNote" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column"]
-layout_mode = 2
-text = "Через интернет: игра сама просит роутер хоста открыть порт (UPnP) и показывает внешний адрес, который надо сообщить друзьям. Если роутер не согласился — пробросьте UDP-порт вручную или используйте общую виртуальную сеть (Tailscale, ZeroTier, Radmin VPN)."
+theme_override_font_sizes/font_size = 16
 autowrap_mode = 3
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
 
-[node name="PageBattle" type="VBoxContainer" parent="Layout/Rows/Body/Pages"]
+[node name="PageBattle" type="VBoxContainer" parent="Layout/Rows/Body/Pages" unique_id=920662108]
+unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
-anchor_right = 1
-anchor_bottom = 1
-grow_horizontal = 2
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_vertical = 2
-unique_name_in_owner = true
 theme_override_constants/separation = 12
 
-[node name="Heading" type="Label" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="Heading" type="Label" parent="Layout/Rows/Body/Pages/PageBattle" unique_id=1111272300]
 layout_mode = 2
-text = "Карта и противники"
-theme_override_font_sizes/font_size = 28
 theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 28
+text = "Карта и противники"
 
-[node name="BattleScroll" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageBattle"]
+[node name="BattleScroll" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageBattle" unique_id=1465333615]
 layout_mode = 2
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="BattleSettings" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll"]
+[node name="BattleSettings" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll" unique_id=1589036014]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10
-unique_name_in_owner = true
 
-[node name="MapRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="MapRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1018540771]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MapRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MapRow" unique_id=1547989618]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Карта"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="MapOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MapRow"]
+[node name="MapOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MapRow" unique_id=1099614742]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="MapInfo" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
-layout_mode = 2
-text = ""
-theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
-autowrap_mode = 3
-unique_name_in_owner = true
-
-[node name="DayRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="DayRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=320614842]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DayRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DayRow" unique_id=131446177]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Время суток"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="TimeOfDayOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DayRow"]
+[node name="TimeOfDayOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DayRow" unique_id=1486611855]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="WeatherRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="WeatherRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1581773127]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/WeatherRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/WeatherRow" unique_id=728731124]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Погода"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="WeatherOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/WeatherRow"]
+[node name="WeatherOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/WeatherRow" unique_id=1680875259]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="SquadRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="SquadRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=458075094]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRow" unique_id=2103051978]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Мехов в вашем отряде"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="SquadCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRow"]
+[node name="SquadCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRow" unique_id=1889702565]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-min_value = 0
-max_value = 8
-step = 1
-value = 2
-unique_name_in_owner = true
+max_value = 8.0
+value = 2.0
 
-[node name="SquadCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRow"]
-layout_mode = 2
-text = "2"
-theme_override_font_sizes/font_size = 18
+[node name="SquadCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRow" unique_id=1128951002]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "2"
 horizontal_alignment = 2
-unique_name_in_owner = true
 
-[node name="SquadTypeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="SquadTypeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=772974020]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadTypeRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadTypeRow" unique_id=785451091]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Мехи отряда"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="SquadTypeOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadTypeRow"]
+[node name="SquadTypeOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadTypeRow" unique_id=1002272544]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 
-[node name="CountRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="CountRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1570031261]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CountRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CountRow" unique_id=1939406281]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Мехов противника"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="EnemyCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CountRow"]
+[node name="EnemyCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CountRow" unique_id=253389295]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-min_value = 0
-max_value = 16
-step = 1
-value = 4
-unique_name_in_owner = true
+max_value = 16.0
+value = 4.0
 
-[node name="EnemyCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CountRow"]
+[node name="EnemyCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CountRow" unique_id=511820336]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(40, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "4"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(40, 0)
 horizontal_alignment = 2
-unique_name_in_owner = true
 
-[node name="MechPickRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="MechPickRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1392835715]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow" unique_id=1320068414]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
 size_flags_vertical = 0
-text = "Какие мехи"
 theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
+text = "Какие мехи"
 
-[node name="EnemyMechChecks" type="HFlowContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow"]
+[node name="EnemyMechChecks" type="HFlowContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow" unique_id=696415326]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 0
+
+[node name="Buttons" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow" unique_id=1125454103]
+layout_mode = 2
+
+[node name="BtnMechsAll" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow/Buttons" unique_id=622230228]
 unique_name_in_owner = true
-
-[node name="Buttons" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow"]
 layout_mode = 2
-
-[node name="BtnMechsAll" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow/Buttons"]
-layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Все"
-theme_override_font_sizes/font_size = 14
-unique_name_in_owner = true
 
-[node name="BtnMechsNone" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow/Buttons"]
+[node name="BtnMechsNone" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/MechPickRow/Buttons" unique_id=1030851136]
+unique_name_in_owner = true
 layout_mode = 2
-text = "Никого"
 theme_override_font_sizes/font_size = 14
-unique_name_in_owner = true
+text = "Никого"
 
-[node name="VehicleRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="VehicleRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1671430138]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehicleRow"]
-layout_mode = 2
-text = "Техника противника"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehicleRow" unique_id=1368597158]
 custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Техника противника"
 
-[node name="VehicleCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehicleRow"]
+[node name="VehicleCount" type="HSlider" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehicleRow" unique_id=518057220]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
-min_value = 0
-max_value = 16
-step = 1
-value = 2
-unique_name_in_owner = true
+max_value = 16.0
+value = 2.0
 
-[node name="VehicleCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehicleRow"]
-layout_mode = 2
-text = "2"
-theme_override_font_sizes/font_size = 18
+[node name="VehicleCountLabel" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehicleRow" unique_id=78001929]
+unique_name_in_owner = true
 custom_minimum_size = Vector2(40, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "2"
 horizontal_alignment = 2
-unique_name_in_owner = true
 
-[node name="VehiclePickRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="VehiclePickRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1194211404]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow" unique_id=1248238951]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
 size_flags_vertical = 0
-text = "Какая техника"
 theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
+text = "Какая техника"
 
-[node name="EnemyVehicleChecks" type="HFlowContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow"]
+[node name="EnemyVehicleChecks" type="HFlowContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow" unique_id=423114961]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 0
+
+[node name="Buttons" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow" unique_id=643537695]
+layout_mode = 2
+
+[node name="BtnVehiclesAll" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow/Buttons" unique_id=969775276]
 unique_name_in_owner = true
-
-[node name="Buttons" type="VBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow"]
 layout_mode = 2
-
-[node name="BtnVehiclesAll" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow/Buttons"]
-layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Все"
-theme_override_font_sizes/font_size = 14
-unique_name_in_owner = true
 
-[node name="BtnVehiclesNone" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow/Buttons"]
+[node name="BtnVehiclesNone" type="Button" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/VehiclePickRow/Buttons" unique_id=1215187153]
+unique_name_in_owner = true
 layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Никого"
-theme_override_font_sizes/font_size = 14
-unique_name_in_owner = true
 
-[node name="RespawnRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="RespawnRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1261304224]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/RespawnRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/RespawnRow" unique_id=970083252]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Возрождаются"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="RespawnCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/RespawnRow"]
-layout_mode = 2
+[node name="RespawnCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/RespawnRow" unique_id=494117431]
 unique_name_in_owner = true
+layout_mode = 2
 
-[node name="BotsFightRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="SquadRespawnRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1268071218]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotsFightRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRespawnRow" unique_id=1463426790]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Возрождение союзников"
+
+[node name="SquadRespawnCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/SquadRespawnRow" unique_id=1253458865]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BotsFightRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1695446719]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotsFightRow" unique_id=569844002]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Боты воюют и друг с другом"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="BotsFightCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotsFightRow"]
-layout_mode = 2
+[node name="BotsFightCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotsFightRow" unique_id=159896483]
 unique_name_in_owner = true
+layout_mode = 2
 
-[node name="BotNukesRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="BotNukesRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=841344132]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotNukesRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotNukesRow" unique_id=112691914]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Боты применяют ядерную бомбу"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="BotNukesCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotNukesRow"]
-layout_mode = 2
+[node name="BotNukesCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotNukesRow" unique_id=1785170297]
 unique_name_in_owner = true
-tooltip_text = "Одна бомба на бой, и только по скоплению целей. О сбросе предупредят сирена и надпись."
+layout_mode = 2
 
-
-[node name="BotEmpRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="BotEmpRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=410900802]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotEmpRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotEmpRow" unique_id=2041125249]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Боты сбрасывают ЭМИ-бомбы"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="BotEmpCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotEmpRow"]
-layout_mode = 2
+[node name="BotEmpCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/BotEmpRow" unique_id=1480136112]
 unique_name_in_owner = true
-tooltip_text = "Одна бомба на бой, и только по скоплению целей. О сбросе предупредят сирена и надпись."
-[node name="CrushRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+layout_mode = 2
+
+[node name="CrushRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=1494292918]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CrushRow"]
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CrushRow" unique_id=718279324]
+custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
 text = "Мехи давят технику"
-theme_override_font_sizes/font_size = 18
-custom_minimum_size = Vector2(210, 0)
 
-[node name="CrushCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CrushRow"]
-layout_mode = 2
+[node name="CrushCheck" type="CheckButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/CrushRow" unique_id=396888760]
 unique_name_in_owner = true
+layout_mode = 2
 
-[node name="DifficultyRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="DifficultyRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=420696615]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DifficultyRow"]
-layout_mode = 2
-text = "Сложность"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DifficultyRow" unique_id=1644161529]
 custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Сложность"
 
-[node name="DifficultyOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DifficultyRow"]
+[node name="DifficultyOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/DifficultyRow" unique_id=1964630452]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 item_count = 3
 popup/item_0/text = "Лёгкая"
 popup/item_0/id = 0
@@ -1098,21 +1118,21 @@ popup/item_1/id = 1
 popup/item_2/text = "Тяжёлая"
 popup/item_2/id = 2
 
-[node name="TimeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings"]
+[node name="TimeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings" unique_id=75157660]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/TimeRow"]
-layout_mode = 2
-text = "Лимит времени"
-theme_override_font_sizes/font_size = 18
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/TimeRow" unique_id=1151915197]
 custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Лимит времени"
 
-[node name="TimeLimitOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/TimeRow"]
+[node name="TimeLimitOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageBattle/BattleScroll/BattleSettings/TimeRow" unique_id=1045946243]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
-unique_name_in_owner = true
 item_count = 6
 popup/item_0/text = "Без лимита"
 popup/item_0/id = 0
@@ -1127,35 +1147,36 @@ popup/item_4/id = 15
 popup/item_5/text = "20 минут"
 popup/item_5/id = 20
 
-[node name="PageSettings" parent="Layout/Rows/Body/Pages" instance=ExtResource("settings_panel")]
+[node name="PageSettings" parent="Layout/Rows/Body/Pages" unique_id=1868852132 instance=ExtResource("settings_panel")]
 unique_name_in_owner = true
+anchor_right = 1.0
+anchor_bottom = 1.0
 
-[node name="Preview" type="SubViewportContainer" parent="Layout/Rows/Body"]
-layout_mode = 2
+[node name="Preview" type="SubViewportContainer" parent="Layout/Rows/Body" unique_id=1360887202]
 custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
 size_flags_horizontal = 3
 size_flags_stretch_ratio = 1.15
 mouse_filter = 0
 mouse_default_cursor_shape = 13
-tooltip_text = "Тяните мышью, чтобы повернуть"
 stretch = true
 
-[node name="Viewport" type="SubViewport" parent="Layout/Rows/Body/Preview"]
+[node name="Viewport" type="SubViewport" parent="Layout/Rows/Body/Preview" unique_id=1352124427]
 own_world_3d = true
 handle_input_locally = false
 msaa_3d = 2
-size = Vector2i(740, 770)
+size = Vector2i(540, 659)
 render_target_update_mode = 4
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="Layout/Rows/Body/Preview/Viewport"]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Layout/Rows/Body/Preview/Viewport" unique_id=976041409]
 environment = SubResource("Environment_1")
 
-[node name="Camera" type="Camera3D" parent="Layout/Rows/Body/Preview/Viewport"]
+[node name="Camera" type="Camera3D" parent="Layout/Rows/Body/Preview/Viewport" unique_id=778776635]
 transform = Transform3D(1, 0, 0, 0, 0.99027, 0.13917, 0, -0.13917, 0.99027, 0, 7.5, 22)
-fov = 38
 current = true
+fov = 38.0
 
-[node name="KeyLight" type="DirectionalLight3D" parent="Layout/Rows/Body/Preview/Viewport"]
+[node name="KeyLight" type="DirectionalLight3D" parent="Layout/Rows/Body/Preview/Viewport" unique_id=10701830]
 transform = Transform3D(0.76604, -0.41318, 0.4924, 0, 0.76604, 0.64279, -0.64279, -0.4924, 0.58682, 0, 10, 0)
 light_color = Color(1, 0.95, 0.86, 1)
 light_energy = 2.6
@@ -1164,33 +1185,40 @@ shadow_enabled = true
 shadow_blur = 1.5
 directional_shadow_max_distance = 60.0
 
-[node name="Floor" type="MeshInstance3D" parent="Layout/Rows/Body/Preview/Viewport"]
-mesh = SubResource("CylinderMesh_2")
+[node name="Floor" type="MeshInstance3D" parent="Layout/Rows/Body/Preview/Viewport" unique_id=845276122]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
 material_override = SubResource("StandardMaterial3D_3")
+mesh = SubResource("CylinderMesh_2")
 
-[node name="PreviewPivot" type="Node3D" parent="Layout/Rows/Body/Preview/Viewport"]
+[node name="PreviewPivot" type="Node3D" parent="Layout/Rows/Body/Preview/Viewport" unique_id=537245249]
 unique_name_in_owner = true
 
-[node name="Summary" type="Label" parent="Layout/Rows"]
+[node name="Summary" type="Label" parent="Layout/Rows" unique_id=135069335]
+unique_name_in_owner = true
 layout_mode = 2
-mouse_filter = 2
-theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
-text = ""
-unique_name_in_owner = true
+theme_override_font_sizes/font_size = 20
 
-[node name="InsigniaDialog" type="FileDialog" parent="."]
-title = "Картинка для эмблемы"
+[node name="InsigniaDialog" type="FileDialog" parent="." unique_id=1491085058]
+unique_name_in_owner = true
+title = "Open a File"
 file_mode = 0
 access = 2
-use_native_dialog = true
 filters = PackedStringArray("*.png, *.jpg, *.jpeg, *.webp ; Картинки")
-unique_name_in_owner = true
+use_native_dialog = true
 
-[node name="Click" type="AudioStreamPlayer" parent="."]
+[node name="Click" type="AudioStreamPlayer" parent="." unique_id=2020509192]
+unique_name_in_owner = true
 stream = ExtResource("3")
-volume_db = -10
-unique_name_in_owner = true
+volume_db = -10.0
 
-[node name="FpsCounter" parent="." instance=ExtResource("fps_counter")]
+[node name="FpsCounter" parent="." unique_id=1334443575 instance=ExtResource("fps_counter")]
+layout_mode = 0
+anchors_preset = 0
+anchor_left = 0.0
+anchor_right = 0.0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 176.0
+offset_bottom = 23.0
+grow_horizontal = 1

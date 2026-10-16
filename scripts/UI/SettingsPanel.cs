@@ -4,8 +4,8 @@ using Godot;
 namespace MechSim;
 
 /// <summary>
-/// The settings (scenes/ui/settings_panel.tscn), in three tabs: the game (sound, mouse, field of view,
-/// frame counter), graphics (window, resolution, frame limit, and every costly effect on its own
+/// The settings (scenes/ui/settings_panel.tscn), in four tabs: the game (language, mouse, field of view,
+/// frame counter), sound (the volume of each kind of sound, and the cockpit computer's voice), graphics (window, resolution, frame limit, and every costly effect on its own
 /// switch, with presets that set them all at once) and controls (a key or mouse button for each action).
 /// Used by the main menu and by the pause menu in battle. Changes go straight into
 /// <see cref="GameConfig"/> and the engine; they are written to disk when the page is left.
@@ -14,8 +14,12 @@ public partial class SettingsPanel : Control
 {
     /// <summary>One line of the controls tab: the action's name and the button showing its key.</summary>
     [Export] public PackedScene BindRowScene;
+    /// <summary>The voices the cockpit computer can have (audio/voice/voices.tres).</summary>
+    [Export] public VoiceCatalog Voices;
+    /// <summary>The line a voice is heard saying when it is chosen or tried.</summary>
+    [Export] public string PreviewLine = "Startup";
 
-    Label _volumeLabel, _sensLabel, _fovLabel, _scaleLabel, _weatherLabel, _drawLabel;
+    Label _sensLabel, _fovLabel, _scaleLabel, _weatherLabel, _drawLabel, _fxRangeLabel, _debrisLabel;
     OptionButton _preset;
     Button[] _bindButtons = Array.Empty<Button>();
     int _rebinding = -1;
@@ -24,12 +28,13 @@ public partial class SettingsPanel : Control
     public override void _Ready()
     {
         GameConfig.EnsureLoaded();
-        _volumeLabel = GetNode<Label>("%VolumeLabel");
         _sensLabel = GetNode<Label>("%SensLabel");
         _fovLabel = GetNode<Label>("%FovLabel");
         _scaleLabel = GetNode<Label>("%RenderScaleLabel");
         _weatherLabel = GetNode<Label>("%WeatherLabel");
         _drawLabel = GetNode<Label>("%DrawDistanceLabel");
+        _fxRangeLabel = GetNode<Label>("%FxRangeLabel");
+        _debrisLabel = GetNode<Label>("%DebrisLabel");
         _preset = GetNode<OptionButton>("%EffectsOption");
 
         var window = GetNode<OptionButton>("%WindowSizeOption");
@@ -48,8 +53,15 @@ public partial class SettingsPanel : Control
             if (GetTree().CurrentScene is MainMenu) GetTree().ReloadCurrentScene();
         };
 
+        // The sound.
+        Volume("Volume", () => GameConfig.MasterVolume, v => GameConfig.MasterVolume = v);
+        Volume("Effects", () => GameConfig.EffectsVolume, v => GameConfig.EffectsVolume = v);
+        Volume("Ambience", () => GameConfig.AmbienceVolume, v => GameConfig.AmbienceVolume = v);
+        Volume("Signals", () => GameConfig.SignalsVolume, v => GameConfig.SignalsVolume = v);
+        Volume("VoiceVolume", () => GameConfig.VoiceVolume, v => GameConfig.VoiceVolume = v);
+        BuildVoices();
+
         // The game.
-        Slide("%VolumeSlider", () => GameConfig.MasterVolume, v => GameConfig.MasterVolume = v);
         Slide("%SensSlider", () => GameConfig.MouseSensitivity, v => GameConfig.MouseSensitivity = v);
         Slide("%FovSlider", () => GameConfig.Fov, v => GameConfig.Fov = v);
         Check("%ShowFpsCheck", () => GameConfig.ShowFps, v => GameConfig.ShowFps = v);
@@ -75,6 +87,9 @@ public partial class SettingsPanel : Control
         Check("%MirrorCheck", () => GameConfig.WaterMirror, v => GameConfig.WaterMirror = v, true);
         Slide("%WeatherSlider", () => GameConfig.WeatherDensity, v => GameConfig.WeatherDensity = v, true);
         Slide("%DrawDistanceSlider", () => GameConfig.DrawDistance, v => GameConfig.DrawDistance = v, true);
+        Pick("%MeshDetailOption", () => GameConfig.MeshDetail >= 3f ? 0 : GameConfig.MeshDetail >= 1.5f ? 1 : 2, i => GameConfig.MeshDetail = i switch { 0 => 4f, 1 => 2f, _ => 1f }, true);
+        Slide("%FxRangeSlider", () => GameConfig.FxRange, v => GameConfig.FxRange = v, true);
+        Slide("%DebrisSlider", () => GameConfig.DebrisAmount, v => GameConfig.DebrisAmount = v, true);
 
         _preset.ItemSelected += index =>
         {
@@ -148,6 +163,52 @@ public partial class SettingsPanel : Control
         };
     }
 
+    /// <summary>A volume slider (%{name}Slider) and its percentage (%{name}Label).</summary>
+    void Volume(string name, Func<float> get, Action<float> set)
+    {
+        var label = GetNode<Label>($"%{name}Label");
+        Slide($"%{name}Slider", get, v =>
+        {
+            set(v);
+            label.Text = Loc.T($"{Mathf.RoundToInt(v * 100f)}%");
+        });
+        Refill += () => label.Text = Loc.T($"{Mathf.RoundToInt(get() * 100f)}%");
+    }
+
+    // ── The cockpit computer's voice ────────────────────────────
+
+    void BuildVoices()
+    {
+        var option = GetNode<OptionButton>("%VoiceOption");
+        var packs = Voices?.Packs ?? Array.Empty<VoicePack>();
+        option.AddItem(Loc.T("Выключен"));
+        foreach (var pack in packs) option.AddItem(Loc.T(pack.Title));
+        var preview = GetNode<Button>("%VoicePreviewButton");
+        Refill += () =>
+        {
+            option.Selected = Mathf.Max(0, Array.FindIndex(packs, p => p.Id == GameConfig.Voice) + 1);
+            preview.Disabled = option.Selected == 0;
+        };
+        option.ItemSelected += index =>
+        {
+            if (_filling) return;
+            GameConfig.Voice = index == 0 ? GameConfig.VoiceOff : packs[index - 1].Id;
+            preview.Disabled = index == 0;
+            PlayVoice();
+        };
+        preview.Pressed += PlayVoice;
+    }
+
+    /// <summary>The chosen voice says a line, to hear what it is like (and how loud).</summary>
+    void PlayVoice()
+    {
+        var player = GetNode<AudioStreamPlayer>("%VoicePreview");
+        player.Stop();
+        if (Voices?.Find(GameConfig.Voice) is not { } pack || !pack.Lines.TryGetValue(PreviewLine, out var line)) return;
+        player.Stream = line;
+        player.Play();
+    }
+
     /// <summary>Shows what the settings are now.</summary>
     void Fill()
     {
@@ -160,12 +221,13 @@ public partial class SettingsPanel : Control
 
     void Labels()
     {
-        _volumeLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.MasterVolume * 100f)}%");
         _sensLabel.Text = Loc.T($"×{GameConfig.MouseSensitivity:0.00}");
         _fovLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.Fov)}°");
         _scaleLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.RenderScale * 100f)}%");
         _weatherLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.WeatherDensity * 100f)}%");
         _drawLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.DrawDistance * 100f)}%");
+        _fxRangeLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.FxRange)} м");
+        _debrisLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.DebrisAmount * 100f)}%");
         _preset.Selected = Mathf.Clamp(GameConfig.EffectsQuality, 0, 3);
     }
 

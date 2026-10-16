@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/UI/SettingsPanel.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/ui/bind_row.tscn" id="2"]
+[ext_resource type="Resource" path="res://audio/voice/voices.tres" id="voices"]
 
 [node name="SettingsPanel" type="VBoxContainer"]
 layout_mode = 1
@@ -13,6 +14,8 @@ grow_vertical = 2
 theme_override_constants/separation = 10
 script = ExtResource("1")
 BindRowScene = ExtResource("2")
+Voices = ExtResource("voices")
+PreviewLine = "Startup"
 
 [node name="Heading" type="Label" parent="."]
 layout_mode = 2
@@ -50,32 +53,6 @@ theme_override_font_sizes/font_size = 17
 [node name="LanguageOption" type="OptionButton" parent="Tabs/Game/Rows/LanguageRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 17
-unique_name_in_owner = true
-
-[node name="VolumeRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
-layout_mode = 2
-theme_override_constants/separation = 12
-
-[node name="Caption" type="Label" parent="Tabs/Game/Rows/VolumeRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(250, 0)
-text = "Громкость"
-theme_override_font_sizes/font_size = 17
-
-[node name="VolumeSlider" type="HSlider" parent="Tabs/Game/Rows/VolumeRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_vertical = 4
-min_value = 0
-max_value = 1
-step = 0.01
-unique_name_in_owner = true
-
-[node name="VolumeLabel" type="Label" parent="Tabs/Game/Rows/VolumeRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(64, 0)
-horizontal_alignment = 2
 theme_override_font_sizes/font_size = 17
 unique_name_in_owner = true
 
@@ -166,12 +143,174 @@ popup/item_0/id = 0
 popup/item_1/text = "120 Гц (плавнее)"
 popup/item_1/id = 1
 
-[node name="Note" type="Label" parent="Tabs/Game/Rows"]
+[node name="Sound" type="ScrollContainer" parent="Tabs"]
+visible = false
 layout_mode = 2
-text = "Частота симуляции применяется с началом следующего боя."
-autowrap_mode = 3
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
+horizontal_scroll_mode = 0
+metadata/_tab_name = "Звук"
+
+[node name="Rows" type="VBoxContainer" parent="Tabs/Sound"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 9
+
+[node name="VolumeRow" type="HBoxContainer" parent="Tabs/Sound/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Sound/Rows/VolumeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Общая громкость"
+theme_override_font_sizes/font_size = 17
+
+[node name="VolumeSlider" type="HSlider" parent="Tabs/Sound/Rows/VolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0
+max_value = 1
+step = 0.01
+unique_name_in_owner = true
+
+[node name="VolumeLabel" type="Label" parent="Tabs/Sound/Rows/VolumeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="EffectsRow" type="HBoxContainer" parent="Tabs/Sound/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Sound/Rows/EffectsRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Оружие, взрывы, машины"
+theme_override_font_sizes/font_size = 17
+
+[node name="EffectsSlider" type="HSlider" parent="Tabs/Sound/Rows/EffectsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0
+max_value = 1
+step = 0.01
+unique_name_in_owner = true
+
+[node name="EffectsLabel" type="Label" parent="Tabs/Sound/Rows/EffectsRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="AmbienceRow" type="HBoxContainer" parent="Tabs/Sound/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Sound/Rows/AmbienceRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Погода: ветер, дождь"
+theme_override_font_sizes/font_size = 17
+
+[node name="AmbienceSlider" type="HSlider" parent="Tabs/Sound/Rows/AmbienceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0
+max_value = 1
+step = 0.01
+unique_name_in_owner = true
+
+[node name="AmbienceLabel" type="Label" parent="Tabs/Sound/Rows/AmbienceRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="SignalsRow" type="HBoxContainer" parent="Tabs/Sound/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Sound/Rows/SignalsRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Сигналы кабины и меню"
+theme_override_font_sizes/font_size = 17
+
+[node name="SignalsSlider" type="HSlider" parent="Tabs/Sound/Rows/SignalsRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0
+max_value = 1
+step = 0.01
+unique_name_in_owner = true
+
+[node name="SignalsLabel" type="Label" parent="Tabs/Sound/Rows/SignalsRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="VoiceVolumeRow" type="HBoxContainer" parent="Tabs/Sound/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Sound/Rows/VoiceVolumeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Голос бортового компьютера"
+theme_override_font_sizes/font_size = 17
+
+[node name="VoiceVolumeSlider" type="HSlider" parent="Tabs/Sound/Rows/VoiceVolumeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0
+max_value = 1
+step = 0.01
+unique_name_in_owner = true
+
+[node name="VoiceVolumeLabel" type="Label" parent="Tabs/Sound/Rows/VoiceVolumeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="VoiceRow" type="HBoxContainer" parent="Tabs/Sound/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Sound/Rows/VoiceRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Чей голос"
+theme_override_font_sizes/font_size = 17
+
+[node name="VoiceOption" type="OptionButton" parent="Tabs/Sound/Rows/VoiceRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+clip_text = true
+fit_to_longest_item = false
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="VoicePreviewButton" type="Button" parent="Tabs/Sound/Rows/VoiceRow"]
+layout_mode = 2
+text = "Прослушать"
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+[node name="VoicePreview" type="AudioStreamPlayer" parent="Tabs/Sound"]
+bus = &"Voice"
+unique_name_in_owner = true
 
 [node name="Graphics" type="ScrollContainer" parent="Tabs"]
 layout_mode = 2
@@ -229,7 +368,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/RenderScaleRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Разрешение 3D-картинки"
+text = "Разрешение 3D"
 theme_override_font_sizes/font_size = 17
 
 [node name="RenderScaleSlider" type="HSlider" parent="Tabs/Graphics/Rows/RenderScaleRow"]
@@ -310,7 +449,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/MsaaRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Сглаживание краёв (MSAA)"
+text = "Сглаживание MSAA"
 theme_override_font_sizes/font_size = 17
 
 [node name="MsaaOption" type="OptionButton" parent="Tabs/Graphics/Rows/MsaaRow"]
@@ -335,7 +474,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/FxaaRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Сглаживание картинки (FXAA)"
+text = "Сглаживание FXAA"
 theme_override_font_sizes/font_size = 17
 
 [node name="FxaaCheck" type="CheckButton" parent="Tabs/Graphics/Rows/FxaaRow"]
@@ -349,7 +488,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/TaaRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Сглаживание во времени (TAA)"
+text = "Сглаживание TAA"
 theme_override_font_sizes/font_size = 17
 
 [node name="TaaCheck" type="CheckButton" parent="Tabs/Graphics/Rows/TaaRow"]
@@ -388,7 +527,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/SsaoRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Затенение в углах (SSAO)"
+text = "Затенение SSAO"
 theme_override_font_sizes/font_size = 17
 
 [node name="SsaoCheck" type="CheckButton" parent="Tabs/Graphics/Rows/SsaoRow"]
@@ -402,7 +541,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/SsilRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Отражённый свет вблизи (SSIL)"
+text = "Непрямой свет SSIL"
 theme_override_font_sizes/font_size = 17
 
 [node name="SsilCheck" type="CheckButton" parent="Tabs/Graphics/Rows/SsilRow"]
@@ -416,7 +555,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/SdfgiRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Отражённый свет (SDFGI)"
+text = "Глобальное освещение SDFGI"
 theme_override_font_sizes/font_size = 17
 
 [node name="SdfgiCheck" type="CheckButton" parent="Tabs/Graphics/Rows/SdfgiRow"]
@@ -430,7 +569,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/VolumetricRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Лучи света в дымке"
+text = "Объёмный туман"
 theme_override_font_sizes/font_size = 17
 
 [node name="VolumetricCheck" type="CheckButton" parent="Tabs/Graphics/Rows/VolumetricRow"]
@@ -444,7 +583,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/GlowRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Свечение ярких мест"
+text = "Свечение (bloom)"
 theme_override_font_sizes/font_size = 17
 
 [node name="GlowCheck" type="CheckButton" parent="Tabs/Graphics/Rows/GlowRow"]
@@ -472,7 +611,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/WeatherRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Плотность осадков и пыли"
+text = "Плотность осадков"
 theme_override_font_sizes/font_size = 17
 
 [node name="WeatherSlider" type="HSlider" parent="Tabs/Graphics/Rows/WeatherRow"]
@@ -498,7 +637,7 @@ theme_override_constants/separation = 12
 [node name="Caption" type="Label" parent="Tabs/Graphics/Rows/DrawDistanceRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(250, 0)
-text = "Дальность прорисовки мелочей"
+text = "Дальность прорисовки объектов"
 theme_override_font_sizes/font_size = 17
 
 [node name="DrawDistanceSlider" type="HSlider" parent="Tabs/Graphics/Rows/DrawDistanceRow"]
@@ -517,12 +656,83 @@ horizontal_alignment = 2
 theme_override_font_sizes/font_size = 17
 unique_name_in_owner = true
 
-[node name="Note" type="Label" parent="Tabs/Graphics/Rows"]
+[node name="MeshDetailRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
 layout_mode = 2
-text = "Дальность прорисовки мелочей (уличная мебель, машины, оборудование домов, растения) сильнее всего влияет на частоту кадров и применяется с началом следующего боя. Размер окна действует в оконном режиме; на весь экран картинка рисуется в разрешении экрана, а нагрузку снижает «Разрешение 3D-картинки»."
-autowrap_mode = 3
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/MeshDetailRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Детализация моделей"
+theme_override_font_sizes/font_size = 17
+
+[node name="MeshDetailOption" type="OptionButton" parent="Tabs/Graphics/Rows/MeshDetailRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+item_count = 3
+popup/item_0/text = "Низкая"
+popup/item_0/id = 0
+popup/item_1/text = "Средняя"
+popup/item_1/id = 1
+popup/item_2/text = "Высокая"
+popup/item_2/id = 2
+
+
+[node name="FxRangeRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/FxRangeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Дальность мелких эффектов"
+theme_override_font_sizes/font_size = 17
+
+[node name="FxRangeSlider" type="HSlider" parent="Tabs/Graphics/Rows/FxRangeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 150
+max_value = 900
+step = 50
+unique_name_in_owner = true
+
+[node name="FxRangeLabel" type="Label" parent="Tabs/Graphics/Rows/FxRangeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
+
+[node name="DebrisRow" type="HBoxContainer" parent="Tabs/Graphics/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Graphics/Rows/DebrisRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Количество обломков"
+theme_override_font_sizes/font_size = 17
+
+[node name="DebrisSlider" type="HSlider" parent="Tabs/Graphics/Rows/DebrisRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.1
+max_value = 1
+step = 0.05
+unique_name_in_owner = true
+
+[node name="DebrisLabel" type="Label" parent="Tabs/Graphics/Rows/DebrisRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
 
 [node name="Controls" type="ScrollContainer" parent="Tabs"]
 layout_mode = 2
@@ -534,13 +744,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 9
 
-[node name="Hint" type="Label" parent="Tabs/Controls/Rows"]
-layout_mode = 2
-text = "Нажмите на кнопку справа от действия, затем на новую клавишу или кнопку мыши. Esc — отмена."
-autowrap_mode = 3
-theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.6, 0.63, 0.68, 1)
-
 [node name="BindList" type="VBoxContainer" parent="Tabs/Controls/Rows"]
 layout_mode = 2
 theme_override_constants/separation = 4
@@ -550,6 +753,6 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 0
 custom_minimum_size = Vector2(300, 38)
-text = "Вернуть клавиши по умолчанию"
+text = "Сбросить клавиши"
 theme_override_font_sizes/font_size = 16
 unique_name_in_owner = true

@@ -109,8 +109,10 @@ public partial class Bomb : Projectile
                     nuke.Damage = _damage;
                     nuke.Shooter = Shooter;
                 }
-                GetParent().AddChild(fx);
-                fx.GlobalPosition = hit.Position;
+                // Placed before it enters the scene: a nuclear blast works out where ground zero is as it arrives.
+                Node parent = GetParent();
+                fx.Position = parent is Node3D world ? world.ToLocal(hit.Position) : hit.Position;
+                parent.AddChild(fx);
             }
             QueueFree();
             return;

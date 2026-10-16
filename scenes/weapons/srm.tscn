@@ -19,7 +19,7 @@ Kind = 2
 Slot = 2
 Slots = 1
 Damage = 5
-Heat = 0.05
+Heat = 0.03
 Cooldown = 4
 Range = 350
 MaxAmmo = 12
@@ -29,6 +29,7 @@ SalvoSize = 2
 SalvoInterval = 0.15
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("3")
 unit_size = 12
 max_distance = 350

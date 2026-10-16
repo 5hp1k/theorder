@@ -25,8 +25,12 @@ public partial class CockpitDisplays : Node3D
     [Export] public int Resolution = 360;
     /// <summary>How brightly the screens glow.</summary>
     [Export] public float Glow = 1.3f;
+    /// <summary>Times a second the screens are redrawn (their instruments change no faster, see HudWidget.RedrawRate).</summary>
+    [Export] public float RefreshRate = 30f;
 
     bool _built;
+    float _refreshWait;
+    readonly System.Collections.Generic.List<SubViewport> _views = new();
 
     public override void _Process(double delta)
     {
@@ -34,6 +38,10 @@ public partial class CockpitDisplays : Node3D
         if (!IsVisibleInTree()) return;
         _shownFrame = Engine.GetProcessFrames();
         if (!_built) Build();
+        _refreshWait -= (float)delta;
+        if (_refreshWait > 0f) return;
+        _refreshWait = Mathf.Max(_refreshWait + 1f / Mathf.Max(RefreshRate, 1f), 0f);
+        foreach (var view in _views) view.RenderTargetUpdateMode = SubViewport.UpdateMode.Once;
     }
 
     void Build()
@@ -55,10 +63,11 @@ public partial class CockpitDisplays : Node3D
         {
             Size = new Vector2I(Resolution, Resolution),
             TransparentBg = false,
-            RenderTargetUpdateMode = SubViewport.UpdateMode.Always,
+            RenderTargetUpdateMode = SubViewport.UpdateMode.Once,
             Disable3D = false,
         };
         AddChild(view);
+        _views.Add(view);
         view.AddChild(new ColorRect { Color = new Color(0.01f, 0.035f, 0.02f), Size = view.Size });
         foreach (var (name, area) in instruments)
         {
@@ -71,20 +80,22 @@ public partial class CockpitDisplays : Node3D
             view.AddChild(copy);
         }
 
-        var glass = new StandardMaterial3D
-        {
-            ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
-            AlbedoTexture = view.GetTexture(),
-            AlbedoColor = new Color(Glow, Glow, Glow),
-        };
-        dash.AddChild(new MeshInstance3D
+        // (A shader of its own, so that it is drawn over the map with the rest of the cab: see Mech.DrawOver.)
+        var glass = new ShaderMaterial { Shader = GD.Load<Shader>("res://materials/cockpit_screen.gdshader") };
+        glass.SetShaderParameter("picture", view.GetTexture());
+        glass.SetShaderParameter("glow", Glow);
+        var screen = new MeshInstance3D
         {
             Name = "Screen" + (column < 0 ? "L" : column > 0 ? "R" : "C"),
             Mesh = new QuadMesh { Size = Vector2.One * ScreenSize },
             Position = new Vector3(column * ScreenPitch, 0.02f, 0.012f),
             MaterialOverride = glass,
             CastShadow = GeometryInstance3D.ShadowCastingSetting.Off,
-        });
+        };
+        dash.AddChild(screen);
+        // Drawn over the map if the console it is set in already is (the screens are made after it).
+        if (dash.GetNodeOrNull<GeometryInstance3D>("Console")?.GetInstanceShaderParameter("in_front") is { VariantType: Variant.Type.Float } over)
+            screen.SetInstanceShaderParameter("in_front", over);
     }
 
     static Control FindHud(Node from)

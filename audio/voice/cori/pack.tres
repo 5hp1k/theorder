@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="VoicePack" format=3]
+
+[ext_resource type="AudioStream" path="res://audio/voice/cori/TargetDestroyed.wav" id="1_7vexp"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/Startup.wav" id="2_ql78l"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/HeatCritical.wav" id="3_2wq48"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/Shutdown.wav" id="4_jk8kv"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/Incoming.wav" id="5_qs1dh"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/DamageCritical.wav" id="6_7jbm2"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/WeaponLost.wav" id="7_6iogh"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/AmmoOut.wav" id="8_3ewpb"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/LeftArm.wav" id="9_4g066"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/RightArm.wav" id="10_4wvu1"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/LeftLeg.wav" id="11_xswje"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/RightLeg.wav" id="12_2hyym"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/LeftTorso.wav" id="13_uifq0"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/RightTorso.wav" id="14_awtbg"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/Emp.wav" id="15_kwcjm"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/SystemsOnline.wav" id="16_aqolb"]
+[ext_resource type="AudioStream" path="res://audio/voice/cori/OutOfBounds.wav" id="17_ffr5r"]
+[ext_resource type="Script" path="res://scripts/UI/VoicePack.cs" id="18_f11qu"]
+
+[resource]
+script = ExtResource("18_f11qu")
+Id = "cori"
+Title = "Кори (женский, Англия)"
+Lines = Dictionary[String, AudioStream]({
+"AmmoOut": ExtResource("8_3ewpb"),
+"DamageCritical": ExtResource("6_7jbm2"),
+"Emp": ExtResource("15_kwcjm"),
+"HeatCritical": ExtResource("3_2wq48"),
+"Incoming": ExtResource("5_qs1dh"),
+"LeftArm": ExtResource("9_4g066"),
+"LeftLeg": ExtResource("11_xswje"),
+"LeftTorso": ExtResource("13_uifq0"),
+"OutOfBounds": ExtResource("17_ffr5r"),
+"RightArm": ExtResource("10_4wvu1"),
+"RightLeg": ExtResource("12_2hyym"),
+"RightTorso": ExtResource("14_awtbg"),
+"Shutdown": ExtResource("4_jk8kv"),
+"Startup": ExtResource("2_ql78l"),
+"SystemsOnline": ExtResource("16_aqolb"),
+"TargetDestroyed": ExtResource("1_7vexp"),
+"WeaponLost": ExtResource("7_6iogh")
+})

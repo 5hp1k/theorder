@@ -17,8 +17,9 @@ ARGS = sys.argv[sys.argv.index("--") + 1:]
 def road_wheel(name, r, w):
     h = Part(name)
     h.cyl((-w / 2, 0, 0), (w / 2, 0, 0), r, segs=16, kind=FRAME)
-    h.cyl((-w / 2 - 0.02, 0, 0), (-w / 2, 0, 0), r * 0.78, segs=16, kind=RECESS, bevel=0)
-    h.cyl((-w / 2 - 0.05, 0, 0), (-w / 2, 0, 0), r * 0.36, segs=10, kind=SOFT)
+    # the dished face and the hub, each sunk a centimetre into the tyre (not lying flush on it)
+    h.cyl((-w / 2 - 0.02, 0, 0), (-w / 2 + 0.01, 0, 0), r * 0.78, segs=16, kind=RECESS, bevel=0)
+    h.cyl((-w / 2 - 0.05, 0, 0), (-w / 2 + 0.02, 0, 0), r * 0.36, segs=10, kind=SOFT)
     h.bolts([(-w / 2 - 0.02, math.cos(i * math.tau / 5) * r * 0.56, math.sin(i * math.tau / 5) * r * 0.56) for i in range(5)], (-1, 0, 0), r=r * 0.07, h=0.03)
     return h
 
@@ -35,25 +36,26 @@ def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), 
     body.stations("z", [(-L + 0.1, W * 1.3, 0.3, 0, floor + 0.45), (-L + 0.7, W * 1.36, deck - hull_h - floor + 0.1, 0, (deck - hull_h + floor) / 2),
                         (L - 0.4, W * 1.36, deck - hull_h - floor + 0.1, 0, (deck - hull_h + floor) / 2), (L - 0.05, W * 1.3, 0.4, 0, floor + 0.5)], kind=FRAME, bevel=0.03)
     # upper hull: sloped glacis (or a boat bow), flat deck, engine at the back
-    top = deck - hull_h / 2
+    crown = deck - hull_h / 2  # (height of the upper hull's middle; not "top", which says what stands on it)
     if boat:
-        rows = [(-L - 0.85, W * 1.3, 0.2, 0, deck - 0.2, 0.06), (-L - 0.1, W * 2.0, hull_h * 1.25, 0, top - hull_h * 0.12, 0.12, 0.5),
-                (-L + 1.3, W * 2.0, hull_h, 0, top, 0.14), (L - 0.3, W * 2.0, hull_h, 0, top, 0.14), (L, W * 1.94, hull_h * 0.7, 0, top + 0.05, 0.12)]
+        rows = [(-L - 0.85, W * 1.3, 0.2, 0, deck - 0.2, 0.06), (-L - 0.1, W * 2.0, hull_h * 1.25, 0, crown - hull_h * 0.12, 0.12, 0.5),
+                (-L + 1.3, W * 2.0, hull_h, 0, crown, 0.14), (L - 0.3, W * 2.0, hull_h, 0, crown, 0.14), (L, W * 1.94, hull_h * 0.7, 0, crown + 0.05, 0.12)]
     else:
-        rows = [(-L - 0.15, W * 1.9, 0.14, 0, deck - hull_h + 0.1, 0.04), (-L + 1.4, W * 2.0, hull_h, 0, top, 0.14),
-                (L - 0.3, W * 2.0, hull_h, 0, top, 0.14), (L, W * 1.94, hull_h * 0.6, 0, top + 0.05, 0.12)]
+        rows = [(-L - 0.15, W * 1.9, 0.14, 0, deck - hull_h + 0.1, 0.04), (-L + 1.4, W * 2.0, hull_h, 0, crown, 0.14),
+                (L - 0.3, W * 2.0, hull_h, 0, crown, 0.14), (L, W * 1.94, hull_h * 0.6, 0, crown + 0.05, 0.12)]
     body.stations("z", rows, seams=PANELS, cuts=[((0, 0, -0.6), (0, 0, 1)), ((0, 0, L * 0.45), (0, 0, 1))])
-    # engine deck grilles, hatches, lamps, exhausts, stowage
+    # engine deck grilles, lamps, exhausts, stowage
     for s in (-1, 1):
         body.slats((s * W * 0.5, deck, L * 0.7), (0, 1, 0), (1, 0, 0), (W * 0.7, L * 0.42), 6, 0.04)
-        body.plate(None, (s * W * 0.45, deck, -L * 0.42), (0, 1, 0), (0.6, 0.7), 0.05, along=(0, 0, 1))
         body.cyl((s * W * 0.72, deck - hull_h * 0.2, -L - 0.02 + (0.5 if not boat else 0.0)), (s * W * 0.72, deck - hull_h * 0.2, -L - 0.12 + (0.5 if not boat else 0.0)), 0.11, segs=10, kind=SOFT)
         body.cyl((s * W * 0.8, deck - hull_h * 0.45, L - 0.1), (s * W * 0.8, deck - hull_h * 0.3, L + 0.35), 0.09, segs=8, kind=FRAME)
         body.box((s * (W - 0.05), deck + 0.14, L * 0.15), (0.5, 0.26, 1.2), PAINT, 0.02, SMALL_PANELS)
-        # side skirts over the upper run of the track
-        body.box((s * (W + 0.36), deck - hull_h - 0.12, 0), (0.06, 0.6, length * 0.94), PAINT, 0.015, dict(margin=0.04, width=0.012, depth=0.012, min_area=0.4))
-        body.box((s * (W + 0.02), deck - hull_h + 0.14, 0), (0.78, 0.06, length * 1.0), PAINT, 0.015)  # fender
-    body.cyl((0, deck - 0.02, turret_at[2]), (0, deck + 0.06, turret_at[2]), turret[0] * 0.44, segs=24, kind=FRAME)
+        # side skirts over the upper run of the track, hung outside the road wheels and the bolts on
+        # their hubs (which would otherwise turn through them), under a fender wide enough to carry them
+        body.box((s * (W + 0.46), deck - hull_h - 0.13, 0), (0.06, 0.58, length * 0.94), PAINT, 0.015, dict(margin=0.04, width=0.012, depth=0.012, min_area=0.4))
+        body.box((s * (W + 0.07), deck - hull_h + 0.14, 0), (0.86, 0.06, length * 1.0), PAINT, 0.015)  # fender
+    # the race ring the turret turns in: a little wider than the turret's own ring, so their walls don't meet
+    body.cyl((0, deck - 0.03, turret_at[2]), (0, deck + 0.06, turret_at[2]), turret[0] * 0.44 + 0.04, segs=24, kind=FRAME)
     for i in range(2):
         body.cyl((-W * 0.9 + i * 0.45, deck + 0.2, L - 0.5), (W * 0.1 - W + i * 0.45 + 0.9, deck + 0.2, L - 0.5), 0.2, segs=12, kind=PAINT) if False else None
     body.cyl((-W * 0.75, deck + 0.24, L - 0.25), (W * 0.75, deck + 0.24, L - 0.25), 0.22, segs=12, kind=PAINT)  # fuel drum
@@ -98,7 +100,6 @@ def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), 
                      (tl * 0.3, tw, th, 0, th * 0.5, 0.2, 0.3), (tl * 0.62, tw * 0.8, th * 0.75, 0, th * 0.55, 0.16)], seams=PANELS)
     t.cyl((tw * 0.22, th - 0.02, tl * 0.1), (tw * 0.22, th + 0.2, tl * 0.1), tw * 0.16, segs=14, kind=PAINT)  # cupola
     t.cyl((tw * 0.22, th + 0.2, tl * 0.1), (tw * 0.22, th + 0.24, tl * 0.1), tw * 0.13, segs=14, kind=SOFT)
-    t.plate(None, (-tw * 0.22, th, tl * 0.12), (0, 1, 0), (tw * 0.3, tl * 0.25), 0.04, along=(0, 0, 1))  # loader's hatch
     t.box((0, th * 0.55, tl * 0.74), (tw * 0.75, th * 0.5, tl * 0.2), PAINT, 0.02, SMALL_PANELS)  # stowage bin
     for s in (-1, 1):
         for i in range(3):  # smoke dischargers
@@ -134,8 +135,7 @@ def spg():
             body.cyl((s * 0.32, deck - 0.1, -L + 0.9), (s * 0.12, deck + 0.75, -L + 0.75), 0.05, segs=8, kind=FRAME, bevel=0)
             body.box((s * 1.0, deck - 0.5, L + 0.2), (0.7, 0.9, 0.12), FRAME, 0.02, None, Matrix.Rotation(math.radians(-14), 3, "X"))
         body.box((0, deck + 0.78, -L + 0.75), (0.5, 0.12, 0.2), FRAME, 0.02)
-        # driver's hatch and periscopes at the front left
-        body.plate(None, (-W * 0.5, deck, -L + 1.3), (0, 1, 0), (0.7, 0.7), 0.06, along=(0, 0, 1))
+        # periscopes at the front left
         body.box((-W * 0.5, deck + 0.1, -L + 0.86), (0.5, 0.12, 0.1), FRAME, 0.01)
 
     tracked(m, 7.6, 3.5, 1.6, 0.7, (0, 1.6, 0.9), turret=(3.1, 1.55, 4.0), top="spg", extra=fittings)
@@ -148,8 +148,7 @@ def spg():
                      (tl * 0.42, tw, th, 0, th * 0.52, 0.16, 0.26), (tl * 0.56, tw * 0.94, th * 0.78, 0, th * 0.6, 0.14)],
                seams=PANELS, cuts=[((0, 0, 0.2), (0, 0, 1))])
     for s in (-1, 1):
-        # side doors, stowage baskets along the bustle, lifting eyes
-        t.plate(None, (s * tw * 0.5, th * 0.55, 0.5), (s, 0, 0), (0.8, 1.1), 0.05, along=(0, 1, 0))
+        # stowage baskets along the bustle, lifting eyes
         t.box((s * (tw * 0.5 + 0.2), th * 0.5, tl * 0.36), (0.36, 0.5, 1.0), FRAME, 0.02)
         for z in (-0.8, 1.2):
             t.box((s * tw * 0.42, th + 0.1, z), (0.05, 0.16, 0.22), FRAME, 0.012)
@@ -158,7 +157,6 @@ def spg():
             t.cyl(a, (a[0] + s * 0.16, a[1] + 0.12, a[2] - 0.1), 0.05, segs=8, kind=FRAME, bevel=0)
     t.cyl((tw * 0.24, th + 0.02, 0.2), (tw * 0.24, th + 0.3, 0.2), 0.36, segs=14, kind=PAINT)  # commander's cupola
     t.cyl((tw * 0.24, th + 0.3, 0.2), (tw * 0.24, th + 0.34, 0.2), 0.3, segs=14, kind=SOFT)
-    t.plate(None, (-tw * 0.24, th + 0.05, 0.3), (0, 1, 0), (0.8, 0.8), 0.05, along=(0, 0, 1))  # loader's hatch
     t.slats((0, th + 0.05, tl * 0.38), (0, 1, 0), (1, 0, 0), (1.6, 0.7), 6, 0.04)  # ventilator
     t.box((-tw * 0.3, th + 0.24, -0.9), (0.34, 0.3, 0.44), FRAME, 0.03)  # gunner's sight head
     t.cyl((-tw * 0.3, th + 0.24, -1.12), (-tw * 0.3, th + 0.24, -1.14), 0.1, segs=10, kind=RECESS, bevel=0)
@@ -176,8 +174,9 @@ def spg():
         g.cyl((s * 0.2, 0.34, -0.6), (s * 0.2, 0.34, -2.3), 0.09, segs=10, kind=FRAME)
         g.cyl((s * 0.2, 0.34, -2.3), (s * 0.2, 0.34, -2.6), 0.05, segs=8, kind=EDGE, bevel=0)
     g.box((0, 0.3, -2.62), (0.62, 0.2, 0.12), FRAME, 0.02)
-    g.cyl((0, 0, -1.2), (0, 0, -glen), gr, gr * 0.86, segs=16, kind=FRAME)
-    g.cyl((0, 0, -1.2), (0, 0, -2.5), gr * 1.4, segs=16, kind=FRAME)
+    # (the tube runs from inside the sleeve to inside the muzzle brake, its ends hidden in them)
+    g.cyl((0, 0, -1.2), (0, 0, -glen + 0.02), gr, gr * 0.86, segs=16, kind=FRAME)
+    g.cyl((0, 0, -1.18), (0, 0, -2.5), gr * 1.4, segs=16, kind=FRAME)
     g.cyl((0, 0, -glen * 0.52), (0, 0, -glen * 0.64), gr * 1.5, segs=16, kind=FRAME)  # fume extractor
     # a two-baffle muzzle brake
     g.box((0, 0, -glen + 0.3), (gr * 3.4, gr * 2.4, 0.6), FRAME, 0.03)
@@ -201,10 +200,8 @@ def mlrs():
         for i, x in enumerate((-W * 0.56, 0.0, W * 0.56)):
             body.slats((x, deck + 0.68, -L + 0.5), (0, 0.72, -1), (1, 0, 0), (W * 0.42, 0.44), 5, 0.04)
         for s in (-1, 1):
-            body.plate(None, (s * W * 0.88, deck + 0.5, -L + 1.5), (s, 0, 0), (0.7, 0.9), 0.05, along=(0, 1, 0))  # doors
             body.slats((s * W * 0.885, deck + 0.75, -L + 1.5), (s, 0, 0), (0, 0, 1), (0.5, 0.3), 3, 0.03)
             body.cyl((s * W * 0.7, deck + 0.3, -L - 0.02), (s * W * 0.7, deck + 0.3, -L - 0.12), 0.11, segs=10, kind=SOFT)
-        body.plate(None, (0, deck + 1.1, -L + 1.5), (0, 1, 0), (1.4, 0.8), 0.05, along=(0, 0, 1))
         body.cyl((W * 0.7, deck + 1.1, -L + 2.2), (W * 0.7, deck + 2.7, -L + 2.2), 0.02, 0.008, segs=6, kind=FRAME, bevel=0)
         # blast shield between the cab and the launcher
         body.box((0, deck + 0.62, -L + 2.62), (W * 1.7, 1.2, 0.08), FRAME, 0.02)
@@ -227,10 +224,6 @@ def mlrs():
     g.cyl((-1.36, 0, 0), (1.36, 0, 0), 0.22, segs=14, kind=FRAME)
     box = Part("Launcher")
     box.stations("z", [(0.55, 2.6, 1.2, 0, 0.1, 0.1), (-3.4, 2.6, 1.2, 0, 0.1, 0.1)], seams=PANELS, cuts=[((0, 0, -1.4), (0, 0, 1))])
-    box.plate(None, (0, 0.7, -1.4), (0, 1, 0), (1.9, 3.2), 0.06, along=(0, 0, 1))
-    for s in (-1, 1):
-        box.plate(None, (s * 1.3, 0.1, -1.4), (s, 0, 0), (0.8, 3.0), 0.05, along=(0, 0, 1))
-        box.bolts([(s * 1.36, 0.4, -2.7), (s * 1.36, -0.2, -2.7), (s * 1.36, 0.4, -0.1), (s * 1.36, -0.2, -0.1)], (s, 0, 0), r=0.04)
     box.slats((0, 0.1, 0.56), (0, 0, 1), (1, 0, 0), (2.0, 0.8), 6, 0.05)
     m.add(box, "Turret/Gun", "Launcher", CAMO)
     g.box((0, 0.1, -3.42), (2.44, 1.06, 0.06), FRAME, 0.015)
@@ -267,11 +260,9 @@ def apc():
     for z in (-2.38, -0.79, 0.79, 2.38):
         b.cyl((-1.3, 0.6, z), (1.3, 0.6, z), 0.12, segs=8, kind=FRAME, bevel=0)
     for s in (-1, 1):
-        b.plate(None, (s * 0.7, 2.4, -1.9), (0, 1, 0), (0.6, 0.6), 0.05, along=(0, 0, 1))  # driver / commander hatches
         b.box((s * 0.7, 2.47, -2.3), (0.4, 0.12, 0.1), FRAME, 0.01)  # periscopes
         b.cyl((s * 1.05, 1.95, -3.2), (s * 1.05, 1.95, -3.3), 0.13, segs=10, kind=SOFT)  # headlamps
         b.box((s * 1.43, 1.9, 1.2), (0.12, 0.5, 2.6), PAINT, 0.02, SMALL_PANELS)  # stowage
-        b.plate(None, (s * 0.6, 1.7, 3.41), (0, 0.1, 1), (0.9, 1.2), 0.04, along=(0, 1, 0))  # rear doors
         b.slats((s * 1.41, 2.05, -1.4), (s, 0.2, 0), (0, 0, 1), (0.9, 0.4), 4, 0.04)
     b.box((0, 1.52, -3.7), (2.0, 0.5, 0.05), PAINT, 0.012, None, Matrix.Rotation(math.radians(38), 3, "X"))  # trim vane
     b.cyl((1.5, 2.1, 2.2), (1.5, 2.1, 3.3), 0.1, segs=8, kind=FRAME)  # exhaust
@@ -287,7 +278,6 @@ def apc():
 
     tu = Part("Turret")
     tu.stations("z", [(-0.95, 0.7, 0.36, 0, 0.26, 0.08), (-0.4, 1.4, 0.56, 0, 0.3, 0.14, 0.2), (0.5, 1.5, 0.58, 0, 0.3, 0.14, 0.2), (0.95, 1.1, 0.42, 0, 0.32, 0.1)], seams=SMALL_PANELS)
-    tu.plate(None, (0.3, 0.59, 0.25), (0, 1, 0), (0.5, 0.5), 0.04, along=(0, 0, 1))
     tu.box((-0.45, 0.68, 0.0), (0.26, 0.2, 0.3), FRAME, 0.02)  # sight
     for s in (-1, 1):
         for i in range(2):
@@ -297,7 +287,7 @@ def apc():
     g = Part("Gun")
     g.stations("z", [(0.1, 0.5, 0.42, 0, 0, 0.08), (-0.34, 0.36, 0.3, 0, 0, 0.06)], kind=FRAME)
     g.cyl((0, 0, -0.3), (0, 0, -2.2), 0.055, segs=10, kind=FRAME, bevel=0)
-    g.cyl((0, 0, -0.3), (0, 0, -1.0), 0.09, segs=10, kind=FRAME)
+    g.cyl((0, 0, -0.28), (0, 0, -1.0), 0.09, segs=10, kind=FRAME)
     g.cyl((0, 0, -2.0), (0, 0, -2.26), 0.085, segs=10, kind=SOFT)
     g.cyl((0, 0, -2.25), (0, 0, -2.28), 0.04, segs=8, kind=RECESS, bevel=0)
     g.cyl((0.4, 0.1, -0.2), (0.4, 0.1, -0.95), 0.025, segs=6, kind=FRAME, bevel=0)
@@ -325,7 +315,8 @@ def ship():
     m.add(b, "Hull", "Body", GREY)
 
     d = Part("Deck")
-    d.loft([[(x * 0.97, 3.36 + (0.14 if y > 3 else 0.0), z) for x, y in [(br, 3.4), (-br, 3.4), (-br, 0), (br, 0)]] for z, br, keel, fl in rows[1:]], kind=FRAME, bevel=0.0)
+    # (stopping just short of the stern, which it would otherwise be flush with)
+    d.loft([[(x * 0.97, 3.36 + (0.14 if y > 3 else 0.0), min(z, rows[-1][0] - 0.02)) for x, y in [(br, 3.4), (-br, 3.4), (-br, 0), (br, 0)]] for z, br, keel, fl in rows[1:]], kind=FRAME, bevel=0.0)
     for z in (-13.0, -4.5, 13.5):
         for s in (-1, 1):
             d.cyl((s * 2.0, 3.5, z), (s * 2.0, 3.75, z), 0.12, segs=8, kind=FRAME)  # bollards
@@ -344,8 +335,6 @@ def ship():
     for s in (-1, 1):
         s_.box((s * 3.0, 6.0, 1.6), (1.4, 0.1, 1.6), PAINT, 0.02)  # bridge wings
         s_.cyl((s * 2.3, 5.9, 8.0), (s * 2.3, 6.4, 8.0), 0.45, segs=12, kind=PAINT)  # life rafts
-        for z in (1.5, 4.0, 7.0):
-            s_.plate(None, (s * 2.61, 4.6, z), (s, 0, 0), (0.7, 1.7), 0.05, along=(0, 1, 0))  # doors
     s_.box((0, 7.5, 2.5), (2.2, 0.3, 2.2), PAINT, 0.04)  # compass platform
     m.add(s_, "Hull", "Bridge", CAMO)
 
@@ -385,7 +374,6 @@ def ship():
     t = Part("Turret")
     t.cyl((0, 0, 0), (0, 0.2, 0), 1.5, segs=20, kind=FRAME)
     t.stations("z", [(-1.7, 1.2, 0.8, 0, 0.75, 0.2), (-0.9, 2.4, 1.4, 0, 0.9, 0.35), (0.9, 2.6, 1.5, 0, 0.95, 0.35), (1.6, 2.0, 1.1, 0, 0.85, 0.3)], seams=PANELS)
-    t.plate(None, (0.6, 1.7, 0.5), (0, 1, 0), (0.6, 0.6), 0.05, along=(0, 0, 1))
     m.add(t, "Turret", "Body", CAMO)
     g = Part("Gun")
     g.stations("z", [(0.3, 0.8, 0.9, 0, 0, 0.14), (-0.5, 0.6, 0.6, 0, 0, 0.12), (-0.9, 0.4, 0.4, 0, 0, 0.08)], kind=FRAME)
@@ -421,7 +409,6 @@ def helicopter():
         f.cyl((s * 0.95, 0.72, -1.5), (s * 0.95, 0.72, -1.53), 0.17, segs=10, kind=RECESS, bevel=0)
         f.cyl((s * 1.0, 0.8, 2.1), (s * 1.3, 1.0, 2.7), 0.2, segs=10, kind=FRAME)
         f.cyl((s * 1.29, 0.99, 2.68), (s * 1.31, 1.01, 2.72), 0.14, segs=10, kind=RECESS, bevel=0)
-        f.plate(None, (s * 0.71, -0.2, -0.4), (s, 0, 0), (1.0, 1.4), 0.04, along=(0, 0, 1))
     f.stations("y", [(0.95, 0.9, 1.6, 0, 0.2, 0.3), (1.32, 0.5, 0.9, 0, 0.1, 0.2)], seams=SMALL_PANELS)  # mast fairing
     f.cyl((0, 1.3, 0), (0, 1.52, 0), 0.14, segs=10, kind=FRAME)
     # canopy frame
@@ -493,7 +480,7 @@ def helicopter():
     g = Part("Gun")
     g.box((0, 0, -0.1), (0.24, 0.26, 0.5), FRAME, 0.02)
     g.cyl((0, 0, -0.3), (0, 0, -1.45), 0.045, segs=8, kind=FRAME, bevel=0)
-    g.cyl((0, 0, -0.3), (0, 0, -0.8), 0.075, segs=8, kind=FRAME)
+    g.cyl((0, 0, -0.28), (0, 0, -0.8), 0.075, segs=8, kind=FRAME)
     g.cyl((0, 0, -1.3), (0, 0, -1.5), 0.07, segs=8, kind=SOFT)
     m.add(g, "Turret/Gun", "Mantlet", JOINT)
     m.removes += ["Turret/Gun/Barrel"]
@@ -532,10 +519,6 @@ def bomber():
     xs = [-13.0, -8.6, -5.6, -3.4, -1.7, 0.0, 1.7, 3.4, 5.6, 8.6, 13.0]
     f = Part("Fuselage")
     f.loft([section(x) for x in xs], seams=dict(margin=0.14, width=0.02, depth=0.02, min_area=5.0), bevel=0.03)
-    # bomb bay doors and wheel wells on the belly
-    for s in (-1, 1):
-        f.plate(None, (s * 0.9, -thick(0.9) * 0.38 - 0.02, 0.4), (0, -1, 0), (1.5, 5.0), 0.03, along=(0, 0, 1))
-        f.plate(None, (s * 4.4, -0.3, 1.2), (0, -1, 0), (1.4, 2.2), 0.03, along=(0, 0, 1))
     # A stealth aircraft is not repainted with the player's camouflage: it wears its own dark grey.
     m.add(f, "Hull", "Fuselage", "stealth_grey")
 

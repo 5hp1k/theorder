@@ -15,13 +15,24 @@ public partial class MapTerrain : StaticBody3D
 {
     public static MapTerrain Instance { get; private set; }
 
-    /// <summary>How far from the middle of the map units may get (on either axis).</summary>
-    public float PlayHalf => Size * 0.5f - Border - 12f;
+    /// <summary>Render layer the ground is on (besides the usual one): what decals on the ground project onto.</summary>
+    public const int GroundLayer = 11;
 
-    /// <summary>The position, brought back inside the battlefield if it was beyond its edge.</summary>
+    /// <summary>
+    /// How far from the middle of the map the battlefield reaches (on either axis). Beyond it the ground
+    /// goes on, but whoever stays out there longer than <see cref="OutOfBoundsTime"/> is destroyed.
+    /// </summary>
+    public float PlayHalf => Size * 0.5f - Border - 12f;
+    /// <summary>How far anything can get at all: the end of the real ground (past it there is only scenery).</summary>
+    public float HardHalf => Size * 0.5f - 25f;
+
+    /// <summary>Whether a position is beyond the edge of the battlefield.</summary>
+    public bool OutOfBounds(Vector3 p) => Mathf.Abs(p.X) > PlayHalf || Mathf.Abs(p.Z) > PlayHalf;
+
+    /// <summary>The position, brought back to the end of the real ground if it was beyond it.</summary>
     public Vector3 Contain(Vector3 p, out bool wasOutside)
     {
-        float limit = PlayHalf;
+        float limit = HardHalf;
         wasOutside = Mathf.Abs(p.X) > limit || Mathf.Abs(p.Z) > limit;
         return wasOutside ? new Vector3(Mathf.Clamp(p.X, -limit, limit), p.Y, Mathf.Clamp(p.Z, -limit, limit)) : p;
     }
@@ -31,10 +42,14 @@ public partial class MapTerrain : StaticBody3D
     /// <summary>Side of the square map, metres.</summary>
     [Export] public float Size = 800f;
     /// <summary>
-    /// Width of the strip along the map's edge that is scenery only: the ground, the plants, the houses
-    /// are all there, but nothing can walk, drive or fly into it. It hides where the battlefield ends.
+    /// Width of the strip along the map's edge beyond the battlefield: the ground, the plants, the houses
+    /// are all there and can be gone into, but not for long (see <see cref="OutOfBoundsTime"/>).
     /// </summary>
     [Export] public float Border = 120f;
+    /// <summary>How thickly plants and rocks grow beyond the battlefield, as a share of how they grow on it.</summary>
+    [Export(PropertyHint.Range, "0,1")] public float OuterPropShare = 0.5f;
+    /// <summary>Seconds a machine may stay beyond the edge of the battlefield before it is destroyed.</summary>
+    [Export] public float OutOfBoundsTime = 10f;
     /// <summary>Grid step, metres. Smaller = smoother, more triangles.</summary>
     [Export] public float CellSize = 4f;
     /// <summary>Height of the long ridges (dunes, drifts).</summary>
@@ -133,6 +148,8 @@ public partial class MapTerrain : StaticBody3D
     public override void _Ready()
     {
         BuildSurface();
+        // Footprints and the like are projected onto this layer only, not onto machines walking over them.
+        GetNode<MeshInstance3D>("Mesh").SetLayerMaskValue(GroundLayer, true);
         BuildBackdrop();
         BuildMapTexture();
         ScatterProps();
@@ -185,8 +202,8 @@ public partial class MapTerrain : StaticBody3D
         int i = (int)gx, j = (int)gz, k = j * _grid + i;
         float fx = gx - i, fz = gz - j;
         float a = _base[k] + _dig[k], b = _base[k + 1] + _dig[k + 1], c = _base[k + _grid] + _dig[k + _grid], d = _base[k + _grid + 1] + _dig[k + _grid + 1];
-        // Each cell is two triangles split along a–d.
-        return fx >= fz ? a + (b - a) * fx + (d - b) * fz : a + (d - c) * fx + (c - a) * fz;
+        // Each cell is two triangles split along b–c, the way the physics engine splits its height field.
+        return fx + fz <= 1f ? a + (b - a) * fx + (c - a) * fz : d + (c - d) * (1f - fx) + (b - d) * (1f - fz);
     }
 
     float DigAt(float x, float z)
@@ -205,8 +222,8 @@ public partial class MapTerrain : StaticBody3D
     /// really changes shape — what stands on it sinks in, shots and feet follow the new surface.
     /// Only craters wider than a grid cell show; every hit leaves a mark as well (see Impacts).
     /// </summary>
-    /// <summary>The ground has just changed shape (craters): whatever lies on it should settle again.</summary>
-    public static event System.Action Reshaped;
+    /// <summary>The ground has just changed shape (craters) within this area (x, z): whatever lies on it there should settle again.</summary>
+    public static event System.Action<Rect2> Reshaped;
 
     /// <param name="fromHost">The host of a network game says so (on a client nothing digs by itself).</param>
     public void AddCrater(Vector3 center, float radius, float depth, bool fromHost = false)
@@ -228,8 +245,20 @@ public partial class MapTerrain : StaticBody3D
             // Not bottomless: repeated hits on one spot stop a few metres down.
             _dig[k] = Mathf.Max(_dig[k] + change, -6f);
         }
+        if (!_dirty)
+        {
+            _dirtyI0 = i0; _dirtyI1 = i1; _dirtyJ0 = j0; _dirtyJ1 = j1;
+        }
+        else
+        {
+            _dirtyI0 = Mathf.Min(_dirtyI0, i0); _dirtyI1 = Mathf.Max(_dirtyI1, i1);
+            _dirtyJ0 = Mathf.Min(_dirtyJ0, j0); _dirtyJ1 = Mathf.Max(_dirtyJ1, j1);
+        }
         _dirty = true;
     }
+
+    // The part of the grid dug since the last rebuild.
+    int _dirtyI0, _dirtyI1, _dirtyJ0, _dirtyJ1;
 
     public override void _Process(double delta)
     {
@@ -239,9 +268,12 @@ public partial class MapTerrain : StaticBody3D
         _dirty = false;
         _rebuildWait = 0.35f;
         long prof = Prof.Now();
-        BuildSurface();
+        UpdateSurface(_dirtyI0, _dirtyI1, _dirtyJ0, _dirtyJ1);
         Prof.Add(3, prof);
-        Reshaped?.Invoke();
+        // The ground moved only here: marks elsewhere needn't look.
+        float step = Size / (_grid - 1), half = Size * 0.5f;
+        var area = new Rect2(-half + _dirtyI0 * step, -half + _dirtyJ0 * step, (_dirtyI1 - _dirtyI0) * step, (_dirtyJ1 - _dirtyJ0) * step);
+        Reshaped?.Invoke(area);
     }
 
     float BaseHeightAt(float x, float z)
@@ -322,76 +354,236 @@ public partial class MapTerrain : StaticBody3D
 
     float[] _base;      // ground heights at the grid points as generated, before any craters
     int[] _indices;
-    HeightMapShape3D _heights;
+    // The ground as last built, kept so that a crater only touches the part of it that changed.
+    float[] _heightsNow;
+    Vector3[] _verts, _normals;
+    Color[] _colors;
+    ArrayMesh _mesh;
+    // The collision is cut into square tiles of a height field each: a crater rebuilds only the ones it touched.
+    HeightMapShape3D[] _tiles;
+    int _tileCells, _tilesAcross;
+    // Rows of the ground are rewritten in place in the mesh's buffers: the engine keeps all the positions
+    // (12 bytes each), then all the normals with their tangents (8 bytes each); the colours (4 bytes each)
+    // in a buffer of their own. The new bytes are had by letting the engine pack just those rows into a
+    // little mesh of their own. False = not laid out as expected: the mesh is built anew instead.
+    bool _inPlace;
+    int _normalStart;
 
     /// <summary>
-    /// Builds (or, after a crater, rebuilds) the visible mesh and the collision from the grid of heights.
-    /// The noise is only sampled the first time; a rebuild just re-reads the grid with the craters applied.
+    /// Builds the visible mesh and the collision from the grid of heights. The noise is only sampled
+    /// here; a crater later rebuilds just its own part (see UpdateSurface).
     /// </summary>
     void BuildSurface()
     {
         int n = Mathf.Max(2, Mathf.RoundToInt(Size / CellSize) + 1);
         float step = Size / (n - 1);
         float half = Size * 0.5f;
-        if (_dig == null)
-        {
-            _grid = n;
-            _dig = new float[n * n];
-            _base = new float[n * n];
-            for (int j = 0; j < n; j++)
-            for (int i = 0; i < n; i++)
-                _base[j * n + i] = BaseHeightAt(-half + i * step, -half + j * step);
-
-            _indices = new int[(n - 1) * (n - 1) * 6];
-            int k = 0;
-            for (int j = 0; j < n - 1; j++)
-            for (int i = 0; i < n - 1; i++)
-            {
-                int a = j * n + i, b = a + 1, c = a + n, d = c + 1;
-                // Clockwise seen from above = front face up.
-                _indices[k++] = a; _indices[k++] = b; _indices[k++] = d;
-                _indices[k++] = a; _indices[k++] = d; _indices[k++] = c;
-            }
-
-            // Collision is a height field: cheap to update when the ground changes. Its samples are one
-            // unit apart, so the shape node is stretched to the grid step.
-            _heights = new HeightMapShape3D { MapWidth = n, MapDepth = n };
-            var collision = GetNode<CollisionShape3D>("Collision");
-            collision.Shape = _heights;
-            collision.Scale = new Vector3(step, 1f, step);
-        }
-
-        var heights = new float[n * n];
-        var verts = new Vector3[n * n];
-        var normals = new Vector3[n * n];
-        var colors = new Color[n * n];
-        for (int k = 0; k < heights.Length; k++)
-        {
-            heights[k] = _base[k] + _dig[k];
-            // Red marks dug-up ground for the shader: craters come out dark and burnt.
-            colors[k] = new Color(Mathf.Clamp(Mathf.Abs(_dig[k]) * 0.8f, 0f, 1f), 0f, 0f);
-        }
+        _grid = n;
+        _dig = new float[n * n];
+        _base = new float[n * n];
         for (int j = 0; j < n; j++)
         for (int i = 0; i < n; i++)
+            _base[j * n + i] = BaseHeightAt(-half + i * step, -half + j * step);
+
+        _indices = new int[(n - 1) * (n - 1) * 6];
+        int q = 0;
+        for (int j = 0; j < n - 1; j++)
+        for (int i = 0; i < n - 1; i++)
         {
-            int k = j * n + i;
-            verts[k] = new Vector3(-half + i * step, heights[k], -half + j * step);
-            // Slope from the neighbouring grid points.
-            float dx = heights[j * n + Mathf.Min(i + 1, n - 1)] - heights[j * n + Mathf.Max(i - 1, 0)];
-            float dz = heights[Mathf.Min(j + 1, n - 1) * n + i] - heights[Mathf.Max(j - 1, 0) * n + i];
-            normals[k] = new Vector3(-dx, 2f * step, -dz).Normalized();
+            int a = j * n + i, b = a + 1, c = a + n, d = c + 1;
+            // Clockwise seen from above = front face up. Split along b–c, as the physics engine splits
+            // its height field: split the other way, the ground drawn and the ground walked on part by
+            // up to a metre on the dunes, and feet and footprints sink out of sight.
+            _indices[q++] = a; _indices[q++] = b; _indices[q++] = c;
+            _indices[q++] = b; _indices[q++] = d; _indices[q++] = c;
         }
+
+        _heightsNow = new float[n * n];
+        _verts = new Vector3[n * n];
+        _normals = new Vector3[n * n];
+        _colors = new Color[n * n];
+        Recompute(0, n - 1, 0, n - 1);
 
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
-        arrays[(int)Mesh.ArrayType.Vertex] = verts;
-        arrays[(int)Mesh.ArrayType.Normal] = normals;
-        arrays[(int)Mesh.ArrayType.Color] = colors;
+        arrays[(int)Mesh.ArrayType.Vertex] = _verts;
+        arrays[(int)Mesh.ArrayType.Normal] = _normals;
+        arrays[(int)Mesh.ArrayType.Color] = _colors;
         arrays[(int)Mesh.ArrayType.Index] = _indices;
-        var mesh = new ArrayMesh();
-        mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
-        GetNode<MeshInstance3D>("Mesh").Mesh = mesh;
-        _heights.MapData = heights;
+        _mesh = new ArrayMesh();
+        _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        var ground = GetNode<MeshInstance3D>("Mesh");
+        ground.Mesh = _mesh;
+        // Room for craters below and heaps above, so the box needn't be worked out again as they come.
+        Aabb box = _mesh.GetAabb();
+        ground.CustomAabb = new Aabb(box.Position - new Vector3(0f, 8f, 0f), box.Size + new Vector3(0f, 12f, 0f));
+        LearnLayout();
+
+        BuildCollision(step);
+    }
+
+    /// <summary>Heights, positions, normals and colours of the grid points in the block (normals one point further round).</summary>
+    void Recompute(int i0, int i1, int j0, int j1)
+    {
+        int n = _grid;
+        float step = Size / (n - 1), half = Size * 0.5f;
+        int ri0 = Mathf.Max(i0 - 1, 0), ri1 = Mathf.Min(i1 + 1, n - 1), rj0 = Mathf.Max(j0 - 1, 0), rj1 = Mathf.Min(j1 + 1, n - 1);
+        for (int j = rj0; j <= rj1; j++)
+        for (int i = ri0; i <= ri1; i++)
+        {
+            int k = j * n + i;
+            _heightsNow[k] = _base[k] + _dig[k];
+            // Red marks dug-up ground for the shader: craters come out dark and burnt.
+            _colors[k] = new Color(Mathf.Clamp(Mathf.Abs(_dig[k]) * 0.8f, 0f, 1f), 0f, 0f);
+            _verts[k] = new Vector3(-half + i * step, _heightsNow[k], -half + j * step);
+        }
+        for (int j = rj0; j <= rj1; j++)
+        for (int i = ri0; i <= ri1; i++)
+        {
+            int k = j * n + i;
+            // Slope from the neighbouring grid points.
+            float dx = Height(i + 1, j) - Height(i - 1, j);
+            float dz = Height(i, j + 1) - Height(i, j - 1);
+            _normals[k] = new Vector3(-dx, 2f * step, -dz).Normalized();
+        }
+    }
+
+    float Height(int i, int j)
+    {
+        int k = Mathf.Clamp(j, 0, _grid - 1) * _grid + Mathf.Clamp(i, 0, _grid - 1);
+        return _base[k] + _dig[k];
+    }
+
+    /// <summary>After craters: the changed block of the grid is worked out again, and only it is sent to the mesh and the collision.</summary>
+    void UpdateSurface(int i0, int i1, int j0, int j1)
+    {
+        int n = _grid;
+        Recompute(i0, i1, j0, j1);
+        // Whole rows, from one above to one below (their normals changed too).
+        int r0 = Mathf.Max(j0 - 1, 0), r1 = Mathf.Min(j1 + 1, n - 1);
+        if (_inPlace) Rewrite(r0, r1);
+        else
+        {
+            var arrays = new Godot.Collections.Array();
+            arrays.Resize((int)Mesh.ArrayType.Max);
+            arrays[(int)Mesh.ArrayType.Vertex] = _verts;
+            arrays[(int)Mesh.ArrayType.Normal] = _normals;
+            arrays[(int)Mesh.ArrayType.Color] = _colors;
+            arrays[(int)Mesh.ArrayType.Index] = _indices;
+            _mesh.ClearSurfaces();
+            _mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        }
+        UpdateCollision(i0 - 1, i1 + 1, j0 - 1, j1 + 1);
+    }
+
+    /// <summary>
+    /// Finds out how the engine lays the ground's vertices out in its buffers, and checks it by writing
+    /// the whole mesh the same way and comparing. If anything differs, rows are never rewritten in place.
+    /// </summary>
+    void LearnLayout()
+    {
+        _inPlace = false;
+        var surface = RenderingServer.MeshGetSurface(_mesh.GetRid(), 0);
+        var format = (RenderingServer.ArrayFormat)surface["format"].AsUInt64();
+        int count = _verts.Length;
+        int nOff = (int)RenderingServer.MeshSurfaceGetFormatOffset(format, count, (int)Mesh.ArrayType.Normal);
+        byte[] vdata = surface["vertex_data"].AsByteArray(), adata = surface["attribute_data"].AsByteArray();
+        if (nOff != count * 12 || vdata.Length != count * 20 || adata.Length != count * 4 || _grid < 24)
+        {
+            GD.Print($"Terrain: unexpected mesh layout ({vdata.Length / (float)count} + {adata.Length / (float)count} bytes a vertex, normals at {nOff}); craters rebuild the whole mesh.");
+            return;
+        }
+        _normalStart = nOff;
+        // Rows packed on their own must come out exactly as they are in the whole.
+        var (p, nt, c) = Pack(10, 20);
+        int from = 10 * _grid;
+        for (int k = 0; k < p.Length; k++) if (p[k] != vdata[from * 12 + k]) { Mismatch("position", k); return; }
+        for (int k = 0; k < nt.Length; k++) if (nt[k] != vdata[nOff + from * 8 + k]) { Mismatch("normal", k); return; }
+        for (int k = 0; k < c.Length; k++) if (c[k] != adata[from * 4 + k]) { Mismatch("colour", k); return; }
+        _inPlace = true;
+    }
+
+    static void Mismatch(string what, int at)
+        => GD.Print($"Terrain: {what} data of rows packed apart differs at byte {at}; craters rebuild the whole mesh.");
+
+    /// <summary>The engine's own packing of the grid rows r0..r1: positions, normals with tangents, colours.</summary>
+    (byte[] positions, byte[] normals, byte[] colours) Pack(int r0, int r1)
+    {
+        int from = r0 * _grid, count = (r1 - r0 + 1) * _grid;
+        var arrays = new Godot.Collections.Array();
+        arrays.Resize((int)Mesh.ArrayType.Max);
+        arrays[(int)Mesh.ArrayType.Vertex] = System.MemoryExtensions.AsSpan(_verts, from, count).ToArray();
+        arrays[(int)Mesh.ArrayType.Normal] = System.MemoryExtensions.AsSpan(_normals, from, count).ToArray();
+        arrays[(int)Mesh.ArrayType.Color] = System.MemoryExtensions.AsSpan(_colors, from, count).ToArray();
+        arrays[(int)Mesh.ArrayType.Index] = new[] { 0, 1, _grid };
+        var piece = new ArrayMesh();
+        piece.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, arrays);
+        var surface = RenderingServer.MeshGetSurface(piece.GetRid(), 0);
+        byte[] v = surface["vertex_data"].AsByteArray(), a = surface["attribute_data"].AsByteArray();
+        return (v[..(count * 12)], v[(count * 12)..], a);
+    }
+
+    void Rewrite(int r0, int r1)
+    {
+        Rid rid = _mesh.GetRid();
+        int from = r0 * _grid;
+        var (positions, normals, colours) = Pack(r0, r1);
+        RenderingServer.MeshSurfaceUpdateVertexRegion(rid, 0, from * 12, positions);
+        RenderingServer.MeshSurfaceUpdateVertexRegion(rid, 0, _normalStart + from * 8, normals);
+        RenderingServer.MeshSurfaceUpdateAttributeRegion(rid, 0, from * 4, colours);
+    }
+
+    /// <summary>
+    /// The collision: square tiles of height field over the grid, side by side (sharing their edge rows),
+    /// all under the "Collision" node's body. A single field for the lot if the grid won't divide evenly.
+    /// </summary>
+    void BuildCollision(float step)
+    {
+        int cells = _grid - 1;
+        _tileCells = cells;
+        // About 32 cells a tile, as long as they come out even.
+        for (int t = 32, d = 0; d <= 16 && _tileCells == cells; d++)
+        {
+            if (t + d <= cells && cells % (t + d) == 0) _tileCells = t + d;
+            else if (t - d >= 8 && cells % (t - d) == 0) _tileCells = t - d;
+        }
+        _tilesAcross = cells / _tileCells;
+        _tiles = new HeightMapShape3D[_tilesAcross * _tilesAcross];
+        var first = GetNode<CollisionShape3D>("Collision");
+        float half = Size * 0.5f;
+        for (int tj = 0; tj < _tilesAcross; tj++)
+        for (int ti = 0; ti < _tilesAcross; ti++)
+        {
+            var shape = new HeightMapShape3D { MapWidth = _tileCells + 1, MapDepth = _tileCells + 1 };
+            _tiles[tj * _tilesAcross + ti] = shape;
+            // Its samples are one unit apart, so the node is stretched to the grid step; the field is centred on it.
+            var node = ti == 0 && tj == 0 ? first : new CollisionShape3D { Name = $"Collision{ti}_{tj}" };
+            node.Shape = shape;
+            node.Scale = new Vector3(step, 1f, step);
+            node.Position = new Vector3(-half + (ti + 0.5f) * _tileCells * step, 0f, -half + (tj + 0.5f) * _tileCells * step);
+            if (node != first) AddChild(node);
+            FillTile(ti, tj);
+        }
+    }
+
+    void FillTile(int ti, int tj)
+    {
+        int side = _tileCells + 1;
+        var data = new float[side * side];
+        for (int j = 0; j < side; j++)
+            System.Array.Copy(_heightsNow, (tj * _tileCells + j) * _grid + ti * _tileCells, data, j * side, side);
+        _tiles[tj * _tilesAcross + ti].MapData = data;
+    }
+
+    void UpdateCollision(int i0, int i1, int j0, int j1)
+    {
+        int last = _tilesAcross - 1;
+        // A point on a tile's edge belongs to both tiles.
+        int ti0 = Mathf.Clamp((Mathf.Max(i0, 0) - 1) / _tileCells, 0, last), ti1 = Mathf.Clamp(Mathf.Min(i1, _grid - 1) / _tileCells, 0, last);
+        int tj0 = Mathf.Clamp((Mathf.Max(j0, 0) - 1) / _tileCells, 0, last), tj1 = Mathf.Clamp(Mathf.Min(j1, _grid - 1) / _tileCells, 0, last);
+        for (int tj = tj0; tj <= tj1; tj++)
+        for (int ti = ti0; ti <= ti1; ti++)
+            FillTile(ti, tj);
     }
 
     /// <summary>Height of the scenery outside the map: the same ground, rising into mountains further out.</summary>
@@ -473,6 +665,7 @@ public partial class MapTerrain : StaticBody3D
             indices.Add(a); indices.Add(d); indices.Add(c);
         }
 
+        long tA = System.Diagnostics.Stopwatch.GetTimestamp();
         var arrays = new Godot.Collections.Array();
         arrays.Resize((int)Mesh.ArrayType.Max);
         arrays[(int)Mesh.ArrayType.Vertex] = verts;
@@ -522,12 +715,35 @@ public partial class MapTerrain : StaticBody3D
         var parent = GetNode<Node3D>("Props");
         var rng = new RandomNumberGenerator { Seed = (ulong)Seed };
         float half = Size * 0.5f - 15f;
+        // The counts are for the battlefield and a strip round it; past that, out to the end of the
+        // ground, the same things grow thinner (OuterPropShare as dense), to be seen rather than walked among.
+        float inner = Mathf.Min(PlayHalf + 120f, half);
+        float ring = (half * half - inner * inner) / (inner * inner) * OuterPropShare;
+        float innerShare = 1f / (1f + ring);
+        bool outer = false;
+
+        // How many of a thing to place, the ring beyond included.
+        int Total(int count) => Mathf.RoundToInt(count * (1f + ring));
 
         Vector3 RandomSpot(float clear)
         {
             for (int tries = 0; tries < 30; tries++)
             {
-                float x = rng.RandfRange(-half, half), z = rng.RandfRange(-half, half);
+                float x, z;
+                if (!outer)
+                {
+                    x = rng.RandfRange(-inner, inner);
+                    z = rng.RandfRange(-inner, inner);
+                }
+                else
+                {
+                    // Anywhere in the ring: a point in the whole square, tried again until it is outside the inner one.
+                    do
+                    {
+                        x = rng.RandfRange(-half, half);
+                        z = rng.RandfRange(-half, half);
+                    } while (Mathf.Max(Mathf.Abs(x), Mathf.Abs(z)) < inner);
+                }
                 // Not on the start pad and not in the water.
                 if (new Vector2(x, z).Length() > clear && WaterDepthAt(x, z) <= 0f)
                     return new Vector3(x, HeightAt(x, z), z);
@@ -562,15 +778,19 @@ public partial class MapTerrain : StaticBody3D
             }
 
         if (SolidScenes.Length > 0)
-            for (int i = 0; i < SolidCount; i++)
+            for (int i = 0; i < Total(SolidCount); i++)
+            {
+                outer = rng.Randf() > innerShare;
                 Place(SolidScenes[rng.RandiRange(0, SolidScenes.Length - 1)], RandomSpot(FlatRadius * 1.5f), 0.2f);
+            }
 
         if (PlantScenes.Length > 0)
         {
             // Woods: a slow noise marks where they grow, and each wood favours one or two kinds of plant.
             var woods = new FastNoiseLite { Seed = Seed + 11, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex, Frequency = 1f / 170f };
-            for (int i = 0; i < PlantCount; i++)
+            for (int i = 0; i < Total(PlantCount); i++)
             {
+                outer = rng.Randf() > innerShare;
                 Vector3 spot = RandomSpot(FlatRadius * 0.6f);
                 for (int tries = 0; tries < 12; tries++)
                 {
@@ -584,6 +804,8 @@ public partial class MapTerrain : StaticBody3D
             }
         }
 
+        // (Tumbleweeds move about: only where the battle is.)
+        outer = false;
         if (DrifterScene != null)
             for (int i = 0; i < DrifterCount; i++)
                 Place(DrifterScene, RandomSpot(0f), 0f);

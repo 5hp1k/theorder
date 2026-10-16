@@ -1,0 +1,31 @@
+[gd_scene format=3]
+
+[sub_resource type="StyleBoxFlat" id="Bg"]
+bg_color = Color(0.16, 0.17, 0.19, 1)
+
+[sub_resource type="StyleBoxFlat" id="Fill"]
+bg_color = Color(0.95, 0.75, 0.3, 1)
+
+[node name="StatRow" type="HBoxContainer"]
+theme_override_constants/separation = 14
+
+[node name="Caption" type="Label" parent="."]
+layout_mode = 2
+custom_minimum_size = Vector2(210, 0)
+theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+
+[node name="Bar" type="ProgressBar" parent="."]
+layout_mode = 2
+custom_minimum_size = Vector2(160, 8)
+size_flags_vertical = 4
+show_percentage = false
+theme_override_styles/background = SubResource("Bg")
+theme_override_styles/fill = SubResource("Fill")
+
+[node name="Value" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+autowrap_mode = 3
+theme_override_font_sizes/font_size = 17
+theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)

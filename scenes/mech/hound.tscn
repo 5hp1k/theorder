@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Texture2D" path="res://textures/footprints/hound.png" id="fp_tex"]
 [ext_resource type="Material" path="res://materials/camo_desert.tres" id="1"]
 [ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
 [ext_resource type="Material" path="res://materials/mech_accent.tres" id="3"]
@@ -62,6 +63,8 @@
 [ext_resource type="Script" path="res://scripts/UI/CockpitDisplays.cs" id="x40"]
 [ext_resource type="Script" path="res://scripts/Combat/Hardpoint.cs" id="hardpoint"]
 [ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_burst.tscn" id="x1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_puff.tscn" id="x11"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 1.52
@@ -199,11 +202,14 @@ ThrottleRate = 1.2
 StepLength = 7.6
 StepHeight = 0.9
 RunSwing = 0.62
-BodySway = 0.2
-TwistRate = 3
+BodySway = 0.25
+TwistRate = 1.8
 ArmorScale = 0.75
+Tonnage = 30
 HasJumpJets = true
-FootprintMesh = ExtResource("x2")
+FootprintTexture = ExtResource("fp_tex")
+FootprintSize = Vector2(1.689, 3.514)
+FootprintCentre = Vector2(0, 0.036)
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.856, 0)
@@ -671,6 +677,7 @@ omni_range = 14.4
 visible = false
 
 [node name="Sound" type="AudioStreamPlayer3D" parent="Hips/JumpJets"]
+bus = &"Effects"
 stream = ExtResource("21")
 unit_size = 11.2
 max_distance = 350
@@ -679,11 +686,14 @@ volume_db = 0
 [node name="Ragdoll" type="Node" parent="."]
 script = ExtResource("22")
 TotalMass = 30000
+HullImpactScene = ExtResource("x1")
+LimbImpactScene = ExtResource("x11")
 
 [node name="Sounds" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.152, 0)
 
 [node name="Footstep" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("23")
 unit_size = 22
 max_distance = 350
@@ -691,12 +701,14 @@ volume_db = 2
 max_polyphony = 2
 
 [node name="Reactor" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("24")
 unit_size = 7
 max_distance = 120
 volume_db = -10
 
 [node name="Hit" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("25")
 unit_size = 16
 max_distance = 300
@@ -704,6 +716,7 @@ volume_db = -2
 max_polyphony = 3
 
 [node name="Alarm" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Signals"
 stream = ExtResource("26")
 unit_size = 6
 max_distance = 40

@@ -18,6 +18,7 @@ Damage = 34
 Heat = 0.34
 Cooldown = 5.0
 Range = 800
+NeedsPower = true
 MaxAmmo = -1
 FxColor = Color(0.5, 0.7, 1, 1)
 ProjectileScene = ExtResource("2")
@@ -26,6 +27,7 @@ SalvoInterval = 0.0
 RackSize = Vector2(0, 0)
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("3")
 unit_size = 22
 max_distance = 600

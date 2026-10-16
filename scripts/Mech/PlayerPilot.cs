@@ -43,6 +43,11 @@ public partial class PlayerPilot : MechPilot, ICockpit
     [Export] public float LockRange = 800f;
 
     public bool CockpitView { get; private set; } = true;
+    /// <summary>
+    /// Counter-rotation (Caps Lock): while the legs turn, the torso turns back the same amount, so the
+    /// guns stay on the bearing the player is looking along — as far as the torso's twist allows.
+    /// </summary>
+    public bool CounterRotate { get; private set; }
     /// <summary>Locked target shown in the HUD's target window; guided missiles home on it.</summary>
     public ITarget Target { get; private set; }
     public Camera3D Camera { get; private set; }
@@ -69,6 +74,9 @@ public partial class PlayerPilot : MechPilot, ICockpit
     public float RestartProgress => Unit.RestartProgress;
     public float Twist => Unit.TorsoYaw;
     public float MaxTwist => Unit.MaxTwist;
+    public float Pitch => Unit.TorsoPitch;
+    public float MinPitch => Unit.MinPitch;
+    public float MaxPitch => Unit.MaxPitch;
     public float HeadingDeg => Unit.HeadingDeg;
     public WeaponSystem Weapons => Unit.Weapons;
     public DamageModel Damage => Unit.Damage;
@@ -82,6 +90,21 @@ public partial class PlayerPilot : MechPilot, ICockpit
     public bool FirstPerson => CockpitView;
     public Vector3 AimPoint => Unit.AimPoint;
     public GodotObject AimCollider => Unit.AimCollider;
+
+    public Vector3? LeadAim
+    {
+        get
+        {
+            if (Unit is Mech mech) return mech.ArmAimPoint.DistanceSquaredTo(mech.AimPoint) > 0.25f ? mech.ArmAimPoint : null;
+            // A turret: where it is turning to, along the sight line it will have when it gets there.
+            float yaw = Mathf.AngleDifference(Unit.TorsoYaw, Unit.TargetYaw), pitch = Unit.TargetPitch - Unit.TorsoPitch;
+            if (IsPlane || (Mathf.Abs(yaw) < 0.01f && Mathf.Abs(pitch) < 0.01f)) return null;
+            Vector3 dir = -_aimView.Basis.Z;
+            Vector3 right = dir.Cross(Vector3.Up);
+            if (right.LengthSquared() < 1e-6f) return null;
+            return _aimView.Origin + dir.Rotated(right.Normalized(), pitch).Rotated(Vector3.Up, yaw) * 300f;
+        }
+    }
     public bool CanLock => true;
     /// <summary>Whether an electromagnetic pulse has knocked the machine's electronics out.</summary>
     public bool Jammed => Emp.Jammed(Unit);
@@ -96,7 +119,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
     float BaseFov => GameConfig.Fov;
 
     Node3D _cockpit;
-    AudioStreamPlayer _lockSound, _acquireSound, _killSound;
+    AudioStreamPlayer _lockSound, _acquireSound;
     Transform3D _aimView = Transform3D.Identity;
     float _lookYaw, _lookPitch;
     // Aircraft: how far left of the nose the mouse has asked it to turn; whether W/S hold the nose off level.
@@ -109,6 +132,11 @@ public partial class PlayerPilot : MechPilot, ICockpit
     float _throttleDetent;   // blocks throttle from crossing zero until W/S is released
     bool _suppressFire, _eyeSet;
     float _eyeHeight;
+    // The hull's heading at the last tick, for counter-rotation.
+    float _lastHull;
+    bool _hullSet;
+    // Groups 4–6 sit on the number keys, which also give lance orders: a key pressed for an order fires nothing until let go.
+    bool _holdNumberGroups;
 
     AudioStreamPlayer _friendlyFire;
     float _lastWarning;
@@ -121,8 +149,11 @@ public partial class PlayerPilot : MechPilot, ICockpit
         _friendlyFire.Play();
     }
 
+    bool _drawnOver;
+
     public override void _ExitTree()
     {
+        if (_drawnOver && Unit is Mech own && IsInstanceValid(own)) own.DrawOver(false);
         Score.FriendlyFire -= OnFriendlyFire;
         if (Game.Cockpit == this) Game.Cockpit = null;
     }
@@ -137,7 +168,6 @@ public partial class PlayerPilot : MechPilot, ICockpit
         Camera.MakeCurrent();
         _lockSound = GetNodeOrNull<AudioStreamPlayer>("LockSound");
         _acquireSound = GetNodeOrNull<AudioStreamPlayer>("AcquireSound");
-        _killSound = GetNodeOrNull<AudioStreamPlayer>("TargetDownSound");
         _friendlyFire = GetNodeOrNull<AudioStreamPlayer>("FriendlyFireSound");
         Score.FriendlyFire += OnFriendlyFire;
         _cockpit = unit.CockpitInterior;
@@ -160,7 +190,13 @@ public partial class PlayerPilot : MechPilot, ICockpit
         {
             // Finer control when zoomed in.
             float sens = MouseSensitivity * GameConfig.MouseSensitivity * Camera.Fov / BaseFov;
-            if (Input.IsActionPressed(LookAction))
+            if (Unit is Mech { ArmsAim: true } armed && Input.IsActionPressed("arm_look"))
+            {
+                // The arms alone: the torso stays where it is.
+                armed.ArmLookYaw = Mathf.Clamp(armed.ArmLookYaw - motion.Relative.X * sens, -armed.ArmYawReach * 2f, armed.ArmYawReach * 2f);
+                armed.ArmLookPitch = Mathf.Clamp(armed.ArmLookPitch - motion.Relative.Y * sens, -armed.ArmPitchReach * 2f, armed.ArmPitchReach * 2f);
+            }
+            else if (Input.IsActionPressed(LookAction))
             {
                 // Head only: the turret and the weapons stay where they were pointing.
                 float limit = Mathf.Min(Unit.MaxTwist, 1.75f);
@@ -176,9 +212,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
             }
             else
             {
-                float yaw = Unit.TargetYaw - motion.Relative.X * sens;
-                // A turret that goes all the way round has no stops.
-                Unit.TargetYaw = Unit.MaxTwist >= Mathf.Pi - 0.01f ? Mathf.Wrap(yaw, -Mathf.Pi, Mathf.Pi) : Mathf.Clamp(yaw, -Unit.MaxTwist, Unit.MaxTwist);
+                SetTwist(Unit.TargetYaw - motion.Relative.X * sens);
                 Unit.TargetPitch = Mathf.Clamp(Unit.TargetPitch - motion.Relative.Y * sens, Unit.MinPitch, Unit.MaxPitch);
             }
         }
@@ -188,6 +222,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
             if (_cockpit != null) _cockpit.Visible = CockpitView;
         }
         else if (@event.IsActionPressed("center_torso")) Unit.TargetYaw = 0f;
+        else if (@event.IsActionPressed("counter_rotate")) CounterRotate = !CounterRotate;
         else if (@event.IsActionPressed("toggle_lights")) Headlight.Toggle(Unit.Body);
         else if (@event.IsActionPressed("zoom")) Zoomed = !Zoomed;
         else if (@event.IsActionPressed("zoom_in")) Zoomed = true;
@@ -218,6 +253,12 @@ public partial class PlayerPilot : MechPilot, ICockpit
         }
     }
 
+    void SetTwist(float yaw)
+    {
+        // A turret that goes all the way round has no stops.
+        Unit.TargetYaw = Unit.MaxTwist >= Mathf.Pi - 0.01f ? Mathf.Wrap(yaw, -Mathf.Pi, Mathf.Pi) : Mathf.Clamp(yaw, -Unit.MaxTwist, Unit.MaxTwist);
+    }
+
     /// <summary>Called when a click was used for something else (leaving a menu), so it doesn't also fire.</summary>
     public void SuppressFireUntilRelease() => _suppressFire = true;
 
@@ -226,23 +267,26 @@ public partial class PlayerPilot : MechPilot, ICockpit
         if (Game.Typing) return;
         if (Target != null && (Target is not Node node || !IsInstanceValid(node) || Target.IsDestroyed))
         {
-            // The one we had in the sight is down: a tone to say so.
+            // The one we had in the sight is down: the computer says so.
             if (Target is Node gone && IsInstanceValid(gone) && Target.IsDestroyed && Units.Hostile(Unit, Target))
-                _killSound?.Play();
+                CockpitVoice.Say("TargetDestroyed");
             SetTarget(null);
         }
 
-        bool g1 = Input.IsActionPressed("fire_group_1");
-        bool g2 = Input.IsActionPressed("fire_group_2");
-        bool g3 = Input.IsActionPressed("fire_group_3");
-        if (_suppressFire && !g1 && !g2 && !g3) _suppressFire = false;
-        Unit.Fire1 = g1;
-        Unit.Fire2 = g2;
-        Unit.Fire3 = g3;
+        int fire = 0;
+        for (int g = 1; g <= WeaponSystem.GroupCount; g++)
+            if (Input.IsActionPressed(FireActions[g - 1])) fire |= WeaponSystem.Bit(g);
+        int numbered = WeaponSystem.Bit(4) | WeaponSystem.Bit(5) | WeaponSystem.Bit(6);
+        if (SquadCommand.Listening) _holdNumberGroups = true;
+        else if ((fire & numbered) == 0) _holdNumberGroups = false;
+        if (_holdNumberGroups) fire &= ~numbered;
+        if (_suppressFire && fire == 0) _suppressFire = false;
+        Unit.Fire = fire;
         Unit.Jump = Input.IsActionPressed("jump");
         Unit.Descend = Input.IsActionPressed("descend");
 
         UpdateLock(dt);
+        CounterTurn();
         if (Unit.Offline) return;
         Unit.TurnInput = Input.GetAxis("turn_right", "turn_left");
         if (IsPlane)
@@ -251,6 +295,20 @@ public partial class PlayerPilot : MechPilot, ICockpit
             return;
         }
         UpdateThrottle(dt);
+    }
+
+    static readonly string[] FireActions = { "fire_group_1", "fire_group_2", "fire_group_3", "fire_group_4", "fire_group_5", "fire_group_6" };
+
+    /// <summary>With counter-rotation on, whatever the legs turned since the last tick the torso turns back.</summary>
+    void CounterTurn()
+    {
+        float hull = Unit.HullYaw;
+        float turned = _hullSet ? Mathf.AngleDifference(_lastHull, hull) : 0f;
+        _lastHull = hull;
+        _hullSet = true;
+        // (A jump in heading is no turn: the machine has just been put somewhere.)
+        if (!CounterRotate || IsPlane || Unit.MaxTwist <= 0.01f || Mathf.Abs(turned) > 0.3f) return;
+        SetTwist(Unit.TargetYaw - turned);
     }
 
     /// <summary>
@@ -389,6 +447,13 @@ public partial class PlayerPilot : MechPilot, ICockpit
             return;
         }
         // Free look springs back as soon as the key is released.
+        // So do the arms, once Alt is let go: back to where the torso aims.
+        if (Unit is Mech mech && (!Input.IsActionPressed("arm_look") || Input.MouseMode != Input.MouseModeEnum.Captured))
+        {
+            float back = Mathf.Exp(-8f * dt);
+            mech.ArmLookYaw *= back;
+            mech.ArmLookPitch *= back;
+        }
         if (!Input.IsActionPressed(LookAction) || Input.MouseMode != Input.MouseModeEnum.Captured)
         {
             float k = Mathf.Exp(-12f * dt);
@@ -443,6 +508,14 @@ public partial class PlayerPilot : MechPilot, ICockpit
             Camera.RotateObjectLocal(Vector3.Right, offset.Y * 0.08f);
         }
         else Camera.GlobalPosition += Camera.GlobalTransform.Basis * offset;
+
+        // From the cockpit the machine's own torso is drawn over the map (not once it is a wreck).
+        bool over = CockpitView && !Unit.IsDestroyed;
+        if (over != _drawnOver && Unit is Mech own)
+        {
+            own.DrawOver(over);
+            _drawnOver = over;
+        }
 
         // Shots are drawn from beyond the cab while looking out of it.
         Unit.Weapons.CabClip = CockpitView ? (Camera.GlobalPosition, -_aimView.Basis.Z, CabDepth * Unit.ChaseScale) : null;

@@ -3,12 +3,19 @@ using Godot;
 namespace MechSim;
 
 /// <summary>
-/// Base for HUD instruments: a Control that redraws itself every frame inside its own rectangle,
-/// so its place and size are whatever the scene says. The same instruments also run on the screens
+/// Base for HUD instruments: a Control that redraws itself inside its own rectangle (so its place and
+/// size are whatever the scene says), as often as <see cref="RedrawRate"/> says. The same instruments also run on the screens
 /// of a cockpit (see CockpitDisplays), where there is no Hud above them: then they use its stock colours.
 /// </summary>
 public abstract partial class HudWidget : Control
 {
+    /// <summary>
+    /// Times a second the instrument is redrawn; 0 = every frame. Drawing a busy instrument costs the
+    /// processor more than one would think, and a gauge needle or a radar blip moving 30 times a second
+    /// looks no different from 144: only what moves with the aim needs every frame.
+    /// </summary>
+    [Export] public float RedrawRate = 30f;
+
     protected Hud Hud { get; private set; }
     /// <summary>The seat the player is in; never null inside Paint().</summary>
     protected ICockpit Seat => Game.Cockpit;
@@ -45,11 +52,24 @@ public abstract partial class HudWidget : Control
         Hud = n as MechSim.Hud;
     }
 
-    public override void _Process(double delta) => QueueRedraw();
+    float _redrawWait;
+
+    public override void _Process(double delta)
+    {
+        if (RedrawRate > 0f)
+        {
+            _redrawWait -= (float)delta;
+            if (_redrawWait > 0f) return;
+            _redrawWait = Mathf.Max(_redrawWait + 1f / RedrawRate, 0f);
+        }
+        QueueRedraw();
+    }
 
     public override void _Draw()
     {
+        long prof = Prof.Now();
         if (Seat != null) Paint();
+        Prof.Add(9, prof);
     }
 
     /// <summary>Draw in local coordinates: (0,0) is the control's top-left, Size its extent.</summary>

@@ -12,7 +12,6 @@ namespace MechSim;
 public partial class Game : Node3D
 {
     public static Game Instance { get; private set; }
-    public static int Kills;
     /// <summary>Whatever the player is controlling right now (a mech, a vehicle, a soldier, a suit).</summary>
     public static ITarget PlayerUnit;
     /// <summary>The seat the HUD shows.</summary>
@@ -60,7 +59,6 @@ public partial class Game : Node3D
     public override void _Ready()
     {
         GameConfig.EnsureLoaded();
-        Kills = 0;
         PlayerUnit = null;
         Cockpit = null;
         Units.All.Clear();
@@ -111,6 +109,8 @@ public partial class Game : Node3D
             SpawnEnemies();
             if (Net.Online) NetLink.I.HostSceneReady(this);
         }
+        // Effects and the shapes hit marks are laid on are prepared now, not at the first shot.
+        Warmup.Run(_units);
         Input.MouseMode = Input.MouseModeEnum.Captured;
     }
 
@@ -155,7 +155,7 @@ public partial class Game : Node3D
                 spawn.Origin = MapTerrain.Instance?.RandomSeaSpot(24f) ?? WaterSpotNear(spawn.Origin) ?? spawn.Origin;
         }
         // What the player fitted in the hangar.
-        GameConfig.Loadouts.TryGetValue(entry.Id, out string[] loadout);
+        string[] loadout = GameConfig.LoadoutFor(entry.Id);
         Hardpoint.Apply(node, loadout);
         node.AddChild(PlayerPilotScene.Instantiate());
         if (node is Mech named && Net.Online) named.DisplayName = NetLink.I.HostName;
@@ -261,7 +261,7 @@ public partial class Game : Node3D
             var mech = GD.Load<PackedScene>(entry.Path).Instantiate<Mech>();
             mech.Team = Team.Player;
             mech.DisplayName = $"Звено-{i + 1} ({entry.Name})";
-            mech.Respawns = true;
+            mech.Respawns = GameConfig.SquadRespawn;
             mech.RespawnTime = EnemyRespawnTime;
             mech.ApplyPaint(paint);
             mech.ApplyInsignia(GameConfig.Insignia);

@@ -47,6 +47,14 @@ public partial class CityLayout : Node3D
     [Export] public PackedScene[] Furniture = System.Array.Empty<PackedScene>();
     [Export] public PackedScene[] Trees = System.Array.Empty<PackedScene>();
 
+    /// <summary>
+    /// Blocks per side laid out in full: past them (and so past the edge of the battlefield) the town
+    /// goes on for the look of it, with houses bare of fittings and streets without cars, lamps or signs.
+    /// </summary>
+    [Export] public int DetailBlocks = 12;
+    /// <summary>How far past the battlefield's edge things are still set out in full, metres.</summary>
+    [Export] public float DetailMargin = 40f;
+
     [ExportGroup("Density")]
     /// <summary>Chance of a tower block in the very centre; falls off towards the edge.</summary>
     [Export(PropertyHint.Range, "0,1")] public float TowerChance = 0.6f;
@@ -62,7 +70,7 @@ public partial class CityLayout : Node3D
 
     RandomNumberGenerator _rng;
     MapTerrain _terrain;
-    float _pitch, _reach;
+    float _pitch, _reach, _detailReach, _detailEdge;
 
     public override void _Ready()
     {
@@ -71,6 +79,8 @@ public partial class CityLayout : Node3D
         _pitch = BlockSize + RoadWidth;
         int half = Blocks / 2;
         _reach = half * _pitch;
+        _detailReach = Mathf.Max(1, DetailBlocks / 2) * _pitch;
+        _detailEdge = (_terrain?.PlayHalf ?? _reach) + DetailMargin;
 
         var kinds = Image.CreateEmpty(half * 2, half * 2, false, Image.Format.R8);
         for (int bx = -half; bx < half; bx++)
@@ -137,7 +147,7 @@ public partial class CityLayout : Node3D
             return Block.Yard;
         }
 
-        float edge = Mathf.Clamp(centre.Length() / _reach, 0f, 1f);
+        float edge = Mathf.Clamp(centre.Length() / _detailReach, 0f, 1f);
         float roll = _rng.Randf();
         if (roll < ParkShare)
         {
@@ -214,6 +224,12 @@ public partial class CityLayout : Node3D
             low = Mathf.Min(low, h);
         }
         node.Transform = new Transform3D(new Basis(Vector3.Up, yaw), new Vector3(at.X, high + 0.05f, at.Z));
+        if (Lite(at) && node is ChunkedBuilding bare)
+        {
+            bare.Doors = 0;
+            bare.WallFittings = System.Array.Empty<PackedScene>();
+            bare.RoofFittings = System.Array.Empty<PackedScene>();
+        }
         float drop = high - low + 1f;
         bool quarter = Mathf.Abs(Mathf.Sin(yaw)) > 0.7f;
         node.AddChild(new MeshInstance3D
@@ -392,12 +408,16 @@ public partial class CityLayout : Node3D
                     var pier = BridgePierScene.Instantiate<Node3D>();
                     pier.Position = c + new Vector3(-side * half, -half, 0f);
                     bridge.Attach(pier, x, 0, z);
+                    bridge.Anchor(x, 0, z);
                 }
             }
         }
     }
 
     // ── Placing ─────────────────────────────────────────────────
+
+    /// <summary>Whether this spot is far enough past the battlefield's edge to be set out only for the look of it.</summary>
+    bool Lite(Vector3 at) => Mathf.Max(Mathf.Abs(at.X), Mathf.Abs(at.Z)) > _detailEdge;
 
     PackedScene Pick(PackedScene[] scenes) => scenes[_rng.RandiRange(0, scenes.Length - 1)];
     PackedScene PickCar() => ServiceCars.Length > 0 && _rng.Randf() < 0.08f ? Pick(ServiceCars) : Pick(Cars);
@@ -407,6 +427,8 @@ public partial class CityLayout : Node3D
     void Stand(PackedScene scene, Vector3 at, float yaw, float lift = 0f, bool tilt = false)
     {
         if (scene == null || Wet(at.X, at.Z)) return;
+        // Beyond the battlefield only the trees.
+        if (Lite(at) && System.Array.IndexOf(Trees, scene) < 0) return;
         var node = scene.Instantiate<Node3D>();
         var basis = new Basis(Vector3.Up, yaw);
         if (tilt) basis = Geo.BasisFromUpForward(Slope(at.X, at.Z), -basis.Z);

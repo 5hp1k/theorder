@@ -78,9 +78,8 @@ public static class Impacts
         at.Y = terrain.WaterLevel;
         WaterSurface.AddRipple(at, strength);
         if (terrain.SplashScene == null) return;
-        var splash = terrain.SplashScene.Instantiate<Node3D>();
-        splash.Transform = new Transform3D(Basis.Identity.Scaled(Vector3.One * Mathf.Clamp(strength, 0.4f, 3f)), at);
-        parent.AddChild(splash);
+        var splash = OneShotFx.Spawn(terrain.SplashScene, parent, at);
+        if (splash != null) splash.Scale = Vector3.One * Mathf.Clamp(strength, 0.4f, 3f);
     }
 
     // ── On machines ─────────────────────────────────────────────
@@ -99,6 +98,8 @@ public static class Impacts
     public static void Unit(in Phys.Hit hit, float radius, Mark kind)
     {
         if (radius <= 0f || hit.Collider is not Node3D body || (body is not HitBox && body is not Vehicle)) return;
+        // A pock on a machine half a kilometre off is not a thing anyone sees.
+        if (!Lod.Visible(hit.Position, 2f, GameConfig.FxRange * 1.5f)) return;
         // The shot stopped at the collision box, which is cruder than the machine: carry it on to the plating.
         Vector3 along = hit.Position - hit.From;
         along = along.LengthSquared() > 1e-6f ? along.Normalized() : -hit.Normal;
@@ -144,7 +145,9 @@ public static class Impacts
     /// <summary>How far past the collision box a shot is followed to find the plating behind it.</summary>
     const float ModelReach = 8f;
     static readonly Dictionary<Mesh, TriangleMesh> Solids = new();
-    static readonly List<MeshInstance3D> Plates = new();
+    static readonly Dictionary<Mesh, Aabb> Bounds = new();
+    // The meshes of each body, collected once (the marks hung on them later are not among them).
+    static readonly Dictionary<Node3D, List<MeshInstance3D>> Plates = new();
 
     /// <summary>
     /// Where a shot from one point to another first meets the machine itself — the triangles of its
@@ -155,14 +158,26 @@ public static class Impacts
         position = normal = default;
         plate = null;
         float nearest = float.MaxValue;
-        Plates.Clear();
-        foreach (var mesh in Geo.Collect(body, Plates))
+        if (!Plates.TryGetValue(body, out var plates))
         {
-            if (mesh.Mesh == null || mesh.IsInGroup(MarkGroup) || !mesh.IsVisibleInTree()) continue;
-            if (!Solids.TryGetValue(mesh.Mesh, out var solid)) Solids[mesh.Mesh] = solid = mesh.Mesh.GenerateTriangleMesh();
-            if (solid == null) continue;
+            plates = Geo.Collect<MeshInstance3D>(body);
+            plates.RemoveAll(m => m.IsInGroup(MarkGroup));
+            Plates[body] = plates;
+        }
+        foreach (var mesh in plates)
+        {
+            if (!GodotObject.IsInstanceValid(mesh) || mesh.Mesh is not { } shape) continue;
+            // Most of a machine's parts are nowhere near the shot: a look at the part's box first,
+            // before asking the engine about its triangles.
+            if (!Bounds.TryGetValue(shape, out var box)) Bounds[shape] = box = shape.GetAabb();
             Transform3D world = mesh.GlobalTransform, local = world.AffineInverse();
-            var found = solid.IntersectSegment(local * from, local * to);
+            Vector3 a = local * from, b = local * to;
+            if (!SegmentTouches(box.Grow(0.05f), a, b)) continue;
+            // (A part shot off and lying elsewhere is no longer on this body.)
+            if (!mesh.IsVisibleInTree() || !body.IsAncestorOf(mesh)) continue;
+            if (!Solids.TryGetValue(shape, out var solid)) Solids[shape] = solid = shape.GenerateTriangleMesh();
+            if (solid == null) continue;
+            var found = solid.IntersectSegment(a, b);
             if (found.Count == 0) continue;
             Vector3 p = world * found["position"].AsVector3();
             float d = p.DistanceSquaredTo(from);
@@ -174,6 +189,38 @@ public static class Impacts
             plate = mesh;
         }
         return plate != null;
+    }
+
+    /// <summary>Works out ahead of time the shapes marks are laid on for every part of a machine (it takes a while the first time).</summary>
+    public static void Prepare(Node unit)
+    {
+        foreach (var mesh in Geo.Collect<MeshInstance3D>(unit))
+        {
+            if (mesh.Mesh is not { } shape || mesh.IsInGroup(MarkGroup) || Solids.ContainsKey(shape)) continue;
+            Solids[shape] = shape.GenerateTriangleMesh();
+            Bounds[shape] = shape.GetAabb();
+        }
+    }
+
+    /// <summary>Whether the segment from a to b passes through the box.</summary>
+    static bool SegmentTouches(Aabb box, Vector3 a, Vector3 b)
+    {
+        Vector3 d = b - a, lo = box.Position, hi = box.End;
+        float t0 = 0f, t1 = 1f;
+        for (int i = 0; i < 3; i++)
+        {
+            if (Mathf.Abs(d[i]) < 1e-6f)
+            {
+                if (a[i] < lo[i] || a[i] > hi[i]) return false;
+                continue;
+            }
+            float u = (lo[i] - a[i]) / d[i], v = (hi[i] - a[i]) / d[i];
+            if (u > v) (u, v) = (v, u);
+            t0 = Mathf.Max(t0, u);
+            t1 = Mathf.Min(t1, v);
+            if (t0 > t1) return false;
+        }
+        return true;
     }
 
     /// <summary>Takes the marks off a machine (it has been repaired).</summary>
@@ -188,20 +235,25 @@ public static class Impacts
     {
         if (hit.Collider is not HitBox && hit.Collider is not Vehicle) return;
         _sparks ??= GD.Load<PackedScene>("res://scenes/fx/sparks.tscn");
-        var fx = _sparks.Instantiate<Node3D>();
-        parent.AddChild(fx);
         Vector3 n = hit.Normal.Normalized();
+        if (OneShotFx.Spawn(_sparks, parent, hit.Position + n * 0.1f, 0.6f) is not { } fx) return;
         // The shower flies off along the plate's normal (the emitter shoots along its +Z).
         Vector3 side = n.Cross(Mathf.Abs(n.Y) < 0.9f ? Vector3.Up : Vector3.Right).Normalized();
-        fx.GlobalTransform = new Transform3D(new Basis(side, n.Cross(side), n), hit.Position + n * 0.1f);
+        fx.GlobalBasis = new Basis(side, n.Cross(side), n);
     }
 
     /// <summary>Forget everything (a new battle).</summary>
     public static void Reset()
     {
         Craters.Clear();
-        Solids.Clear();
+        // (The shapes of the parts are kept: the meshes are the same in every battle, and working them
+        // out again is what made the first hit on each part stall.)
+        Plates.Clear();
         Debris.Reset();
+        OneShotFx.Reset();
+        Boundary.Reset();
+        TimedFx.Reset();
+        GaussTrail.Reset();
         Burning.Reset();
         Emp.Reset();
         CollapseRumble.Reset();

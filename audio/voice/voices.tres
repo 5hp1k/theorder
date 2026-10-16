@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="VoiceCatalog" format=3]
+
+[ext_resource type="Resource" path="res://audio/voice/betty/pack.tres" id="1_5jln3"]
+[ext_resource type="Resource" path="res://audio/voice/cori/pack.tres" id="2_k3r7o"]
+[ext_resource type="Resource" path="res://audio/voice/joe/pack.tres" id="3_615ut"]
+[ext_resource type="Script" path="res://scripts/UI/VoiceCatalog.cs" id="4_6vi5h"]
+
+[resource]
+script = ExtResource("4_6vi5h")
+Packs = [ExtResource("1_5jln3"), ExtResource("2_k3r7o"), ExtResource("3_615ut")]

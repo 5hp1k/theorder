@@ -13,21 +13,54 @@ public partial class DebrisChunk : RigidBody3D
     /// <summary>kg per cubic metre, so big chunks fall like big chunks.</summary>
     [Export] public float Density = 600f;
 
+    /// <summary>Seconds it takes to shrink away at the end.</summary>
+    const float ShrinkTime = 0.6f;
+
+    MeshInstance3D _mesh;
+    BoxShape3D _shape;
+    Vector3 _size;
+    float _left;
+
+    /// <summary>Lying about no more: it can be thrown out again (see <see cref="Debris"/>).</summary>
+    public bool Spent { get; private set; }
+
     public void Setup(Vector3 size, Material material)
     {
-        var mesh = GetNode<MeshInstance3D>("Mesh");
-        mesh.Mesh = Debris.Lump();
-        mesh.Scale = size;
-        mesh.MaterialOverride = material;
-        GetNode<CollisionShape3D>("Shape").Shape = new BoxShape3D { Size = size };
+        _mesh ??= GetNode<MeshInstance3D>("Mesh");
+        if (_shape == null)
+        {
+            // Its own shape, resized for every throw (the scene's is shared by all of them).
+            _shape = new BoxShape3D();
+            GetNode<CollisionShape3D>("Shape").Shape = _shape;
+        }
+        _size = size;
+        _mesh.Mesh = Debris.Lump();
+        _mesh.Scale = size;
+        _mesh.MaterialOverride = material;
+        _shape.Size = size;
         Mass = Mathf.Max(5f, size.X * size.Y * size.Z * Density);
+        _left = Lifetime * (float)GD.RandRange(0.7, 1.0);
+        Spent = false;
+        Visible = true;
+        Freeze = false;
+        CollisionLayer = Phys.LayerWreck;
+        SetProcess(true);
     }
 
-    public override void _Ready()
+    public override void _Process(double delta)
     {
-        var tween = CreateTween();
-        tween.TweenInterval(Lifetime * (float)GD.RandRange(0.7, 1.0));
-        tween.TweenProperty(this, "scale", Vector3.One * 0.01f, 0.6f);
-        tween.TweenCallback(Callable.From(QueueFree));
+        _left -= (float)delta;
+        if (_left > 0f) return;
+        // Shrinks away: the picture only. (Scaling the body itself would make the physics engine
+        // rebuild its shape every frame.)
+        float k = Mathf.Clamp(1f + _left / ShrinkTime, 0f, 1f);
+        _mesh.Scale = _size * Mathf.Max(k, 0.01f);
+        if (k > 0f) return;
+        // Put away, to be thrown again.
+        Spent = true;
+        Visible = false;
+        Freeze = true;
+        CollisionLayer = 0;
+        SetProcess(false);
     }
 }

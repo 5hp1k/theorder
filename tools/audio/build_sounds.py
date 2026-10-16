@@ -208,7 +208,8 @@ def radio(a):
     return np.tanh(a * 1.6)
 
 
-# the target is down — three to choose from (the game plays target_destroyed.wav: copy the one you like over it)
+# the target is down — three beeps to choose from (the game plays target_destroyed.wav, now the cockpit's voice
+# from voice_lines.py: copy one of these over it for a beep instead)
 variants = {
     # a military confirmation: two quick beeps and a lower closing tone
     'target_destroyed_a': radio(np.concatenate([beep(880, 0.06), gap(0.045), beep(880, 0.06), gap(0.045), beep(587, 0.17)])),
@@ -220,7 +221,6 @@ variants = {
 }
 for name, a in variants.items():
     save(name, a / np.abs(a).max() * 0.55)
-save('target_destroyed', variants['target_destroyed_a'] / np.abs(variants['target_destroyed_a']).max() * 0.55)
 
 # a falling bomb: a whistle sliding down as it drops, with air rushing past, louder as it nears
 t = np.arange(int(3.2 * RATE)) / RATE

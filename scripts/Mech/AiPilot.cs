@@ -76,7 +76,7 @@ public partial class AiPilot : MechPilot
         OrderTarget = order is SquadOrder.Attack or SquadOrder.Defend ? target : null;
         _orderPoint = point;
         if (order == SquadOrder.Hold) _home = Here;
-        if (order is SquadOrder.GoTo or SquadOrder.Repair) _home = point;
+        if (order is SquadOrder.GoTo or SquadOrder.Repair) _home = Inside(point, 20f);
         _pickTimer = 0f;
         if (_state != State.Engage || order is SquadOrder.Shutdown or SquadOrder.Repair or SquadOrder.GoTo) BackToPatrol();
     }
@@ -96,6 +96,8 @@ public partial class AiPilot : MechPilot
 
     /// <summary>Seconds the guns must stay on the target before its missiles will home.</summary>
     [Export] public float LockTime = 1.8f;
+    /// <summary>How far off the target the sight may wander and still keep the lock building, radians.</summary>
+    [Export] public float LockCone = 0.07f;
     /// <summary>Share of the sensor range the pilot still sees to with the electronics knocked out.</summary>
     [Export(PropertyHint.Range, "0,1")] public float BlindSight = 0.3f;
     [ExportGroup("Nuclear bomb")]
@@ -119,6 +121,7 @@ public partial class AiPilot : MechPilot
     Vehicle _plane;
     /// <summary>A ship: keeps to water deep enough for its keel, whatever it is after.</summary>
     Vehicle _ship;
+    bool _landbound;
     Vector3 _safeWay;
     float _safeTimer, _aground, _backOff, _sternStuck, _turnAway = 1f;
     bool _ahead;
@@ -137,6 +140,8 @@ public partial class AiPilot : MechPilot
         unit.Weapons.HoldEmp = !GameConfig.BotEmp;
         if (unit is Vehicle { Kind: Vehicle.MoveKind.Plane } plane) _plane = plane;
         if (unit is Vehicle { Kind: Vehicle.MoveKind.Ship } ship) _ship = ship;
+        // Tanks and the like drown in deep water: they keep out of it.
+        _landbound = unit is Vehicle { Kind: Vehicle.MoveKind.Ground };
         // Artillery and rocket launchers stand off, and are told of targets that far away.
         if (unit is Vehicle { AiRange: > 0f } gunner)
         {
@@ -159,9 +164,11 @@ public partial class AiPilot : MechPilot
         PickTarget(dt);
         bool alive = _target != null && !_target.IsDestroyed;
         Perceive(dt, alive);
-        // Missile lock, earned the same way the player earns it: by holding the sight on the target.
+        // Missile lock, earned the same way the player earns it: by holding the sight on the target — near
+        // enough, as the guns wander around it (see AimSpread), while it is in sight.
         // (With its electronics burnt out by a pulse there is no lock to be had.)
-        bool onTarget = alive && !Emp.Jammed(Unit) && (Units.FromCollider(Unit.AimCollider) == _target || (_battery != null && _laid));
+        bool onTarget = alive && !Emp.Jammed(Unit) && (Units.FromCollider(Unit.AimCollider) == _target || (_battery != null && _laid)
+            || _sinceSeen < 0.5f && (Unit.AimPoint - Unit.AimCenter).AngleTo(_target.AimCenter - Unit.AimCenter) < LockCone);
         if (Emp.Jammed(Unit)) _lock = 0f;
         _lock = Mathf.Clamp(_lock + (onTarget ? dt / LockTime : -dt * 1.5f), 0f, 1f);
         Unit.LockTarget = _lock >= 1f ? _target : null;
@@ -169,6 +176,7 @@ public partial class AiPilot : MechPilot
         if (_plane != null)
         {
             FlyBomber(dt, alive && _sinceSeen < MemoryTime);
+            KeepInside(dt);
             return;
         }
 
@@ -198,13 +206,14 @@ public partial class AiPilot : MechPilot
                 else if (!alive || _searchTime > 25f || FlatDistance(_lastKnown) < 15f || Unit.Blocked) BackToPatrol();
                 else
                 {
-                    Steer(_lastKnown - Here, 0.7f, dt);
+                    Steer(Inside(_lastKnown) - Here, 0.7f, dt);
                     Scan();
                 }
                 break;
         }
+        KeepInside(dt);
         if (Leader != null && (HoldFire || Order is SquadOrder.Shutdown or SquadOrder.Repair && NeedsWork() && FlatDistance(_home) < 20f))
-            Unit.Fire1 = Unit.Fire2 = Unit.Fire3 = false;
+            Unit.Fire = 0;
     }
 
     /// <summary>Whom to hunt: the player, or with a free-for-all whoever hostile is nearest.</summary>
@@ -424,8 +433,7 @@ public partial class AiPilot : MechPilot
             if (lobs) _battery.AimOverride = mark;
             AimAt(lobs ? mark : _target.AimCenter + Vector3.Up * (dist * 0.3f));
             _laid = Mathf.Abs(Mathf.AngleDifference(Unit.TorsoYaw, Unit.TargetYaw)) < 0.06f;
-            Unit.Fire1 = _laid && dist > 45f && dist < PreferredRange * 1.6f && (lobs || Unit.LockTarget != null);
-            Unit.Fire2 = Unit.Fire3 = false;
+            Unit.Fire = _laid && dist > 45f && dist < PreferredRange * 1.6f && (lobs || Unit.LockTarget != null) ? WeaponSystem.Bit(1) : 0;
             return;
         }
         AimAt(_target.AimCenter + _aimOffset);
@@ -433,10 +441,12 @@ public partial class AiPilot : MechPilot
         // Shoot only when the guns are actually on the target (this is also the line-of-fire check).
         if (Units.FromCollider(Unit.AimCollider) == _target)
         {
-            Unit.Fire1 = !hot;
-            Unit.Fire2 = dist < Mathf.Max(400f, PreferredRange * 1.4f);
+            int fire = hot ? 0 : WeaponSystem.Bit(1);
+            if (dist < Mathf.Max(400f, PreferredRange * 1.4f)) fire |= WeaponSystem.Bit(2);
             // Machine guns and hand weapons; the weapons themselves refuse a swing out of reach.
-            Unit.Fire3 = dist < 250f;
+            // (Groups 4–6 are the player's own; a stock machine has nothing there, but fire them with 3.)
+            if (dist < 250f) fire |= WeaponSystem.Bit(3) | WeaponSystem.Bit(4) | WeaponSystem.Bit(5) | WeaponSystem.Bit(6);
+            Unit.Fire = fire;
         }
     }
 
@@ -507,9 +517,7 @@ public partial class AiPilot : MechPilot
             if (Mathf.Abs(angle) < 0.3f && dist < carry + 40f && Unit.Weapons.ReadyStrategic is { } bomb)
             {
                 Unit.Weapons.ReleaseStrategic = true;
-                Unit.Fire1 |= bomb.Group == 1;
-                Unit.Fire2 |= bomb.Group == 2;
-                Unit.Fire3 |= bomb.Group == 3;
+                Unit.Fire |= WeaponSystem.Bit(bomb.Group);
                 NukeSpent = true;
                 _nukeRun = false;
                 _egress = 9f;
@@ -526,8 +534,8 @@ public partial class AiPilot : MechPilot
         // Bombs keep the plane's speed: release early by however far they travel while falling.
         float lead = Mathf.Abs(Unit.Speed) * Mathf.Sqrt(2f * Mathf.Max(altitude, 1f) / 20f);
         bool linedUp = Mathf.Abs(angle) < 0.25f;
-        if (linedUp && dist < lead + 25f && dist > lead - 35f) Unit.Fire2 = true;
-        if (linedUp && Units.FromCollider(Unit.AimCollider) == _target) Unit.Fire1 = true;
+        if (linedUp && dist < lead + 25f && dist > lead - 35f) Unit.Fire |= WeaponSystem.Bit(2);
+        if (linedUp && Units.FromCollider(Unit.AimCollider) == _target) Unit.Fire |= WeaponSystem.Bit(1);
         if (dist < 30f) _egress = 6f;
     }
 
@@ -581,11 +589,21 @@ public partial class AiPilot : MechPilot
             }
             direction = SeaWay(direction, dt);
         }
+        else if (_landbound) direction = DryWay(direction, dt);
         Vector3 forward = -Unit.Body.GlobalTransform.Basis.Z;
         float angle = forward.SignedAngleTo(direction.Normalized(), Vector3.Up); // positive = to the left
         Unit.TurnInput = Mathf.Clamp(angle * 2.5f, -1f, 1f);
         // Slow down for sharp turns instead of running wide.
         float want = throttle * (Mathf.Abs(angle) > 1.2f ? 0.4f : 1f);
+        // A land machine with water right ahead where it is going now (a turn at speed swings wide):
+        // it backs off rather than carry on into it.
+        if (_landbound)
+        {
+            float travel = Unit.Speed >= 0f ? 1f : -1f;
+            float stop = Mathf.Max(Mathf.Abs(Unit.Speed) * 1.5f, 6f);
+            if (!Dry(Here + forward * travel * stop) || !Dry(Here + forward * travel * stop * 0.5f))
+                want = travel > 0f ? -Unit.ReverseFraction * 0.7f : 0.5f;
+        }
         Unit.Throttle = Mathf.MoveToward(Unit.Throttle, want, Unit.ThrottleRate * dt);
     }
 
@@ -603,6 +621,53 @@ public partial class AiPilot : MechPilot
         Unit.TargetPitch = 0f;
     }
 
+    /// <summary>
+    /// The battlefield has an edge, and a machine that stays beyond it is lost: whatever the pilot was
+    /// doing, if the machine is out there or will be in a few seconds on its present heading, it turns
+    /// back in (still shooting: the turret is its own). Planes, which can't stop, turn well before.
+    /// </summary>
+    void KeepInside(float dt)
+    {
+        var terrain = MapTerrain.Instance;
+        if (terrain == null) return;
+        float line = terrain.PlayHalf;
+        Vector3 forward = -Unit.Body.GlobalTransform.Basis.Z;
+        bool outside = terrain.OutOfBounds(Here);
+        if (_plane != null)
+        {
+            // A plane turns in a circle of radius v² / (g · tan bank): it has to start the turn that far
+            // from the edge, heading out — and slows down for it, the circle shrinking with the speed.
+            float v = Mathf.Abs(Unit.Speed);
+            float radius = v * v / (_plane.FlightGravity * Mathf.Tan(Mathf.Clamp(_plane.BankAngle, 0.2f, 1.2f)));
+            float edge = line - Mathf.Min(radius * 1.1f + 40f, line * 0.8f);
+            bool outX = Mathf.Abs(Here.X) > edge && forward.X * Mathf.Sign(Here.X) > -0.2f;
+            bool outZ = Mathf.Abs(Here.Z) > edge && forward.Z * Mathf.Sign(Here.Z) > -0.2f;
+            if (!outside && !outX && !outZ) return;
+            Vector3 home = new Vector3(-Here.X, 0f, -Here.Z);
+            float angle = forward.SignedAngleTo(home.Normalized(), Vector3.Up);
+            _egress = 0f;
+            Unit.TurnInput = Mathf.Clamp(angle * 2f, -1f, 1f);
+            Unit.Throttle = Mathf.Abs(angle) > 0.4f ? 0.15f : 1f;
+            return;
+        }
+        float look = Mathf.Max(Mathf.Abs(Unit.Speed) * 2.5f, 10f);
+        Vector3 ahead = Here + forward * look * (Unit.Speed < -0.5f ? -1f : 1f);
+        float limit = line - 15f;
+        if (!outside && Mathf.Abs(ahead.X) < limit && Mathf.Abs(ahead.Z) < limit) return;
+        // Square in from whichever edges are near.
+        var inward = new Vector3(Mathf.Abs(Here.X) > limit - look ? -Mathf.Sign(Here.X) : 0f, 0f, Mathf.Abs(Here.Z) > limit - look ? -Mathf.Sign(Here.Z) : 0f);
+        if (inward == Vector3.Zero) inward = -new Vector3(Here.X, 0f, Here.Z);
+        Steer(inward, outside ? 1f : 0.8f, dt);
+    }
+
+    /// <summary>A point brought in from the edge of the battlefield, if it was near it or beyond.</summary>
+    static Vector3 Inside(Vector3 p, float keepOff = 40f)
+    {
+        if (MapTerrain.Instance is not { } terrain) return p;
+        float limit = terrain.PlayHalf - keepOff;
+        return new Vector3(Mathf.Clamp(p.X, -limit, limit), p.Y, Mathf.Clamp(p.Z, -limit, limit));
+    }
+
     void PickWaypoint()
     {
         for (int tries = 0; tries < 12; tries++)
@@ -610,8 +675,8 @@ public partial class AiPilot : MechPilot
             float angle = GD.Randf() * Mathf.Tau;
             // (A ship ranges further: there is more sea than a patrol circle.)
             float dist = Mathf.Sqrt(GD.Randf()) * PatrolRadius * (_ship != null ? 2.5f : 1f);
-            _waypoint = _home + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * dist;
-            if (_ship == null || Navigable(_waypoint)) return;
+            _waypoint = Inside(_home + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * dist);
+            if (_ship == null ? !_landbound || Dry(_waypoint) : Navigable(_waypoint)) return;
         }
         // No open water near (a ship that has wandered up a river): make for the open sea.
         _waypoint = _ship != null ? MapTerrain.Instance?.RandomSeaSpot(24f) ?? _home : _home;
@@ -664,6 +729,33 @@ public partial class AiPilot : MechPilot
         }
         // Hemmed in: back the way it came.
         return _safeWay = Unit.Body.GlobalTransform.Basis.Z;
+    }
+
+    /// <summary>Somewhere a machine that can't swim can go: no deeper than its wheels, or a bridge over the water.</summary>
+    bool Dry(Vector3 p)
+    {
+        var terrain = MapTerrain.Instance;
+        if (terrain is not { HasWater: true }) return true;
+        return terrain.WaterDepthAt(p.X, p.Z) < 0.6f || ChunkedBuilding.DeckAt(p.X, p.Z, Here.Y + 3f, out _);
+    }
+
+    /// <summary>The heading a land machine takes for the one it wants: that one if the way ahead is dry, otherwise the nearest that is.</summary>
+    Vector3 DryWay(Vector3 want, float dt)
+    {
+        _safeTimer -= dt;
+        if (_safeTimer > 0f && _safeWay != Vector3.Zero) return _safeWay;
+        _safeTimer = 0.25f;
+        want = want.Normalized();
+        float look = Mathf.Max(Mathf.Abs(Unit.Speed) * 2.5f, 12f);
+        foreach (float turn in new[] { 0f, 0.35f, -0.35f, 0.7f, -0.7f, 1.05f, -1.05f, 1.4f, -1.4f, 1.8f, -1.8f, 2.3f, -2.3f, 2.8f, -2.8f, Mathf.Pi })
+        {
+            Vector3 way = want.Rotated(Vector3.Up, turn);
+            bool clear = true;
+            for (int k = 1; k <= 4 && clear; k++) clear = Dry(Here + way * (look * k / 4f));
+            if (clear) return _safeWay = way;
+        }
+        // Water all round (it has got in already): the shortest way out, whatever it is.
+        return _safeWay = want;
     }
 
     float FlatDistance(Vector3 point)

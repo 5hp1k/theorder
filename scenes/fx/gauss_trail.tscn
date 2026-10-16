@@ -1,0 +1,53 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Fx/GaussTrail.cs" id="1"]
+[ext_resource type="Shader" path="res://materials/fx/gauss_helix.gdshader" id="2"]
+[ext_resource type="Shader" path="res://materials/fx/gauss_core.gdshader" id="3"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_helix"]
+render_priority = 0
+shader = ExtResource("2")
+shader_parameter/life = 1.8
+shader_parameter/pitch = 1.5
+shader_parameter/start_radius = 0.16
+shader_parameter/spread = 0.9
+shader_parameter/width = 0.07
+shader_parameter/brightness = 3.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_helix"]
+top_radius = 1.0
+bottom_radius = 1.0
+height = 1.0
+radial_segments = 16
+rings = 0
+cap_top = false
+cap_bottom = false
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_core"]
+render_priority = 0
+shader = ExtResource("3")
+shader_parameter/fade = 0.18
+shader_parameter/brightness = 6.0
+
+[sub_resource type="CylinderMesh" id="CylinderMesh_core"]
+top_radius = 0.045
+bottom_radius = 0.045
+height = 1.0
+radial_segments = 8
+rings = 0
+cap_top = false
+cap_bottom = false
+
+[node name="GaussTrail" type="Node3D"]
+script = ExtResource("1")
+
+[node name="Helix" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+extra_cull_margin = 4.0
+mesh = SubResource("CylinderMesh_helix")
+material_override = SubResource("ShaderMaterial_helix")
+
+[node name="Core" type="MeshInstance3D" parent="."]
+cast_shadow = 0
+mesh = SubResource("CylinderMesh_core")
+material_override = SubResource("ShaderMaterial_core")

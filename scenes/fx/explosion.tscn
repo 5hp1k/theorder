@@ -139,6 +139,7 @@ light_energy = 40
 omni_range = 90
 
 [node name="Sound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("4")
 unit_size = 50
 max_distance = 1200

@@ -22,6 +22,7 @@ SalvoSize = 4
 SalvoInterval = 0.18
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("3")
 unit_size = 10
 max_distance = 200

@@ -4,7 +4,7 @@ namespace MechSim;
 
 /// <summary>
 /// Whoever drives a mech or a vehicle. Added as a child of the machine; each tick it sets the machine's
-/// commands (TurnInput, Throttle, TargetYaw/TargetPitch, Fire1..3). PlayerPilot reads input, AiPilot thinks.
+/// commands (TurnInput, Throttle, TargetYaw/TargetPitch, Fire). PlayerPilot reads input, AiPilot thinks.
 /// </summary>
 public abstract partial class MechPilot : Node3D
 {

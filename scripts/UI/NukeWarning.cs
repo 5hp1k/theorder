@@ -62,8 +62,8 @@ public partial class NukeWarning : HudWidget
         DrawRect(new Rect2(0f, 0f, w, Size.Y), new Color(0.25f, 0f, 0f, 0.35f));
         DrawRect(new Rect2(0f, 0f, w, Size.Y), Red, false, 2f);
         if (blink) Text("ЯДЕРНЫЙ УДАР", new Vector2(0f, 30f), 28, Red, HorizontalAlignment.Center, w);
-        Text($"До эпицентра {Mathf.RoundToInt(distance)} м   Взрыв через {Mathf.CeilToInt(bomb.TimeToGround)} с", new Vector2(0f, 58f), 18, Amber, HorizontalAlignment.Center, w);
-        Text(danger ? "ВЫ В ЗОНЕ ПОРАЖЕНИЯ — УХОДИТЕ ОТ СТРЕЛКИ" : "Вы вне зоны поражения. Не смотрите на вспышку",
+        Text($"До эпицентра {Mathf.RoundToInt(distance)} м · взрыв через {Mathf.CeilToInt(bomb.TimeToGround)} с", new Vector2(0f, 58f), 18, Amber, HorizontalAlignment.Center, w);
+        Text(danger ? "В ЗОНЕ ПОРАЖЕНИЯ — УХОДИТЕ ОТ СТРЕЛКИ" : "Вне зоны поражения. Отвернитесь от вспышки",
              new Vector2(0f, 82f), 16, danger ? Red : Green, HorizontalAlignment.Center, w);
 
         // The arrow: round a ring under the text, towards where the bomb will land, as the pilot looks.

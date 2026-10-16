@@ -59,30 +59,55 @@ public static class Debris
         mesh.AddSurfaceFromArrays(Mesh.PrimitiveType.Triangles, builder.ToArrays());
         return mesh;
     }
+    // Every chunk ever thrown, oldest first. Past the limit the oldest is thrown again rather than a
+    // new one made: they are rigid bodies, and making and freeing them by the hundred is what hurts.
     static readonly Queue<DebrisChunk> Chunks = new();
+
+    /// <summary>Most loose chunks there are at once, at the current graphics setting.</summary>
+    static int Limit => Mathf.Max(12, Mathf.RoundToInt(MaxChunks * GameConfig.DebrisAmount));
 
     /// <summary>Throws out a loose block of the given size and material.</summary>
     public static void Chunk(Node parent, Vector3 position, Vector3 size, Material material, Vector3 velocity)
     {
-        _chunk ??= GD.Load<PackedScene>("res://scenes/fx/debris_chunk.tscn");
-        var chunk = _chunk.Instantiate<DebrisChunk>();
+        // (Fewer allowed than there are, after the setting was lowered: the oldest go.)
+        while (Chunks.Count > Limit)
+        {
+            var extra = Chunks.Dequeue();
+            if (GodotObject.IsInstanceValid(extra)) extra.QueueFree();
+        }
+        // The oldest one, if it is spent or there are already as many as allowed.
+        DebrisChunk chunk = null;
+        while (Chunks.Count > 0)
+        {
+            var first = Chunks.Peek();
+            if (!GodotObject.IsInstanceValid(first) || first.IsQueuedForDeletion())
+            {
+                Chunks.Dequeue();
+                continue;
+            }
+            if (first.Spent || Chunks.Count >= Limit) chunk = Chunks.Dequeue();
+            break;
+        }
+        if (chunk == null)
+        {
+            _chunk ??= GD.Load<PackedScene>("res://scenes/fx/debris_chunk.tscn");
+            chunk = _chunk.Instantiate<DebrisChunk>();
+            parent.AddChild(chunk);
+        }
+        else if (chunk.GetParent() != parent) chunk.Reparent(parent, false);
         chunk.Setup(size, material);
-        chunk.Transform = new Transform3D(new Basis(new Vector3(GD.Randf(), GD.Randf(), GD.Randf()).Normalized(), GD.Randf() * Mathf.Tau), position);
+        chunk.GlobalTransform = new Transform3D(new Basis(new Vector3(GD.Randf(), GD.Randf(), GD.Randf()).Normalized(), GD.Randf() * Mathf.Tau), position);
         chunk.LinearVelocity = velocity;
         chunk.AngularVelocity = new Vector3((float)GD.RandRange(-4.0, 4.0), (float)GD.RandRange(-4.0, 4.0), (float)GD.RandRange(-4.0, 4.0));
-        parent.AddChild(chunk);
-
         Chunks.Enqueue(chunk);
-        while (Chunks.Count > MaxChunks)
-        {
-            var old = Chunks.Dequeue();
-            if (GodotObject.IsInstanceValid(old)) old.QueueFree();
-        }
     }
 
-    /// <summary>A handful of chunks flying away from a point (armour plates, masonry).</summary>
+    /// <summary>A handful of chunks flying away from a point (armour plates, masonry); fewer on lower graphics settings.</summary>
     public static void Burst(Node parent, Vector3 position, int count, float size, Material material, Vector3 push, float spread = 6f)
     {
+        // (Rounded at random, so that one chunk at 40% is thrown four times in ten.)
+        float share = count * GameConfig.DebrisAmount;
+        count = (int)share + (GD.Randf() < share - (int)share ? 1 : 0);
         for (int i = 0; i < count; i++)
         {
             var dims = new Vector3((float)GD.RandRange(0.5, 1.0), (float)GD.RandRange(0.25, 0.7), (float)GD.RandRange(0.5, 1.0)) * size;

@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Texture2D" path="res://textures/footprints/agni.png" id="fp_tex"]
 [ext_resource type="Material" path="res://materials/camo_desert.tres" id="1"]
 [ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
 [ext_resource type="Material" path="res://materials/mech_accent.tres" id="3"]
@@ -63,6 +64,8 @@
 [ext_resource type="ArrayMesh" path="res://models/mechs/agni/Footprint.res" id="x71"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/flamethrower.tscn" id="x2"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/small_laser.tscn" id="x3"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_burst.tscn" id="x4"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_puff.tscn" id="x5"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 1.805
@@ -199,11 +202,14 @@ TurnRateFull = 1.25
 StepLength = 7
 StepHeight = 1.05
 RunSwing = 0.64
-HipSwing = 0.24
-TwistRate = 2.8
+HipSwing = 0.31
+TwistRate = 1.7
 ArmorScale = 0.8
+Tonnage = 35
 HasJumpJets = true
-FootprintMesh = ExtResource("x71")
+FootprintTexture = ExtResource("fp_tex")
+FootprintSize = Vector2(2.436, 2.436)
+FootprintCentre = Vector2(0, 0)
 HeatDissipation = 0.1
 JumpFuelTime = 4
 
@@ -308,12 +314,17 @@ mesh = ExtResource("x42")
 material_override = ExtResource("2")
 
 [node name="UpperArmL" type="MeshInstance3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.09, 1.8525, 0)
+transform = Transform3D(0.99027, -0.13917, 0, 0.13917, 0.99027, 0, 0, 0, 1, -3.2718, 1.8554, 0)
 mesh = ExtResource("x43")
 material_override = ExtResource("1")
 
+[node name="ShoulderJointL" type="MeshInstance3D" parent="Hips/Torso"]
+transform = Transform3D(0.55, 0, 0, 0, 0.55, 0, 0, 0, 0.55, -2.8800, 1.7525, 0.0)
+mesh = ExtResource("x39")
+material_override = ExtResource("2")
+
 [node name="ArmL" type="Node3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.09, 1.0925, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.3775, 1.1028, 0)
 
 [node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmL"]
 sync_to_physics = false
@@ -361,12 +372,17 @@ Mount = 4
 Group = 1
 
 [node name="UpperArmR" type="MeshInstance3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.09, 1.8525, 0)
+transform = Transform3D(0.99027, 0.13917, 0, -0.13917, 0.99027, 0, 0, 0, 1, 3.2718, 1.8554, 0)
 mesh = ExtResource("x44")
 material_override = ExtResource("1")
 
+[node name="ShoulderJointR" type="MeshInstance3D" parent="Hips/Torso"]
+transform = Transform3D(0.55, 0, 0, 0, 0.55, 0, 0, 0, 0.55, 2.8800, 1.7525, 0.0)
+mesh = ExtResource("x39")
+material_override = ExtResource("2")
+
 [node name="ArmR" type="Node3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.09, 1.0925, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.3775, 1.1028, 0)
 
 [node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmR"]
 sync_to_physics = false
@@ -708,6 +724,7 @@ omni_range = 17.1
 visible = false
 
 [node name="Sound" type="AudioStreamPlayer3D" parent="Hips/JumpJets"]
+bus = &"Effects"
 stream = ExtResource("22")
 unit_size = 13.3
 max_distance = 350
@@ -716,11 +733,14 @@ volume_db = 0
 [node name="Ragdoll" type="Node" parent="."]
 script = ExtResource("23")
 TotalMass = 45000
+HullImpactScene = ExtResource("x4")
+LimbImpactScene = ExtResource("x5")
 
 [node name="Sounds" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.831, 0)
 
 [node name="Footstep" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("24")
 unit_size = 22
 max_distance = 350
@@ -728,12 +748,14 @@ volume_db = 2
 max_polyphony = 2
 
 [node name="Reactor" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("25")
 unit_size = 7
 max_distance = 120
 volume_db = -10
 
 [node name="Hit" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("26")
 unit_size = 16
 max_distance = 300
@@ -741,6 +763,7 @@ volume_db = -2
 max_polyphony = 3
 
 [node name="Alarm" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Signals"
 stream = ExtResource("27")
 unit_size = 6
 max_distance = 40

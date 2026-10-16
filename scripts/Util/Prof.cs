@@ -7,9 +7,9 @@ namespace MechSim;
 public static class Prof
 {
     public static readonly bool On = !string.IsNullOrEmpty(OS.GetEnvironment("THEORDER_PROF"));
-    static readonly double[] Sum = new double[8];
-    static readonly int[] Count = new int[8];
-    static readonly string[] Names = { "mech", "vehicle", "missile", "ai", "gait", "weapons", "move", "aim" };
+    static readonly double[] Sum = new double[10];
+    static readonly int[] Count = new int[10];
+    static readonly string[] Names = { "mech", "vehicle", "missile", "terrain", "legs/tracks", "weapons", "moveslide", "aim", "think", "hud" };
     static ulong _lastFrame;
     static int _frames;
 
@@ -34,3 +34,4 @@ public static class Prof
         GD.Print(line);
     }
 }
+

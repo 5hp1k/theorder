@@ -21,6 +21,8 @@ public partial class TrackBelt : MultiMeshInstance3D
 
     readonly List<Vector2> _points = new(), _hull = new(), _path = new();
     int _links;
+    // Every link's transform, handed to the MultiMesh in one go (12 numbers a link: the basis by rows, the origin down the side).
+    float[] _buffer;
 
     public override void _Ready()
     {
@@ -70,6 +72,7 @@ public partial class TrackBelt : MultiMeshInstance3D
         {
             _links = Mathf.Max(4, Mathf.RoundToInt(length / LinkLength));
             Multimesh.InstanceCount = _links;
+            _buffer = new float[_links * 12];
         }
         float pitch = length / _links;
         float at = Mathf.PosMod(run, pitch);
@@ -88,10 +91,15 @@ public partial class TrackBelt : MultiMeshInstance3D
             Vector2 p = a.Lerp(b, segLength > 1e-5f ? Mathf.Clamp((d - segStart) / segLength, 0f, 1f) : 0f);
             Vector2 along = (b - a).Normalized();
             // The link lies along the belt: its Z down the run, its Y out of the loop.
+            // Columns: X = right, Y = z × right, Z = z. Written out by rows.
             var z = new Vector3(0f, along.Y, along.X);
-            var basis = new Basis(Vector3.Right, z.Cross(Vector3.Right), z);
-            Multimesh.SetInstanceTransform(i, new Transform3D(basis, new Vector3(0f, p.Y, p.X)));
+            var y = z.Cross(Vector3.Right);
+            int o = i * 12;
+            _buffer[o] = 1f; _buffer[o + 1] = y.X; _buffer[o + 2] = z.X; _buffer[o + 3] = 0f;
+            _buffer[o + 4] = 0f; _buffer[o + 5] = y.Y; _buffer[o + 6] = z.Y; _buffer[o + 7] = p.Y;
+            _buffer[o + 8] = 0f; _buffer[o + 9] = y.Z; _buffer[o + 10] = z.Z; _buffer[o + 11] = p.X;
         }
+        Multimesh.Buffer = _buffer;
     }
 
     float _top;

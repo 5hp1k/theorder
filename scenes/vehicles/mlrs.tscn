@@ -205,6 +205,7 @@ Mount = 5
 [node name="Sounds" type="Node3D" parent="."]
 
 [node name="Engine" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("9")
 unit_size = 9
 max_distance = 160

@@ -13,6 +13,8 @@ public static class Score
     public class Line
     {
         public int Kills, Losses;
+        /// <summary>The side the machine fought on (kept here: the machine itself may be gone by the end).</summary>
+        public Team Team;
     }
 
     /// <summary>Set for the moment damage is being dealt.</summary>
@@ -32,8 +34,31 @@ public static class Score
 
     public static Line Of(ITarget unit)
     {
-        if (!Lines.TryGetValue(unit, out Line line)) Lines[unit] = line = new Line();
+        if (!Lines.TryGetValue(unit, out Line line)) Lines[unit] = line = new Line { Team = unit.Team };
         return line;
+    }
+
+    /// <summary>Everything destroyed by the machines of one side.</summary>
+    public static int KillsOf(Team team)
+    {
+        int kills = 0;
+        foreach (Line line in Lines.Values)
+            if (line.Team == team) kills += line.Kills;
+        return kills;
+    }
+
+    /// <summary>The tally at the end of a battle: what the player's side destroyed, the player, each lancemate.</summary>
+    public static string Summary()
+    {
+        var me = Game.PlayerUnit;
+        var text = new System.Text.StringBuilder();
+        text.Append($"Уничтожено командой: {KillsOf(me?.Team ?? Team.Player)}");
+        if (me != null) text.Append($"\nВами: {Of(me).Kills}");
+        if (Game.Instance is { } game)
+            foreach (AiPilot pilot in game.Squad)
+                if (GodotObject.IsInstanceValid(pilot) && pilot.Unit is { } mate)
+                    text.Append($"\n{mate.DisplayName}: {Of(mate).Kills}");
+        return text.ToString();
     }
 
     public static void Hit(ITarget victim)

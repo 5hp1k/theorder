@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/palm_leaf.gdshader" id="shader"]
+
+[resource]
+shader = ExtResource("shader")
+shader_parameter/crown = Vector3(0.1200, 11.6500, 1.6000)

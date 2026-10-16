@@ -103,6 +103,7 @@ omni_range = 11
 script = ExtResource("3")
 
 [node name="Crackle" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("4")
 unit_size = 6
 max_distance = 90

@@ -37,7 +37,7 @@ public enum SlotType
 public partial class Weapon : Node3D
 {
     [Export] public string DisplayName = "Оружие";
-    [Export(PropertyHint.Range, "1,3")] public int Group = 1;
+    [Export(PropertyHint.Range, "1,6")] public int Group = 1;
     [Export] public WeaponKind Kind;
     /// <summary>Which hardpoints it fits.</summary>
     [Export] public SlotType Slot;
@@ -103,6 +103,14 @@ public partial class Weapon : Node3D
     /// <summary>How far the weapon node pitches at the bottom of the swing, radians.</summary>
     [Export] public float SwingAngle = -1.8f;
 
+    /// <summary>
+    /// Runs on the machine's power, though it is not a beam (a PPC, a gauss rifle): an electromagnetic
+    /// pulse knocks it out with the beams. Flamethrowers and plain guns keep working.
+    /// </summary>
+    [Export] public bool NeedsPower;
+    /// <summary>For a ballistic gun, what the shot leaves in the air instead of a tracer (a <see cref="GaussTrail"/> scene).</summary>
+    [Export] public PackedScene Trail;
+
     [ExportGroup("Missiles")]
     [Export] public PackedScene ProjectileScene;
     [Export] public int SalvoSize = 10;
@@ -142,7 +150,11 @@ public partial class Weapon : Node3D
     public AudioStreamPlayer3D FireSound { get; private set; }
 
     public bool HasAmmo => Ammo != 0;
-    public bool IsReady => !Destroyed && CooldownLeft <= 0f && BeamLeft <= 0f && SalvoLeft <= 0 && SwingLeft <= 0f && HasAmmo;
+    /// <summary>An energy weapon: a laser, or anything that <see cref="NeedsPower"/>.</summary>
+    public bool Energy => NeedsPower || (Kind == WeaponKind.Beam && Flame == null);
+    /// <summary>Out of action for now: an energy weapon on a machine caught by an electromagnetic pulse.</summary>
+    public bool Jammed { get; set; }
+    public bool IsReady => !Destroyed && !Jammed && CooldownLeft <= 0f && BeamLeft <= 0f && SalvoLeft <= 0 && SwingLeft <= 0f && HasAmmo;
     public float ReadyFraction => Cooldown > 0f ? Mathf.Clamp(1f - CooldownLeft / Cooldown, 0f, 1f) : 1f;
 
     public override void _Ready()
@@ -252,6 +264,32 @@ public sealed class WeaponSystem
         Geo.Collect(owner, Weapons);
     }
 
+    /// <summary>
+    /// Where the arms are pointing, when the machine aims its arms apart from its torso (a mech, as in
+    /// MechWarrior 5: the arms reach for the mouse faster than the torso can turn). Weapons in the arms
+    /// fire there; the rest fire at the aim point they are given. Null = everything at the one point.
+    /// </summary>
+    public Vector3? ArmAim;
+
+    /// <summary>The point this weapon fires at: the arms' own, for a weapon in an arm.</summary>
+    Vector3 AimFor(Weapon w, Vector3 aimPoint)
+        => ArmAim is { } arms && w.Mount is Section.LeftArm or Section.RightArm ? arms : aimPoint;
+
+    /// <summary>How many weapon groups there are (as in MechWarrior 4: six).</summary>
+    public const int GroupCount = 6;
+
+    /// <summary>The bit of a group in a pilot's fire command (<see cref="IDrivable.Fire"/>).</summary>
+    public static int Bit(int group) => 1 << (group - 1);
+
+    /// <summary>Fires every group whose bit is set in <paramref name="groups"/>. Returns heat generated.</summary>
+    public float FireGroups(int groups, Vector3 aimPoint, PhysicsDirectSpaceState3D space)
+    {
+        float heat = 0f;
+        for (int g = 1; g <= GroupCount; g++)
+            if ((groups & Bit(g)) != 0) heat += FireGroup(g, aimPoint, space);
+        return heat;
+    }
+
     /// <summary>Fires every ready weapon in the group. Returns heat generated.</summary>
     public float FireGroup(int group, Vector3 aimPoint, PhysicsDirectSpaceState3D space)
     {
@@ -330,6 +368,7 @@ public sealed class WeaponSystem
 
     float Fire(Weapon w, Vector3 aimPoint, PhysicsDirectSpaceState3D space)
     {
+        aimPoint = AimFor(w, aimPoint);
         w.CooldownLeft = w.Cooldown;
         if (w.Ammo > 0) w.Ammo--;
 
@@ -347,7 +386,8 @@ public sealed class WeaponSystem
                 Vector3 end = Trace(w, from, aimPoint, space, out var hit, out bool didHit);
                 Vector3 shown = Seen(from, end, out bool muzzle);
                 Shot(w, from, muzzle ? 0.5f : 0f, end - from);
-                TimedFx.Tracer(_fxRoot, shown, end, w.FxColor, 0.06f);
+                if (w.Trail != null) GaussTrail.Spawn(w.Trail, _fxRoot, shown, end, w.FxColor);
+                else TimedFx.Tracer(_fxRoot, shown, end, w.FxColor, 0.06f);
                 Impacts.Water(_fxRoot, from, end, 0.5f + w.CraterSize);
                 if (didHit)
                 {
@@ -385,17 +425,14 @@ public sealed class WeaponSystem
         }
         if (flash > 0f && w.MuzzleFlash != null && way.LengthSquared() > 1e-4f)
         {
-            var fire = w.MuzzleFlash.Instantiate<Node3D>();
-            _fxRoot.AddChild(fire);
-            fire.GlobalTransform = new Transform3D(facing, from);
+            // (Only for the eye, the shot's sound is the weapon's own: not made where nobody would see it.)
+            if (OneShotFx.Spawn(w.MuzzleFlash, _fxRoot, from, 1f) is { } fire) fire.GlobalBasis = facing;
         }
         else if (flash > 0f) TimedFx.Flash(_fxRoot, from, w.FxColor, flash, 0.07f);
         // Smoke at the muzzle (not inside the player's own cab, where it would only blind the pilot).
         if (flash > 0f && w.MuzzleSmoke != null && way.LengthSquared() > 1e-4f)
         {
-            var smoke = w.MuzzleSmoke.Instantiate<Node3D>();
-            _fxRoot.AddChild(smoke);
-            smoke.GlobalTransform = new Transform3D(facing, from);
+            if (OneShotFx.Spawn(w.MuzzleSmoke, _fxRoot, from, 1.5f) is { } smoke) smoke.GlobalBasis = facing;
         }
         Fired?.Invoke(w);
         w.SmokeLeft = w.SmokeTime;
@@ -411,10 +448,19 @@ public sealed class WeaponSystem
         w.FireSound.Play();
     }
 
-    public void Update(float dt, Vector3 aimPoint, PhysicsDirectSpaceState3D space, ITarget lockTarget)
+    public void Update(float dt, Vector3 torsoAim, PhysicsDirectSpaceState3D space, ITarget lockTarget)
     {
+        // An electromagnetic pulse knocks out the energy weapons for as long as it does the electronics.
+        bool pulsed = Emp.Jammed(_owner);
         foreach (var w in Weapons)
         {
+            bool jammed = pulsed && w.Energy;
+            if (jammed && !w.Jammed) w.StopFiring();
+            w.Jammed = jammed;
+        }
+        foreach (var w in Weapons)
+        {
+            Vector3 aimPoint = AimFor(w, torsoAim);
             if (w.BarrelSmoke != null)
             {
                 // The barrel smokes after a shot, thinning out; it is the smoke left behind as the machine moves on.
@@ -546,8 +592,9 @@ public sealed class WeaponSystem
                     Burning.Kindle(_fxRoot, hit.Position + hit.Normal * 0.2f, 0.9f);
                 }
             }
-            // A machine caught in the jet catches fire itself, and goes on burning for a while.
-            if (w.Afterburn > 0f && hit.Collider is Node3D body and (HitBox or Vehicle) && hit.Collider is not HitBox { Unit: null })
+            // A vehicle caught in the jet catches fire itself, and goes on burning for a while. (Mechs don't:
+            // the jet already cooks their reactor while it plays on them, see TargetHeat.)
+            if (w.Afterburn > 0f && hit.Collider is Vehicle body)
                 UnitFire.Ignite(body, hit.Position + hit.Normal * 0.3f, w.Afterburn);
             if (w.TargetHeat > 0f && hit.Collider is HitBox { Unit: Mech scorched })
                 scorched.AddHeat(w.TargetHeat * DamageScale * dt / w.BeamTime);

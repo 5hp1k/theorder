@@ -107,14 +107,14 @@ public partial class NetLink : Node
         }
         _myName = name;
         _port = port;
-        Say($"Игра открыта на порту {port}. Пробуем открыть порт на роутере (UPnP)…");
+        Say($"Сервер запущен на порту {port}. Открываем порт на роутере…");
         OpenRouter(port);
         // Shouting on the local network, so that others there can find the game.
         _beacon = new PacketPeerUdp();
         _beacon.SetBroadcastEnabled(true);
         _beacon.SetDestAddress("255.255.255.255", BeaconPort);
         SendRoster();
-        if (!lobby) GetTree().ChangeSceneToFile("res://scenes/game.tscn");
+        if (!lobby) LoadingScreen.Start(GetTree());
         return true;
     }
 
@@ -142,13 +142,13 @@ public partial class NetLink : Node
             {
                 var upnp = new Upnp();
                 if (upnp.Discover() != (int)Upnp.UpnpResult.Success || upnp.GetGateway() is not { } gate || !gate.IsValidGateway())
-                    result = "Роутер не открыл порт сам (UPnP недоступен): для игры через интернет пробросьте UDP-порт вручную или используйте общую виртуальную сеть.";
+                    result = "UPnP недоступен. Для игры через интернет пробросьте UDP-порт вручную.";
                 else if (upnp.AddPortMapping(port, port, "TheOrder", "UDP") != (int)Upnp.UpnpResult.Success)
-                    result = "Роутер отказал в открытии порта (UPnP): пробросьте UDP-порт вручную.";
+                    result = "Роутер не открыл порт. Пробросьте UDP-порт вручную.";
                 else
                 {
                     _upnp = upnp;
-                    result = $"Порт открыт на роутере. Адрес для подключения через интернет: {upnp.QueryExternalAddress()}";
+                    result = $"Порт открыт. Внешний адрес: {upnp.QueryExternalAddress()}";
                 }
             }
             catch (System.Exception e)
@@ -238,8 +238,8 @@ public partial class NetLink : Node
 
     void OnConnected()
     {
-        Say("Подключено, ждём данные боя…");
-        GameConfig.Loadouts.TryGetValue(GameConfig.MechId, out string[] loadout);
+        Say("Подключено. Ждём начала боя…");
+        string[] loadout = GameConfig.LoadoutFor(GameConfig.MechId);
         RpcId(1, nameof(Hello), _myName, GameConfig.MechId, loadout ?? System.Array.Empty<string>(), GameConfig.PlayerPaint().Pack(), GameConfig.InsigniaBytes());
     }
 
@@ -293,7 +293,7 @@ public partial class NetLink : Node
     {
         Roster.Clear();
         Roster.AddRange(names);
-        if (!Net.IsHost && GetTree().CurrentScene is not Game) Say($"В лобби: {mode}, карта «{Catalog.Find(Catalog.Maps, map).Name}». Ждём, когда хост начнёт бой.");
+        if (!Net.IsHost && GetTree().CurrentScene is not Game) Say($"Лобби: {mode}, «{Catalog.Find(Catalog.Maps, map).Name}». Ждём хоста.");
         RosterChanged?.Invoke();
     }
 
@@ -301,7 +301,7 @@ public partial class NetLink : Node
     public void BeginBattle()
     {
         if (!Net.Online || !Net.IsHost) return;
-        GetTree().ChangeSceneToFile("res://scenes/game.tscn");
+        LoadingScreen.Start(GetTree());
     }
 
     // ── Chat ────────────────────────────────────────────────────
@@ -424,7 +424,7 @@ public partial class NetLink : Node
         Net.Respawns = respawns;
         Net.ClientTimeLeft = timeLeft;
         Say("Загрузка карты…");
-        GetTree().ChangeSceneToFile("res://scenes/game.tscn");
+        LoadingScreen.Start(GetTree());
     }
 
     /// <summary>The client's battle scene is up: it can be told about the machines.</summary>
@@ -620,6 +620,62 @@ public partial class NetLink : Node
                 case Vehicle vehicle: vehicle.NetCorrect(pos, yaw, speed, mine); break;
             }
         }
+    }
+
+    // ── Weapon groups ───────────────────────────────────────────
+
+    /// <summary>The player has put weapons on other triggers (the pause menu): every computer has to know,
+    /// since each fires a machine's weapons by the groups it has.</summary>
+    public void SendGroups(Node unit)
+    {
+        if (!Net.Online || unit is not IDrivable machine) return;
+        int[] groups = GroupsOf(machine);
+        if (Net.IsHost)
+        {
+            if (unit.HasMeta("net_id")) Regrouped((int)unit.GetMeta("net_id"), groups);
+        }
+        else RpcId(1, nameof(Regroup), groups);
+    }
+
+    static int[] GroupsOf(IDrivable machine)
+    {
+        var list = machine.Weapons.Weapons;
+        var groups = new int[list.Count];
+        for (int i = 0; i < list.Count; i++) groups[i] = list[i].Group;
+        return groups;
+    }
+
+    static void SetGroups(Node unit, int[] groups)
+    {
+        if (unit is not IDrivable machine) return;
+        var list = machine.Weapons.Weapons;
+        if (groups.Length != list.Count) return;
+        for (int i = 0; i < list.Count; i++) list[i].Group = Mathf.Clamp(groups[i], 1, WeaponSystem.GroupCount);
+    }
+
+    /// <summary>Host: a client has regrouped its weapons.</summary>
+    [Rpc(MultiplayerApi.RpcMode.AnyPeer, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    void Regroup(int[] groups)
+    {
+        if (!Net.IsHost || !_peers.TryGetValue(Multiplayer.GetRemoteSenderId(), out Peer peer)) return;
+        if (!_units.TryGetValue(peer.Unit, out SpawnInfo info) || !IsInstanceValid(info.Node)) return;
+        SetGroups(info.Node, groups);
+        Regrouped(peer.Unit, groups);
+    }
+
+    /// <summary>Host: passes the new groups on, and keeps them in the loadout those who join later are sent.</summary>
+    void Regrouped(int id, int[] groups)
+    {
+        if (_units.TryGetValue(id, out SpawnInfo info) && IsInstanceValid(info.Node) && Hardpoint.Of(info.Node).Count > 0)
+            info.Loadout = Hardpoint.Current(info.Node);
+        Rpc(nameof(GroupsAre), id, groups);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    void GroupsAre(int id, int[] groups)
+    {
+        if (!_units.TryGetValue(id, out SpawnInfo info) || !IsInstanceValid(info.Node) || info.Node == Game.PlayerUnit as Node) return;
+        SetGroups(info.Node, groups);
     }
 
     // ── Damage, respawns, the clock ─────────────────────────────

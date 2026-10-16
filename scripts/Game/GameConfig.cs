@@ -14,17 +14,17 @@ public static class GameConfig
     public static readonly string[] BindableActions =
     {
         "throttle_up", "throttle_down", "turn_left", "turn_right", "full_stop", "jump", "descend",
-        "fire_group_1", "fire_group_2", "fire_group_3",
-        "target_nearest", "target_next", "target_reticle", "target_friendly", "center_torso", "free_look", "zoom",
-        "toggle_view", "toggle_lights", "radar_mode", "scoreboard", "toggle_help", "toggle_fps",
+        "fire_group_1", "fire_group_2", "fire_group_3", "fire_group_4", "fire_group_5", "fire_group_6",
+        "target_nearest", "target_next", "target_reticle", "target_friendly", "center_torso", "arm_look", "counter_rotate", "free_look", "zoom",
+        "toggle_view", "toggle_lights", "radar_mode", "scoreboard", "toggle_help", "toggle_hud", "toggle_fps",
     };
     /// <summary>What the actions above are called on the controls page, in the same order.</summary>
     public static readonly string[] ActionNames =
     {
         "Газ вперёд", "Газ назад", "Поворот влево", "Поворот вправо", "Полный стоп", "Прыжок / вверх", "Вниз (вертолёт)",
-        "Огонь: группа 1", "Огонь: группа 2", "Огонь: группа 3",
-        "Цель: ближайшая", "Цель: следующая", "Цель: под прицелом", "Цель: свой (следующий)", "Торс по ногам", "Свободный обзор (держать)", "Приближение",
-        "Кабина / внешний вид", "Фары", "Режим радара", "Таблица боя (держать)", "Справка", "Счётчик кадров",
+        "Огонь: группа 1", "Огонь: группа 2", "Огонь: группа 3", "Огонь: группа 4", "Огонь: группа 5", "Огонь: группа 6",
+        "Цель: ближайшая", "Цель: следующая", "Цель: под прицелом", "Цель: свой (следующий)", "Торс по ногам", "Руки отдельно от торса (держать)", "Контрвращение торса", "Свободный обзор (держать)", "Приближение",
+        "Кабина / внешний вид", "Фары", "Режим радара", "Таблица боя (держать)", "Справка", "Интерфейс вкл/выкл", "Счётчик кадров",
     };
 
     // ── Battle ──────────────────────────────────────────────────
@@ -35,6 +35,8 @@ public static class GameConfig
     /// <summary>Tanks, aircraft and so on, on top of the mechs.</summary>
     public static int EnemyVehicleCount = 2;
     public static bool EnemyRespawn = true;
+    /// <summary>The player's lancemates come back after they are destroyed.</summary>
+    public static bool SquadRespawn = true;
     /// <summary>
     /// Mechs and vehicles the enemy does not field (catalog ids): the boxes left unticked on the battle
     /// page. Everything else — anything added to the catalog later included — may be spawned.
@@ -104,6 +106,21 @@ public static class GameConfig
     /// Missing = the unit's stock weapons.
     /// </summary>
     public static readonly Dictionary<string, string[]> Loadouts = new();
+    /// <summary>
+    /// Equipment chosen in the hangar, per machine: "jump_jets" and "ams" on or off (see
+    /// <see cref="MechSim.Equipment"/>). What isn't set here is as the machine's scene has it.
+    /// </summary>
+    public static readonly Dictionary<string, Dictionary<string, bool>> Fitted = new();
+
+    /// <summary>The loadout to send a machine into battle with: the hardpoints, then its equipment.</summary>
+    public static string[] LoadoutFor(string unit)
+    {
+        Loadouts.TryGetValue(unit, out string[] fit);
+        if (!Fitted.TryGetValue(unit, out var kit) || kit.Count == 0) return fit;
+        var list = new List<string>(fit ?? System.Array.Empty<string>());
+        list.Add(Equipment.Pack(kit));
+        return list.ToArray();
+    }
     /// <summary>Rebound actions: action name → "k:physical keycode" or "m:mouse button".</summary>
     public static readonly Dictionary<string, string> Bindings = new();
     /// <summary>Picture file the player chose as an emblem; empty = none.</summary>
@@ -113,6 +130,17 @@ public static class GameConfig
     /// <summary>"ru" or "en" (see <see cref="Loc"/>). Until the player chooses: Russian on a Russian system, English elsewhere.</summary>
     public static string Language = OS.GetLocaleLanguage() == "ru" ? "ru" : "en";
     public static float MasterVolume = 0.8f;
+    /// <summary>Loudness of each kind of sound, 0..1, on its own audio bus (default_bus_layout.tres).</summary>
+    public static float EffectsVolume = 1f, AmbienceVolume = 1f, SignalsVolume = 1f, VoiceVolume = 1f;
+    /// <summary>Whose voice the cockpit computer speaks with (a <see cref="VoicePack"/> id); <see cref="VoiceOff"/> = silent.</summary>
+    public static string Voice = "betty";
+    public const string VoiceOff = "off";
+    /// <summary>Audio buses and the setting for each (Master is the overall volume).</summary>
+    static (string bus, System.Func<float> volume)[] Buses => new (string, System.Func<float>)[]
+    {
+        ("Master", () => MasterVolume), ("Effects", () => EffectsVolume), ("Ambience", () => AmbienceVolume),
+        ("Signals", () => SignalsVolume), ("Voice", () => VoiceVolume),
+    };
     public static float MouseSensitivity = 1f;
     public static float Fov = 75f;
     public static bool VSync = true;
@@ -144,6 +172,15 @@ public static class GameConfig
     public static float WeatherDensity = 1f;
     /// <summary>How far small things are drawn, as a multiple of the usual (see <see cref="Lod"/>). Takes effect with the next battle.</summary>
     public static float DrawDistance = 1f;
+    /// <summary>How far away effects that are only for the eye (muzzle flashes and smoke, sparks) are made at all, metres.</summary>
+    public static float FxRange = 650f;
+    /// <summary>
+    /// How coarse a model may get before it switches to a simpler level of detail: the error, in pixels,
+    /// that is let through (1 = none to see; higher = simpler models sooner, less for the graphics card).
+    /// </summary>
+    public static float MeshDetail = 1f;
+    /// <summary>Share of the loose wreckage that hits and collapsing buildings throw out (see <see cref="Debris"/>).</summary>
+    public static float DebrisAmount = 1f;
     /// <summary>Frames per second in a corner of the screen (F3).</summary>
     public static bool ShowFps;
     /// <summary>The preset the detailed settings were last filled from: 0 = low, 1 = medium, 2 = high, 3 = the player's own mix.</summary>
@@ -164,6 +201,9 @@ public static class GameConfig
         WeatherDensity = preset switch { 0 => 0.3f, 1 => 0.65f, _ => 1f };
         RenderScale = preset == 0 ? 0.8f : 1f;
         DrawDistance = preset switch { 0 => 0.7f, 1 => 1f, _ => 1.4f };
+        FxRange = preset switch { 0 => 260f, 1 => 420f, _ => 650f };
+        MeshDetail = preset switch { 0 => 4f, 1 => 2f, _ => 1f };
+        DebrisAmount = preset switch { 0 => 0.4f, 1 => 0.7f, _ => 1f };
     }
     /// <summary>Simulation steps per second: 60 is half the work of 120, 120 is smoother on fast screens.</summary>
     public static int SimulationRate = 60;
@@ -186,6 +226,7 @@ public static class GameConfig
             EnemyCount = (int)cfg.GetValue("battle", "enemy_count", EnemyCount);
             EnemyVehicleCount = (int)cfg.GetValue("battle", "enemy_vehicles", EnemyVehicleCount);
             EnemyRespawn = (bool)cfg.GetValue("battle", "enemy_respawn", EnemyRespawn);
+            SquadRespawn = (bool)cfg.GetValue("battle", "squad_respawn", SquadRespawn);
             EnemyExcluded.Clear();
             if (cfg.HasSectionKey("battle", "enemy_excluded"))
                 foreach (string id in (string[])cfg.GetValue("battle", "enemy_excluded")) EnemyExcluded.Add(id);
@@ -219,6 +260,9 @@ public static class GameConfig
             Gloss = (float)cfg.GetValue("paint", "gloss", Gloss);
             PatternSize = (float)cfg.GetValue("paint", "pattern_size", PatternSize);
             InsigniaSize = (float)cfg.GetValue("paint", "insignia_size", InsigniaSize);
+            if (cfg.HasSection("equipment"))
+                foreach (string unit in cfg.GetSectionKeys("equipment"))
+                    Fitted[unit] = Equipment.Unpack((string)cfg.GetValue("equipment", unit));
             if (cfg.HasSection("hardpoints"))
                 foreach (string unit in cfg.GetSectionKeys("hardpoints"))
                     Loadouts[unit] = (string[])cfg.GetValue("hardpoints", unit);
@@ -227,6 +271,11 @@ public static class GameConfig
                     Bindings[action] = (string)cfg.GetValue("bindings", action);
             Language = (string)cfg.GetValue("settings", "language", Language) == "en" ? "en" : "ru";
             MasterVolume = (float)cfg.GetValue("settings", "volume", MasterVolume);
+            EffectsVolume = (float)cfg.GetValue("sound", "effects", EffectsVolume);
+            AmbienceVolume = (float)cfg.GetValue("sound", "ambience", AmbienceVolume);
+            SignalsVolume = (float)cfg.GetValue("sound", "signals", SignalsVolume);
+            VoiceVolume = (float)cfg.GetValue("sound", "voice_volume", VoiceVolume);
+            Voice = (string)cfg.GetValue("sound", "voice", Voice);
             MouseSensitivity = (float)cfg.GetValue("settings", "sensitivity", MouseSensitivity);
             Fov = (float)cfg.GetValue("settings", "fov", Fov);
             WindowMode = cfg.HasSectionKey("settings", "window_mode") ? (int)cfg.GetValue("settings", "window_mode", 0)
@@ -251,6 +300,9 @@ public static class GameConfig
             WaterMirror = (bool)cfg.GetValue("graphics", "water_mirror", WaterMirror);
             WeatherDensity = (float)cfg.GetValue("graphics", "weather_density", WeatherDensity);
             DrawDistance = (float)cfg.GetValue("graphics", "draw_distance", DrawDistance);
+            FxRange = (float)cfg.GetValue("graphics", "fx_range", FxRange);
+            MeshDetail = Mathf.Clamp((float)cfg.GetValue("graphics", "mesh_detail", MeshDetail), 0.5f, 8f);
+            DebrisAmount = Mathf.Clamp((float)cfg.GetValue("graphics", "debris", DebrisAmount), 0.1f, 1f);
             SimulationRate = (int)cfg.GetValue("settings", "simulation_rate", SimulationRate);
         }
         ApplyQuickBattle();
@@ -336,6 +388,7 @@ public static class GameConfig
         cfg.SetValue("battle", "enemy_count", EnemyCount);
         cfg.SetValue("battle", "enemy_vehicles", EnemyVehicleCount);
         cfg.SetValue("battle", "enemy_respawn", EnemyRespawn);
+        cfg.SetValue("battle", "squad_respawn", SquadRespawn);
         var excluded = new string[EnemyExcluded.Count];
         EnemyExcluded.CopyTo(excluded);
         cfg.SetValue("battle", "enemy_excluded", excluded);
@@ -368,9 +421,15 @@ public static class GameConfig
         cfg.SetValue("paint", "pattern_size", PatternSize);
         cfg.SetValue("paint", "insignia_size", InsigniaSize);
         foreach (var (unit, fit) in Loadouts) cfg.SetValue("hardpoints", unit, fit);
+        foreach (var (unit, kit) in Fitted) cfg.SetValue("equipment", unit, Equipment.Pack(kit));
         foreach (var (action, code) in Bindings) cfg.SetValue("bindings", action, code);
         cfg.SetValue("settings", "language", Language);
         cfg.SetValue("settings", "volume", MasterVolume);
+        cfg.SetValue("sound", "effects", EffectsVolume);
+        cfg.SetValue("sound", "ambience", AmbienceVolume);
+        cfg.SetValue("sound", "signals", SignalsVolume);
+        cfg.SetValue("sound", "voice_volume", VoiceVolume);
+        cfg.SetValue("sound", "voice", Voice);
         cfg.SetValue("settings", "sensitivity", MouseSensitivity);
         cfg.SetValue("settings", "fov", Fov);
         cfg.SetValue("settings", "window_mode", WindowMode);
@@ -390,6 +449,9 @@ public static class GameConfig
         cfg.SetValue("graphics", "water_mirror", WaterMirror);
         cfg.SetValue("graphics", "weather_density", WeatherDensity);
         cfg.SetValue("graphics", "draw_distance", DrawDistance);
+        cfg.SetValue("graphics", "fx_range", FxRange);
+        cfg.SetValue("graphics", "mesh_detail", MeshDetail);
+        cfg.SetValue("graphics", "debris", DebrisAmount);
         cfg.SetValue("settings", "vsync", VSync);
         cfg.SetValue("settings", "effects", EffectsQuality);
         cfg.SetValue("settings", "simulation_rate", SimulationRate);
@@ -399,9 +461,19 @@ public static class GameConfig
     /// <summary>Pushes the settings into the engine (audio volume, window mode, vsync).</summary>
     public static void ApplySettings()
     {
-        AudioServer.SetBusVolumeDb(0, Mathf.LinearToDb(Mathf.Max(MasterVolume, 0.0001f)));
-        AudioServer.SetBusMute(0, MasterVolume <= 0.001f);
+        foreach (var (name, volume) in Buses)
+        {
+            int bus = AudioServer.GetBusIndex(name);
+            if (bus < 0) continue;
+            float v = volume();
+            AudioServer.SetBusVolumeDb(bus, Mathf.LinearToDb(Mathf.Max(v, 0.0001f)));
+            AudioServer.SetBusMute(bus, v <= 0.001f);
+        }
         Engine.PhysicsTicksPerSecond = SimulationRate >= 120 ? 120 : 60;
+        // No more simulation steps in one frame than keep the game in real time at 30 frames a second.
+        // When a moment of battle costs more than that, letting the steps pile up only makes each frame
+        // longer still (and the next one needs more steps): capped, it stays at 30 instead of sliding to 15.
+        Engine.MaxPhysicsStepsPerFrame = Engine.PhysicsTicksPerSecond / 30;
         Engine.MaxFps = MaxFps;
         if (DisplayServer.GetName() == "headless") return;
         var want = WindowMode switch
@@ -428,6 +500,7 @@ public static class GameConfig
             root.Msaa3D = (Viewport.Msaa)Mathf.Clamp(Msaa, 0, 3);
             root.ScreenSpaceAA = Fxaa ? Viewport.ScreenSpaceAAEnum.Fxaa : Viewport.ScreenSpaceAAEnum.Disabled;
             root.UseTaa = Taa;
+            root.MeshLodThreshold = MeshDetail;
         }
         // What the map has switched on or off is the map's own business (see MapLighting).
         MapLighting.Instance?.ApplyGraphics();

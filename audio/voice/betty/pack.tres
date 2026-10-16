@@ -1,0 +1,44 @@
+[gd_resource type="Resource" script_class="VoicePack" format=3]
+
+[ext_resource type="AudioStream" path="res://audio/voice/betty/TargetDestroyed.wav" id="1_fg8g4"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/Startup.wav" id="2_11rwf"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/HeatCritical.wav" id="3_js0df"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/Shutdown.wav" id="4_ucvcs"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/Incoming.wav" id="5_70eog"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/DamageCritical.wav" id="6_a7wxk"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/WeaponLost.wav" id="7_fx8xj"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/AmmoOut.wav" id="8_4ivjg"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/LeftArm.wav" id="9_cwnsp"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/RightArm.wav" id="10_05o7c"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/LeftLeg.wav" id="11_bcdi4"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/RightLeg.wav" id="12_1os6i"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/LeftTorso.wav" id="13_dw7ck"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/RightTorso.wav" id="14_6b70r"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/Emp.wav" id="15_73shx"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/SystemsOnline.wav" id="16_e4u5v"]
+[ext_resource type="AudioStream" path="res://audio/voice/betty/OutOfBounds.wav" id="17_dbsla"]
+[ext_resource type="Script" path="res://scripts/UI/VoicePack.cs" id="18_cwxki"]
+
+[resource]
+script = ExtResource("18_cwxki")
+Id = "betty"
+Title = "Бетти (женский, США)"
+Lines = Dictionary[String, AudioStream]({
+"AmmoOut": ExtResource("8_4ivjg"),
+"DamageCritical": ExtResource("6_a7wxk"),
+"Emp": ExtResource("15_73shx"),
+"HeatCritical": ExtResource("3_js0df"),
+"Incoming": ExtResource("5_70eog"),
+"LeftArm": ExtResource("9_cwnsp"),
+"LeftLeg": ExtResource("11_bcdi4"),
+"LeftTorso": ExtResource("13_dw7ck"),
+"OutOfBounds": ExtResource("17_dbsla"),
+"RightArm": ExtResource("10_05o7c"),
+"RightLeg": ExtResource("12_1os6i"),
+"RightTorso": ExtResource("14_6b70r"),
+"Shutdown": ExtResource("4_ucvcs"),
+"Startup": ExtResource("2_11rwf"),
+"SystemsOnline": ExtResource("16_e4u5v"),
+"TargetDestroyed": ExtResource("1_fg8g4"),
+"WeaponLost": ExtResource("7_fx8xj")
+})

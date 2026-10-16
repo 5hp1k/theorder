@@ -153,9 +153,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     public float TurnInput { get; set; }
     public float TargetYaw { get; set; }
     public float TargetPitch { get; set; }
-    public bool Fire1 { get; set; }
-    public bool Fire2 { get; set; }
-    public bool Fire3 { get; set; }
+    public int Fire { get; set; }
     public bool Jump { get; set; }
     public bool Descend { get; set; }
     public ITarget LockTarget { get; set; }
@@ -286,6 +284,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         _trackRun[0] += (Speed - _groundYawRate * gauge) * dt;
         _trackRun[1] += (Speed + _groundYawRate * gauge) * dt;
         _steer = Mathf.MoveToward(_steer, _steers ? Mathf.Clamp(TurnInput, -1f, 1f) * 0.5f : 0f, 2.5f * dt);
+        if (!_show) return;
         for (int i = 0; i < _wheels.Count; i++)
         {
             var (wheel, radius, front) = _wheels[i];
@@ -367,8 +366,11 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             ? Phys.LayerWorld | Phys.LayerProps | Phys.LayerVehicles | Phys.LayerMech | Phys.LayerTargets | Phys.LayerWreck
             : Phys.LayerWorld | Phys.LayerVehicles | Phys.LayerProps | mechs;
 
-        if (GetNodeOrNull<CollisionShape3D>("Collision")?.Shape is BoxShape3D box)
+        if (GetNodeOrNull<CollisionShape3D>("Collision") is { Shape: BoxShape3D box } hullShape)
+        {
             HalfExtents = new Vector2(box.Size.X, box.Size.Z) * 0.5f;
+            _hullTop = hullShape.Position.Y + box.Size.Y * 0.5f;
+        }
 
         PlaceOnMap();
         _spawn = GlobalTransform;
@@ -429,9 +431,33 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 
     public override void _PhysicsProcess(double delta)
     {
+        // Far off, a computer-driven machine is simulated every other tick (half of them on the odd
+        // ticks, half on the even), over the time that has passed. See Lod.SimInterval.
+        _simTime += delta;
+        int every = Lod.SimInterval(this, Pilot is AiPilot);
+        if (every > 1 && (Engine.GetPhysicsFrames() + GetInstanceId()) % (ulong)every != 0) return;
+        double step = _simTime;
+        _simTime = 0.0;
+        _simScale = (float)(step / delta);
         long prof = Prof.Now();
-        Tick(delta);
+        Tick(step);
         Prof.Add(1, prof);
+    }
+
+    double _simTime;
+    float _simScale = 1f;
+
+    /// <summary>MoveAndSlide over the time this tick stands for (it moves by one physics step's worth of the velocity).</summary>
+    void Slide()
+    {
+        if (Mathf.IsEqualApprox(_simScale, 1f))
+        {
+            MoveAndSlide();
+            return;
+        }
+        Velocity *= _simScale;
+        MoveAndSlide();
+        Velocity /= _simScale;
     }
 
     void Tick(double delta)
@@ -448,16 +474,22 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             return;
         }
 
+        _showDt += dt;
+        _show = ++_showTick >= Lod.Interval(this, 5f);
+
         TurnInput = 0f;
-        Fire1 = Fire2 = Fire3 = Jump = Descend = false;
+        Fire = 0;
+        Jump = Descend = false;
         AimOverride = null;
+        long profT = Prof.Now();
         Pilot?.Think(dt);
+        Prof.Add(8, profT);
         if (_repairLeft > 0f)
         {
             // In the bay: switched off until the work is done.
             _repairLeft -= dt;
             Throttle = TurnInput = 0f;
-            Fire1 = Fire2 = Fire3 = false;
+            Fire = 0;
             if (_repairLeft <= 0f) Mend();
         }
         Throttle = Mathf.Clamp(Throttle, -ReverseFraction, 1f);
@@ -471,6 +503,21 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             default: Drive(dt); break;
         }
         KeepOnMap();
+        // A machine not made to swim, gone right under: drowned.
+        if (Kind == MoveKind.Ground && Net.Authority && MapTerrain.Instance is { HasWater: true } sea
+            && GlobalPosition.Y + _hullTop < sea.WaterLevel && sea.WaterDepthAt(GlobalPosition.X, GlobalPosition.Z) > _hullTop)
+        {
+            Drown();
+            return;
+        }
+        if (Boundary.Track(this, GlobalPosition, dt) && Net.Authority)
+        {
+            // Stayed beyond the battlefield too long. (Nobody's kill.)
+            Boundary.Forget(this);
+            Score.Attacker = null;
+            TakeDamage(MaxHp * 10f, AimCenter);
+            return;
+        }
 
         UpdateTurret(dt);
         // Each about its own mast (the tail rotor's lies across the boom).
@@ -487,18 +534,28 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         Weapons.CarrierVelocity = Velocity;
         if (!Repairing && (Pilot?.CanFire ?? false))
         {
-            if (Fire1) Weapons.FireGroup(1, AimPoint, space);
-            if (Fire2) Weapons.FireGroup(2, AimPoint, space);
-            if (Fire3) Weapons.FireGroup(3, AimPoint, space);
+            Weapons.FireGroups(Fire, AimPoint, space);
         }
         Weapons.Update(dt, AimPoint, space, LockTarget);
 
         if (_engine != null)
         {
-            if (!_engine.Playing) _engine.Play();
+            // (Asking the engine whether it is still playing costs a call into the engine: now and then is enough.)
+            if ((++_engineCheck & 15) == 0 && !_engine.Playing) _engine.Play();
             _engine.PitchScale = 0.8f + 0.6f * Mathf.Clamp(Mathf.Abs(Speed) / MaxForwardSpeed, 0f, 1f);
         }
+        if (_show)
+        {
+            _showTick = 0;
+            _showDt = 0f;
+        }
     }
+
+    // What is only for show is brought up to date every _showTick-th tick, over the time since the last time.
+    bool _show = true;
+    int _engineCheck;
+    int _showTick;
+    float _showDt;
 
     void Accelerate(float target, float dt)
     {
@@ -561,10 +618,13 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         forward = -GlobalTransform.Basis.Z;
         Vector3 v = forward * Speed;
         if (afloat && terrain != null) v.Y = (terrain.WaterLevel - Draft - p.Y) * 4f;
-        else v.Y = IsOnFloor() ? -1f : Velocity.Y - Gravity * dt;
+        // (On the ground the floor snap keeps it down: pressing into the ground as well would cost a collision every tick.)
+        else v.Y = IsOnFloor() ? 0f : Velocity.Y - Gravity * dt;
         Velocity = v;
         FloorSnapLength = afloat ? 0f : 0.6f;
-        MoveAndSlide();
+        long profM = Prof.Now();
+        Slide();
+        Prof.Add(6, profM);
 
         // Driven at, trees go down and cars are crushed under the hull (rocks and bridges are another matter).
         if (Kind != MoveKind.Ship && !afloat && Mathf.Abs(Throttle) > 0.1f && (++_ram % 4) == 0)
@@ -586,13 +646,20 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             Blocked = true;
         }
 
-        // The hull follows the slope under it (or rides level on the water).
+        // The rest is only for the eye, and done less often far from the camera (see Lod.Interval).
+        if (_show) Settle(_showDt, afloat, forward);
+    }
+
+    /// <summary>The hull follows the slope under it (or rides level on the water) and rocks on its springs; the wheels follow the ground.</summary>
+    void Settle(float dt, bool afloat, Vector3 forward)
+    {
         if (_hull == null) return;
+        var terrain = MapTerrain.Instance;
         float pitch = 0f, roll = 0f;
         if (!afloat && terrain != null)
         {
             Vector3 right = GlobalTransform.Basis.X;
-            p = GlobalPosition;
+            Vector3 p = GlobalPosition;
             Vector3 f = p + forward * 2f, b = p - forward * 2f, l = p - right * 1.3f, r = p + right * 1.3f;
             pitch = Mathf.Atan2(FloorAt(f.X, f.Z) - FloorAt(b.X, b.Z), 4f);
             roll = Mathf.Atan2(FloorAt(r.X, r.Z) - FloorAt(l.X, l.Z), 2.6f);
@@ -610,7 +677,9 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         _rollKickVel += (-_rollKick * 70f - _rollKickVel * 7f) * dt;
         _rollKick += _rollKickVel * dt;
         _hull.Rotation = new Vector3(_tilt + _squat + _rock, 0f, _roll + _rollKick);
+        long profS = Prof.Now();
         Suspend(dt, afloat);
+        Prof.Add(4, profS);
     }
 
     /// <summary>
@@ -657,7 +726,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 
         Velocity = v;
         float impact = v.Length();
-        MoveAndSlide();
+        Slide();
         Speed = Velocity.Dot(forward);
 
         if (GetSlideCollisionCount() > 0)
@@ -764,7 +833,8 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     /// </summary>
     void LookAhead()
     {
-        if (Pilot is PlayerPilot || (_tick % 8) != 0) return;
+        // (Every eighth tick of simulation time: every fourth when only every other tick is simulated.)
+        if (Pilot is PlayerPilot || (_tick % (_simScale > 1.5f ? 4 : 8)) != 0) return;
         Vector3 v = Velocity;
         if (v.LengthSquared() < 4f)
         {
@@ -781,17 +851,11 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     {
         var terrain = MapTerrain.Instance;
         if (terrain == null) return;
-        float limit = terrain.PlayHalf;
+        // The real ground ends here: nothing gets further (and beyond the battlefield's edge, short of
+        // this, a machine has only so long before it is lost, see Boundary).
+        float limit = terrain.HardHalf;
         Vector3 p = GlobalPosition;
         if (Mathf.Abs(p.X) <= limit && Mathf.Abs(p.Z) <= limit) return;
-        if (Kind == MoveKind.Plane)
-        {
-            // A plane can't stop at the edge: it comes back in from the opposite side.
-            if (Mathf.Abs(p.X) > limit) p.X = -Mathf.Sign(p.X) * (limit - 5f);
-            if (Mathf.Abs(p.Z) > limit) p.Z = -Mathf.Sign(p.Z) * (limit - 5f);
-            GlobalPosition = p;
-            return;
-        }
         GlobalPosition = new Vector3(Mathf.Clamp(p.X, -limit, limit), p.Y, Mathf.Clamp(p.Z, -limit, limit));
         Blocked = true;
     }
@@ -854,7 +918,8 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         }
         // The AI can do with a shorter sight line, checked every other tick.
         bool player = Pilot is PlayerPilot;
-        if (!player && (++_tick & 1) == 1) return;
+        // (Unless it is only simulated every other tick anyway, see Lod.SimInterval: then it aims as often as ever.)
+        if (!player && (++_tick & 1) == 1 && _simScale < 1.5f) return;
         Transform3D view = default;
         if (Pilot == null || !Pilot.TryGetAimView(out view))
             view = AimAnchor.GlobalTransform.Orthonormalized();
@@ -923,16 +988,44 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
             _wreckFx.Position = Vector3.Up * CenterHeight;
         }
         Pilot?.OnKilled();
-        if (Team == Team.Enemy) Game.Kills++;
         Score.Killed(this);
+    }
+
+    /// <summary>Under water and not made for it: the engine drowns. It doesn't burn or blow up — until something treads on it.</summary>
+    public bool Sunk { get; private set; }
+    bool _sunkBlown;
+    float _hullTop = 2f;
+
+    void Drown()
+    {
+        Sunk = true;
+        Score.Attacker = null;
+        Hp = 0f;
+        RespawnLeft = RespawnTime;
+        Throttle = Speed = 0f;
+        Velocity = Vector3.Zero;
+        Weapons.CancelBeams();
+        _engine?.Stop();
+        Impacts.Splash(GetParent(), GlobalPosition, 2f);
+        Pilot?.OnKilled();
+        Score.Killed(this);
+    }
+
+    /// <summary>A drowned machine trodden on: what was left in its tanks and magazines goes up.</summary>
+    public void BlowSunk(Vector3 at)
+    {
+        if (!Sunk || _sunkBlown) return;
+        _sunkBlown = true;
+        Explode();
+        Impacts.Splash(GetParent(), at, 3f);
+        foreach (var mesh in _meshes) mesh.MaterialOverride = CharredMaterial;
+        Debris.Burst(GetParent(), AimCenter, 6, 0.7f, CharredMaterial, Vector3.Up * 5f, 8f);
     }
 
     void Explode()
     {
         if (ExplosionScene == null) return;
-        var boom = ExplosionScene.Instantiate<Node3D>();
-        GetParent().AddChild(boom);
-        boom.GlobalPosition = AimCenter;
+        OneShotFx.Spawn(ExplosionScene, GetParent(), AimCenter);
     }
 
     void UpdateDead(float dt)
@@ -1019,6 +1112,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     {
         if (IsInstanceValid(_wreckFx)) _wreckFx.QueueFree();
         _wreckFx = null;
+        Sunk = _sunkBlown = false;
         Mend();
         CollisionLayer = _layer;
         GlobalTransform = _spawn;

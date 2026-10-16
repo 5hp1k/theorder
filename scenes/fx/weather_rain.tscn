@@ -67,6 +67,7 @@ process_material = SubResource("ParticleProcessMaterial_3")
 draw_pass_1 = SubResource("QuadMesh_4")
 
 [node name="Loop" type="AudioStreamPlayer" parent="."]
+bus = &"Ambience"
 stream = ExtResource("3")
 volume_db = -12
 autoplay = true

@@ -18,6 +18,7 @@ public partial class Crater : Node3D
 	MeshInstance3D _mark;
 	Godot.Collections.Array _flat;
 	Vector3[] _rest;
+	float _extent;
 
 	public override void _Ready()
 	{
@@ -28,10 +29,16 @@ public partial class Crater : Node3D
 		_mark.SetInstanceShaderParameter("heat", GlowTime > 0f ? 1f : 0f);
 		if (_mark.Mesh != null)
 		{
-			_flat = _mark.Mesh.SurfaceGetArrays(0);
-			_rest = _flat[(int)Mesh.ArrayType.Vertex].AsVector3Array();
+			// (The flat plane's arrays are the same for every mark of a kind: read once.)
+			if (!Flats.TryGetValue(_mark.Mesh, out var flat))
+			{
+				var arrays = _mark.Mesh.SurfaceGetArrays(0);
+				Flats[_mark.Mesh] = flat = (arrays, arrays[(int)Mesh.ArrayType.Vertex].AsVector3Array());
+			}
+			(_flat, _rest) = flat;
+			foreach (var v in _rest) _extent = Mathf.Max(_extent, new Vector2(v.X, v.Z).Length());
 			Drape();
-			MapTerrain.Reshaped += Drape;
+			MapTerrain.Reshaped += OnReshaped;
 		}
 
 		if (GlowTime > 0f)
@@ -43,7 +50,18 @@ public partial class Crater : Node3D
 		tween.TweenCallback(Callable.From(QueueFree));
 	}
 
-	public override void _ExitTree() => MapTerrain.Reshaped -= Drape;
+	public override void _ExitTree() => MapTerrain.Reshaped -= OnReshaped;
+
+	static readonly System.Collections.Generic.Dictionary<Mesh, (Godot.Collections.Array, Vector3[])> Flats = new();
+
+	/// <summary>The ground moved somewhere: lies down on it again if that was under this mark.</summary>
+	void OnReshaped(Rect2 area)
+	{
+		if (_mark == null || !IsInsideTree()) return;
+		Vector3 c = _mark.GlobalPosition;
+		float reach = _mark.GlobalBasis.X.Length() * _extent + 1f;
+		if (area.Grow(reach).HasPoint(new Vector2(c.X, c.Z))) Drape();
+	}
 
 	/// <summary>Drops every vertex of the plane onto the ground under it.</summary>
 	void Drape()

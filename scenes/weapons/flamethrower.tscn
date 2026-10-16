@@ -112,6 +112,7 @@ process_material = SubResource("ParticleProcessMaterial_11")
 draw_pass_1 = SubResource("QuadMesh_12")
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("2")
 unit_size = 9
 max_distance = 260

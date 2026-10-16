@@ -1,0 +1,57 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/Destructible.cs" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/fx/splinters.tscn" id="3"]
+[ext_resource type="Script" path="res://scripts/World/PropPart.cs" id="4"]
+[ext_resource type="ArrayMesh" path="res://models/trees/palm_medium/Trunk.res" id="x1"]
+[ext_resource type="Material" path="res://materials/bark_palm.tres" id="x2"]
+[ext_resource type="ArrayMesh" path="res://models/trees/palm_medium/Crown.res" id="x3"]
+[ext_resource type="Material" path="res://materials/leaf_palm_medium.tres" id="x4"]
+
+[sub_resource type="CylinderShape3D" id="Trunk_shape"]
+radius = 0.3
+height = 8.051
+
+[sub_resource type="SphereShape3D" id="Crown_shape"]
+radius = 2.6
+
+[node name="PalmMedium" type="StaticBody3D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("2")
+Hp = 16.0
+How = 0
+Footprint = Vector2(0.9, 0.9)
+Height = 8.0
+DestroyFx = ExtResource("3")
+
+[node name="Trunk" type="StaticBody3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("4")
+Hp = 16.0
+BreakFx = ExtResource("3")
+Vital = true
+
+[node name="Mesh" type="MeshInstance3D" parent="Trunk"]
+mesh = ExtResource("x1")
+surface_material_override/0 = ExtResource("x2")
+
+[node name="Shape" type="CollisionShape3D" parent="Trunk"]
+transform = Transform3D(0.0000, -0.0337, 0.9994, -0.1068, 0.9937, 0.0335, -0.9943, -0.1068, -0.0036, -0.4300, 4.0000, 0.1350)
+shape = SubResource("Trunk_shape")
+
+[node name="Crown" type="StaticBody3D" parent="."]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("4")
+Hp = 7.0
+BreakFx = ExtResource("3")
+
+[node name="Mesh" type="MeshInstance3D" parent="Crown"]
+mesh = ExtResource("x3")
+surface_material_override/0 = ExtResource("x4")
+
+[node name="Shape" type="CollisionShape3D" parent="Crown"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.8600, 8.1500, 0.2700)
+shape = SubResource("Crown_shape")

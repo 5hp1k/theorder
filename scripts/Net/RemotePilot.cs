@@ -31,7 +31,8 @@ public partial class RemotePilot : MechPilot
         {
             _input.Throttle = Mathf.MoveToward(_input.Throttle, 0f, dt);
             _input.Turn = 0f;
-            _input.Fire1 = _input.Fire2 = _input.Fire3 = _input.Jump = _input.Descend = false;
+            _input.Fire = 0;
+            _input.Jump = _input.Descend = false;
         }
         _input.Apply(Unit);
         Unit.LockTarget = Lock is Node node && IsInstanceValid(node) && !Lock.IsDestroyed ? Lock : null;

@@ -38,6 +38,7 @@ mesh = ExtResource("x4")
 material_override = ExtResource("x5")
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("3")
 unit_size = 14
 max_distance = 200

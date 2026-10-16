@@ -1,0 +1,65 @@
+[gd_scene format=3]
+
+[node name="WeaponGroupRow" type="HBoxContainer"]
+theme_override_constants/separation = 14
+
+[node name="Name" type="Label" parent="."]
+layout_mode = 2
+custom_minimum_size = Vector2(260, 0)
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.92, 0.93, 0.95, 1)
+text = "Оружие"
+vertical_alignment = 1
+
+[node name="Groups" type="HBoxContainer" parent="."]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="G1" type="Button" parent="Groups"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 34)
+focus_mode = 0
+toggle_mode = true
+theme_override_font_sizes/font_size = 17
+text = "1"
+
+[node name="G2" type="Button" parent="Groups"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 34)
+focus_mode = 0
+toggle_mode = true
+theme_override_font_sizes/font_size = 17
+text = "2"
+
+[node name="G3" type="Button" parent="Groups"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 34)
+focus_mode = 0
+toggle_mode = true
+theme_override_font_sizes/font_size = 17
+text = "3"
+
+[node name="G4" type="Button" parent="Groups"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 34)
+focus_mode = 0
+toggle_mode = true
+theme_override_font_sizes/font_size = 17
+text = "4"
+
+[node name="G5" type="Button" parent="Groups"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 34)
+focus_mode = 0
+toggle_mode = true
+theme_override_font_sizes/font_size = 17
+text = "5"
+
+[node name="G6" type="Button" parent="Groups"]
+layout_mode = 2
+custom_minimum_size = Vector2(40, 34)
+focus_mode = 0
+toggle_mode = true
+theme_override_font_sizes/font_size = 17
+text = "6"

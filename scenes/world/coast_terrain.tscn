@@ -4,10 +4,9 @@
 [ext_resource type="PackedScene" path="res://scenes/props/oil_rig.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/props/rock_small.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/props/rock_medium.tscn" id="4"]
-[ext_resource type="PackedScene" path="res://scenes/props/tree_oak.tscn" id="5"]
-[ext_resource type="PackedScene" path="res://scenes/props/tree_birch.tscn" id="6"]
-[ext_resource type="PackedScene" path="res://scenes/props/pine_tall.tscn" id="7"]
-[ext_resource type="PackedScene" path="res://scenes/props/pine_small.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/props/palm_tall.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/props/palm_medium.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/props/palm_leaning.tscn" id="7"]
 [ext_resource type="PackedScene" path="res://scenes/fx/footprint_dirt.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/fx/splash.tscn" id="10"]
 [ext_resource type="Material" path="res://materials/terrain_coast.tres" id="11"]
@@ -20,8 +19,8 @@ collision_layer = 1
 collision_mask = 0
 script = ExtResource("1")
 Seed = 77
-Size = 1040
-Border = 120
+Size = 1600
+Border = 400
 RepairBayScene = ExtResource("repair_bay")
 RepairBaySpots = PackedVector2Array()
 CellSize = 4
@@ -31,7 +30,7 @@ HillHeight = 9
 HillLength = 240
 FlatRadius = 28
 SolidCount = 57
-PlantCount = 710
+PlantCount = 350
 DrifterCount = 0
 HasWater = true
 WaterLevel = -3.5
@@ -46,7 +45,7 @@ MapHigh = Color(0.5, 0.75, 0.35, 1)
 MapWater = Color(0.1, 0.35, 0.65, 1)
 WaterPropScenes = Array[PackedScene]([ExtResource("2")])
 SolidScenes = Array[PackedScene]([ExtResource("3"), ExtResource("4")])
-PlantScenes = Array[PackedScene]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("8"), ExtResource("5")])
+PlantScenes = Array[PackedScene]([ExtResource("5"), ExtResource("6"), ExtResource("7"), ExtResource("6")])
 FootprintScene = ExtResource("9")
 SplashScene = ExtResource("10")
 PlantClumping = 0.8

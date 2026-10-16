@@ -122,9 +122,7 @@ public partial class Destructible : StaticBody3D, IDamageable
         Burning.Ignite(GetParent(), GlobalPosition + Vector3.Up * 0.3f, Mathf.Clamp(Mathf.Max(Footprint.X, Footprint.Y) * 0.6f, 0.7f, 1.6f));
         if (DestroyFx != null && !Quiet)
         {
-            var fx = DestroyFx.Instantiate<Node3D>();
-            GetParent().AddChild(fx);
-            fx.GlobalPosition = GlobalPosition + Vector3.Up * Mathf.Min(Height * 0.3f, 4f);
+            OneShotFx.Spawn(DestroyFx, GetParent(), GlobalPosition + Vector3.Up * Mathf.Min(Height * 0.3f, 4f));
         }
 
         var rubble = GetNodeOrNull<Node3D>("Rubble");

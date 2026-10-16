@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Texture2D" path="res://textures/footprints/panther.png" id="fp_tex"]
 [ext_resource type="Material" path="res://materials/camo_desert.tres" id="1"]
 [ext_resource type="Material" path="res://materials/mech_joint.tres" id="2"]
 [ext_resource type="Material" path="res://materials/mech_accent.tres" id="3"]
@@ -67,6 +68,9 @@
 [ext_resource type="ArrayMesh" path="res://models/mechs/panther/LeftTorso_RackFace.res" id="x11"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/panther/RightTorso_Rack.res" id="x41"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/panther/RightTorso_RackFace.res" id="x42"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_burst.tscn" id="x43"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_puff.tscn" id="x44"]
+[ext_resource type="PackedScene" path="res://scenes/weapons/ams.tscn" id="w_ams"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 1.9
@@ -139,10 +143,13 @@ TurnRateFull = 0.6
 StepLength = 6.5
 StepHeight = 1
 RunSwing = 0.46
-BodySway = 0.4
+BodySway = 0.5
 ArmorScale = 1.6
+Tonnage = 75
 HeatDissipation = 0.11
-FootprintMesh = ExtResource("x2")
+FootprintTexture = ExtResource("fp_tex")
+FootprintSize = Vector2(2.149, 4.474)
+FootprintCentre = Vector2(0, 0.047)
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4, 0)
@@ -263,6 +270,9 @@ material_override = ExtResource("2")
 [node name="Shape" type="CollisionShape3D" parent="Hips/Torso/RightTorso"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.25, 1.1, 0.1)
 shape = SubResource("BoxShape3D_13")
+
+[node name="Ams" parent="Hips/Torso" instance=ExtResource("w_ams")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, -0.6)
 
 [node name="Antenna" type="MeshInstance3D" parent="Hips/Torso"]
 mesh = ExtResource("x12")
@@ -639,11 +649,14 @@ material_override = ExtResource("2")
 [node name="Ragdoll" type="Node" parent="."]
 script = ExtResource("20")
 TotalMass = 50000
+HullImpactScene = ExtResource("x43")
+LimbImpactScene = ExtResource("x44")
 
 [node name="Sounds" type="Node3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5.6, 0)
 
 [node name="Footstep" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("21")
 unit_size = 22
 max_distance = 350
@@ -651,12 +664,14 @@ volume_db = 2
 max_polyphony = 2
 
 [node name="Reactor" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("22")
 unit_size = 7
 max_distance = 120
 volume_db = -10
 
 [node name="Hit" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Effects"
 stream = ExtResource("23")
 unit_size = 16
 max_distance = 300
@@ -664,6 +679,7 @@ volume_db = -2
 max_polyphony = 3
 
 [node name="Alarm" type="AudioStreamPlayer3D" parent="Sounds"]
+bus = &"Signals"
 stream = ExtResource("24")
 unit_size = 6
 max_distance = 40

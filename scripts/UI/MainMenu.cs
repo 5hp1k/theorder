@@ -51,7 +51,8 @@ public partial class MainMenu : Control
     Control[] _pages;
     Node3D _pivot;
     Node3D _preview;
-    Label _summary, _mechInfo, _mapInfo, _enemyCountLabel;
+    Label _summary, _enemyCountLabel;
+    UnitStats _mechStats;
     VBoxContainer _slotList;
     HardpointDrop _shelf;
     float _handTurned;
@@ -67,8 +68,7 @@ public partial class MainMenu : Control
 
         _pivot = GetNode<Node3D>("%PreviewPivot");
         _summary = GetNode<Label>("%Summary");
-        _mechInfo = GetNode<Label>("%MechInfo");
-        _mapInfo = GetNode<Label>("%MapInfo");
+        _mechStats = GetNode<UnitStats>("%MechStats");
         _enemyCountLabel = GetNode<Label>("%EnemyCountLabel");
         _slotList = GetNode<VBoxContainer>("%SlotList");
         _click = GetNodeOrNull<AudioStreamPlayer>("%Click");
@@ -138,14 +138,14 @@ public partial class MainMenu : Control
         for (int i = 0; i < _pages.Length; i++)
             if (_pages[i] != null) _pages[i].Visible = i == index;
         if (index == 4)
-            GetNode<Label>("%NetUnit").Text = Loc.T("Ваша машина: ") + Loc.T(Catalog.Find(Catalog.PlayerUnits, GameConfig.MechId).Name) + Loc.T(" (меняется в ангаре)");
+            GetNode<Label>("%NetUnit").Text = Loc.T("Ваша машина: ") + Loc.T(Catalog.Find(Catalog.PlayerUnits, GameConfig.MechId).Name) + Loc.T(" (выбирается в ангаре)");
         _click?.Play();
     }
 
     void StartBattle()
     {
         GameConfig.Save();
-        GetTree().ChangeSceneToFile(GameScene);
+        LoadingScreen.Start(GetTree(), GameScene);
     }
 
     static void Fill(OptionButton option, Catalog.Entry[] entries, string selectedId)
@@ -157,20 +157,70 @@ public partial class MainMenu : Control
 
     // ── Pages ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// What the player goes out in: first a group (mechs, ground vehicles, aircraft), then the machine,
+    /// the mechs under headings by weight class and lightest first, the ships under their own heading.
+    /// </summary>
     void SetupMechPage()
     {
-        var list = GetNode<ItemList>("%MechList");
-        list.Clear();
-        foreach (var e in Catalog.PlayerUnits) list.AddItem(Loc.T(e.Name));
-        list.Select(Catalog.IndexOf(Catalog.PlayerUnits, GameConfig.MechId));
-        list.ItemSelected += index =>
+        var groupOption = GetNode<OptionButton>("%UnitKindOption");
+        var unitOption = GetNode<OptionButton>("%UnitOption");
+        var units = Catalog.PlayerUnits;
+        // The machine last picked in each group, to go back to it.
+        var last = new System.Collections.Generic.Dictionary<Catalog.Group, string>();
+        // Item ids are catalog indices plus this, so they never meet the ids a heading (separator) is given.
+        const int IdBase = 1000;
+
+        void FillUnits(Catalog.Group group)
         {
-            GameConfig.MechId = Catalog.PlayerUnits[index].Id;
+            unitOption.Clear();
+            var members = new System.Collections.Generic.List<int>();
+            for (int i = 0; i < units.Length; i++)
+                if (Catalog.GroupOf(units[i]) == group) members.Add(i);
+            if (group == Catalog.Group.Mechs)
+                members.Sort((a, b) => Catalog.Tonnage(units[a]).CompareTo(Catalog.Tonnage(units[b])));
+            string heading = null;
+            foreach (int i in members)
+            {
+                string here = group == Catalog.Group.Mechs ? Mech.ClassHeadings[Mech.WeightClass(Catalog.Tonnage(units[i]))]
+                            : units[i].Kind == Catalog.Kind.Water ? "Корабли" : null;
+                if (here != null && here != heading) unitOption.AddSeparator(Loc.T(here));
+                heading = here;
+                unitOption.AddItem(Loc.T(units[i].Name), IdBase + i);
+            }
+        }
+
+        void Pick(string id)
+        {
+            int at = unitOption.GetItemIndex(IdBase + Catalog.IndexOf(units, id));
+            if (at < 0) return;
+            unitOption.Selected = at;
+            last[Catalog.GroupOf(Catalog.Find(units, id))] = id;
+            if (GameConfig.MechId == id) return;
+            GameConfig.MechId = id;
             _click?.Play();
             RebuildPreview();
             RebuildSlots();
             Refresh();
+        }
+
+        groupOption.Clear();
+        foreach (string name in Catalog.GroupNames) groupOption.AddItem(Loc.T(name));
+        var group = Catalog.GroupOf(Catalog.Find(units, GameConfig.MechId));
+        groupOption.Selected = (int)group;
+        FillUnits(group);
+        Pick(GameConfig.MechId);
+        groupOption.ItemSelected += index =>
+        {
+            var chosen = (Catalog.Group)(int)index;
+            FillUnits(chosen);
+            // back to the one picked here before, or the first of the list
+            if (!last.TryGetValue(chosen, out string id))
+                for (int i = 0; i < unitOption.ItemCount && id == null; i++)
+                    if (!unitOption.IsItemSeparator(i)) id = units[unitOption.GetItemId(i) - IdBase].Id;
+            Pick(id);
         };
+        unitOption.ItemSelected += index => Pick(units[unitOption.GetItemId((int)index) - IdBase].Id);
     }
 
     /// <summary>The hangar's two tabs: what the machine carries, and how it is painted.</summary>
@@ -178,18 +228,44 @@ public partial class MainMenu : Control
     {
         var weapons = GetNode<Button>("%BtnTabWeapons");
         var paint = GetNode<Button>("%BtnTabPaint");
-        Control hint = GetNode<Control>("%PageHangar").GetNode<Control>("Hint"), bench = GetNode<Control>("%PageHangar").GetNode<Control>("Bench");
-        Control stock = GetNode<Control>("%BtnStock"), page = GetNode<Control>("%PageCustom");
+        Control bench = GetNode<Control>("%PageHangar").GetNode<Control>("Bench");
+        Control stock = GetNode<Control>("%LoadoutButtons"), page = GetNode<Control>("%PageCustom");
         void Show(bool painting)
         {
             weapons.SetPressedNoSignal(!painting);
             paint.SetPressedNoSignal(painting);
-            hint.Visible = bench.Visible = stock.Visible = !painting;
+            bench.Visible = stock.Visible = !painting;
             page.Visible = painting;
             _click?.Play();
         }
         weapons.Pressed += () => Show(false);
         paint.Pressed += () => Show(true);
+
+        // Equipment: jump jets (for a mech built for them) and the anti-missile system.
+        void Kit(CheckButton box, string what) => box.Toggled += on =>
+        {
+            if (!GameConfig.Fitted.TryGetValue(GameConfig.MechId, out var kit)) GameConfig.Fitted[GameConfig.MechId] = kit = new();
+            kit[what] = on;
+            _click?.Play();
+            RebuildPreview();
+        };
+        Kit(GetNode<CheckButton>("%ChkJumpJets"), Equipment.JumpJets);
+        Kit(GetNode<CheckButton>("%ChkAms"), Equipment.AntiMissile);
+    }
+
+    /// <summary>Sets the equipment switches to the chosen machine: shown where they apply, as chosen or as built.</summary>
+    void RefreshEquipment()
+    {
+        var stock = SpawnStock();
+        GameConfig.Fitted.TryGetValue(GameConfig.MechId, out var kit);
+        void Show(CheckButton box, string what, bool applies)
+        {
+            box.Visible = applies;
+            box.SetPressedNoSignal(kit != null && kit.TryGetValue(what, out bool on) ? on : Equipment.Has(stock, what));
+        }
+        Show(GetNode<CheckButton>("%ChkJumpJets"), Equipment.JumpJets, Equipment.CanJump(stock));
+        Show(GetNode<CheckButton>("%ChkAms"), Equipment.AntiMissile, Equipment.CanCarryAms(stock));
+        stock.Free();
     }
 
     void SetupCustomPage()
@@ -254,6 +330,19 @@ public partial class MainMenu : Control
         GetNode<Button>("%BtnStock").Pressed += () =>
         {
             GameConfig.Loadouts.Remove(GameConfig.MechId);
+            GameConfig.Fitted.Remove(GameConfig.MechId);
+            RebuildPreview();
+            RebuildSlots();
+        };
+        // Everything off: every hardpoint left empty.
+        GetNode<Button>("%BtnStrip").Pressed += () =>
+        {
+            var bare = SpawnStock();
+            var empty = new string[Hardpoint.Of(bare).Count];
+            bare.Free();
+            System.Array.Fill(empty, "");
+            GameConfig.Loadouts[GameConfig.MechId] = empty;
+            _click?.Play();
             RebuildPreview();
             RebuildSlots();
         };
@@ -470,6 +559,9 @@ public partial class MainMenu : Control
         var respawn = GetNode<CheckButton>("%RespawnCheck");
         respawn.ButtonPressed = GameConfig.EnemyRespawn;
         respawn.Toggled += on => GameConfig.EnemyRespawn = on;
+        var squadRespawn = GetNode<CheckButton>("%SquadRespawnCheck");
+        squadRespawn.ButtonPressed = GameConfig.SquadRespawn;
+        squadRespawn.Toggled += on => GameConfig.SquadRespawn = on;
 
         var difficulty = GetNode<OptionButton>("%DifficultyOption");
         difficulty.Selected = GameConfig.Difficulty;
@@ -487,7 +579,6 @@ public partial class MainMenu : Control
             string id = e.Id;
             var check = UnitCheckScene.Instantiate<CheckBox>();
             check.Text = Loc.T(e.Name);
-            check.TooltipText = Loc.T(e.Description);
             check.ButtonPressed = !GameConfig.EnemyExcluded.Contains(id);
             check.Toggled += on =>
             {
@@ -507,8 +598,7 @@ public partial class MainMenu : Control
     {
         var mech = Catalog.Find(Catalog.PlayerUnits, GameConfig.MechId);
         var map = Catalog.Find(Catalog.Maps, GameConfig.MapId);
-        _mechInfo.Text = Loc.T(mech.Description);
-        _mapInfo.Text = Loc.T(map.Description);
+        _mechStats.Show(mech);
         _enemyCountLabel.Text = Loc.T(GameConfig.EnemyCount.ToString());
         _vehicleCountLabel.Text = Loc.T(GameConfig.EnemyVehicleCount.ToString());
         // (With every box of a kind unticked there is nothing of that kind to field.)
@@ -527,8 +617,7 @@ public partial class MainMenu : Control
         _preview = SpawnStock();
         // A statue: no pilot and no simulation, just the model in its rest pose.
         _preview.ProcessMode = ProcessModeEnum.Disabled;
-        GameConfig.Loadouts.TryGetValue(GameConfig.MechId, out string[] loadout);
-        Hardpoint.Apply(_preview, loadout);
+        Hardpoint.Apply(_preview, GameConfig.LoadoutFor(GameConfig.MechId));
         if (_preview is Mech mech)
         {
             mech.ApplyPaint(GameConfig.PlayerPaint());
@@ -558,6 +647,7 @@ public partial class MainMenu : Control
     /// </summary>
     void RebuildSlots()
     {
+        RefreshEquipment();
         foreach (Node child in _slotList.GetChildren()) child.QueueFree();
         var shelfList = _shelf.GetNode<VBoxContainer>("Column/Weapons");
         foreach (Node child in shelfList.GetChildren()) child.QueueFree();
@@ -598,10 +688,11 @@ public partial class MainMenu : Control
         }
 
         // The shelf: taking a fitted weapon back.
-        _shelf.GetNode<Label>("Column/Header/Name").Text = "Полка";
+        // (Set again on every rebuild, not when the node appears: so put into the chosen language here.)
+        _shelf.GetNode<Label>("Column/Header/Name").Text = Loc.T("Полка");
         _shelf.GetNode<Label>("Column/Header/Type").Text = "";
         _shelf.GetNode<Label>("Column/Header/Pips").Text = "";
-        _shelf.GetNode<Label>("Column/Empty").Text = points.Count == 0 ? "у этой машины нет точек подвески" : "";
+        _shelf.GetNode<Label>("Column/Empty").Text = points.Count == 0 ? Loc.T("у этой машины нет точек подвески") : "";
         _shelf.Accepts = (_, from, _) => from >= 0;
         _shelf.Dropped = (_, from, index) =>
         {

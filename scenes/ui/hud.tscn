@@ -13,11 +13,17 @@
 [ext_resource type="Script" path="res://scripts/UI/StatusText.cs" id="11"]
 [ext_resource type="Script" path="res://scripts/UI/NukeWarning.cs" id="nukewarn"]
 [ext_resource type="AudioStream" path="res://audio/siren_loop.wav" id="siren"]
+[ext_resource type="Script" path="res://scripts/UI/MissileWarning.cs" id="missilewarn"]
+[ext_resource type="AudioStream" path="res://audio/missile_warning.wav" id="missilebeep"]
 [ext_resource type="Script" path="res://scripts/UI/DamageDoll.cs" id="12"]
 [ext_resource type="Script" path="res://scripts/UI/TargetPanel.cs" id="13"]
 [ext_resource type="Script" path="res://scripts/UI/SquadCommand.cs" id="squad"]
 [ext_resource type="Script" path="res://scripts/UI/Scoreboard.cs" id="scoreboard"]
 [ext_resource type="Script" path="res://scripts/UI/ChatBox.cs" id="chatbox"]
+[ext_resource type="Script" path="res://scripts/UI/BoundsWarning.cs" id="boundswarn"]
+[ext_resource type="Script" path="res://scripts/UI/CockpitVoice.cs" id="voice"]
+[ext_resource type="Resource" path="res://audio/voice/voices.tres" id="voices"]
+[ext_resource type="Script" path="res://scripts/UI/VoiceLine.cs" id="voiceline"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_1"]
 shader = ExtResource("3")
@@ -191,6 +197,18 @@ offset_right = 300
 offset_bottom = -50
 mouse_filter = 2
 
+[node name="BoundsWarning" type="Control" parent="."]
+script = ExtResource("boundswarn")
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300
+offset_top = 220
+offset_right = 300
+offset_bottom = 290
+mouse_filter = 2
+
 [node name="NukeWarning" type="Control" parent="."]
 script = ExtResource("nukewarn")
 layout_mode = 1
@@ -207,8 +225,151 @@ WarnRadius = 1500.0
 ArrowRing = 46.0
 
 [node name="Siren" type="AudioStreamPlayer" parent="NukeWarning"]
+bus = &"Signals"
 stream = ExtResource("siren")
 volume_db = -8.0
+
+[node name="MissileWarning" type="Control" parent="."]
+script = ExtResource("missilewarn")
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -150
+offset_top = 214
+offset_right = 150
+offset_bottom = 260
+mouse_filter = 2
+RedrawRate = 20.0
+ArrowRing = 34.0
+
+[node name="Beep" type="AudioStreamPlayer" parent="MissileWarning"]
+bus = &"Signals"
+stream = ExtResource("missilebeep")
+volume_db = -6.0
+
+[node name="CockpitVoice" type="Node" parent="."]
+script = ExtResource("voice")
+Voices = ExtResource("voices")
+
+[node name="Incoming" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 5.0
+Priority = 5
+
+[node name="HeatCritical" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 10.0
+Priority = 4
+
+[node name="Shutdown" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 4.0
+Priority = 5
+
+[node name="DamageCritical" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 30.0
+Priority = 4
+
+[node name="Emp" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 6.0
+Priority = 4
+
+[node name="OutOfBounds" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 10.0
+Priority = 3
+
+[node name="LeftTorso" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 0.0
+Priority = 3
+
+[node name="RightTorso" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 0.0
+Priority = 3
+
+[node name="LeftArm" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 0.0
+Priority = 3
+
+[node name="RightArm" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 0.0
+Priority = 3
+
+[node name="LeftLeg" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 0.0
+Priority = 3
+
+[node name="RightLeg" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 0.0
+Priority = 3
+
+[node name="WeaponLost" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 3.0
+Priority = 2
+
+[node name="AmmoOut" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 4.0
+Priority = 2
+
+[node name="TargetDestroyed" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 0.0
+Priority = 2
+
+[node name="SystemsOnline" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 4.0
+Priority = 2
+
+[node name="Startup" type="AudioStreamPlayer" parent="CockpitVoice"]
+bus = &"Voice"
+volume_db = -3.0
+script = ExtResource("voiceline")
+Repeat = 3.0
+Priority = 1
 
 [node name="ArmorLabel" type="Label" parent="."]
 layout_mode = 1
@@ -233,10 +394,11 @@ anchor_left = 0.5
 anchor_top = 0
 anchor_right = 0.5
 anchor_bottom = 0
-offset_left = -80
-offset_top = 96
-offset_right = 80
-offset_bottom = 126
+offset_left = -300
+offset_top = 34
+offset_right = -196
+offset_bottom = 64
+horizontal_alignment = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.75, 0.2, 0.95)
 theme_override_font_sizes/font_size = 24
@@ -355,7 +517,7 @@ anchor_top = 0.14
 anchor_bottom = 0.14
 offset_left = -270
 offset_right = 270
-offset_bottom = 400
+offset_bottom = 440
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_4")
 
@@ -368,21 +530,26 @@ text = "W / S — газ (с остановкой на нуле),  X — пол�
 A / D — поворот ног (техника: поворот корпуса, самолёт: крен)
 Самолёт: W / S — нос вниз и вверх, Shift / Ctrl — тяга, мышь — куда лететь, Пробел — осмотреться
 Мышь — торс, башня, прицел
-C — выровнять торс по ногам
+C — выровнять торс по ногам,  Caps Lock — контрвращение торса
 Ctrl (держать) — осмотреться, орудия на месте
+Alt (держать) — руки отдельно от торса
 Z или колесо мыши — приближение
 E — ближайшая цель, T — следующая, Q — под прицелом
-Ракеты: держи прицел на цели до надписи «ЗАХВАТ»
-ЛКМ — группа 1,  ПКМ — группа 2,  СКМ / R — группа 3
+Ракеты: держите прицел на цели до надписи «ЗАХВАТ»
+Гаубица: наведите прицел на точку — дальномер покажет дистанцию и время полёта
+Ядерная бомба — группа 3; после сброса уходите на полной тяге
+ЛКМ — группа 1,  ПКМ — группа 2,  СКМ — группа 3,  4 / 5 / 6 — группы 4–6
+Группы оружия меняются в паузе (Esc)
 Пробел — прыжковые двигатели (вертолёт: вверх),  Shift — вниз
 L — фары,  M — режим радара
 V — кабина / внешний вид
 Y — цель из своих,  Tab (держать) — таблица боя
 Enter — чат (в сетевой игре)
 Звено: F1–F8 кому приказ, затем цифра приказа
+I — интерфейс вкл/выкл
 F11 — счётчик кадров
 Esc — пауза, настройки и управление,  H — скрыть справку
-Клавиши меняются в настройках, на вкладке «Управление»."
+Клавиши настраиваются в «Настройки → Управление»."
 
 [node name="SquadCommand" type="Control" parent="."]
 layout_mode = 1

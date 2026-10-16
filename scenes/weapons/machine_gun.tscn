@@ -29,6 +29,7 @@ Spread = 0.014
 CraterSize = 0.3
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("2")
 unit_size = 14
 max_distance = 400

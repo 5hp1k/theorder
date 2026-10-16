@@ -37,6 +37,13 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
     /// fall through where blocks are missing. For bridges; too many shapes for a tower.
     /// </summary>
     [Export] public bool BlockCollision;
+    /// <summary>
+    /// A span, not a building (a bridge deck): it stands on its two ends and on the piers fixed to it
+    /// (<see cref="Anchor"/>), not on the ground under it. Shot through, whatever is no longer joined to
+    /// one of those, block by block, comes down — into the river, as a section of the deck. Feet and
+    /// wheels never break it (leave <see cref="Trample"/> off); only shots and blasts do.
+    /// </summary>
+    [Export] public bool Span;
 
     [ExportGroup("Fittings")]
     /// <summary>A way in on the ground floor. Fitting prefabs have their origin on the wall, +Z pointing out of it.</summary>
@@ -468,13 +475,11 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
             Vector3 at = GlobalTransform * CellCenter(x, y, z);
             if (ChunkFx != null)
             {
-                var fx = ChunkFx.Instantiate<Node3D>();
+                var fx = OneShotFx.Spawn(ChunkFx, scene, at);
                 // Only now and then does one block's own break stand out of the roar.
                 ulong now = Time.GetTicksMsec();
-                if (now - _lastBreak < BreakGapMs && fx.GetNodeOrNull<AudioStreamPlayer3D>("Sound") is { } sound) sound.Autoplay = false;
+                if (now - _lastBreak < BreakGapMs) (fx?.GetNodeOrNull<AudioStreamPlayer3D>("Sound"))?.Stop();
                 else _lastBreak = now;
-                scene.AddChild(fx);
-                fx.GlobalPosition = at;
             }
             Material lumps = DebrisMaterial ?? _wall;
             if (_push == default)
@@ -508,6 +513,12 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
             Queue(x + dx, y, z + dz, due);
             Queue(x + dx, y + 1, z + dz, due);
         }
+        // A span may have lost the only join of a whole section: shortly, the whole of it is looked at once.
+        if (Span && _spanDue <= 0.0)
+        {
+            _spanDue = due;
+            SetProcess(true);
+        }
     }
 
     void Reveal(int x, int y, int z)
@@ -534,15 +545,67 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
     /// </summary>
     bool Supported(int x, int y, int z)
     {
+        if (Span && y == 0) return Held(Index(x, y, z));
         if (y == 0 || Alive(x, y - 1, z)) return true;
         foreach (var (dx, dz) in Sides)
             if (Alive(x + dx, y, z + dz) && Alive(x + dx, y - 1, z + dz)) return true;
         return false;
     }
 
+    // A span's blocks that are joined, through standing neighbours, to an end or a pier: worked out
+    // afresh once for each batch of checks (see Held).
+    bool[] _held;
+    readonly HashSet<int> _anchors = new();
+    readonly Queue<int> _walk = new();
+
+    /// <summary>The block a pier stands under: it holds the deck up there.</summary>
+    public void Anchor(int x, int y, int z) => _anchors.Add(Index(Mathf.Clamp(x, 0, Cells.X - 1), Mathf.Clamp(y, 0, Cells.Y - 1), Mathf.Clamp(z, 0, Cells.Z - 1)));
+
+    bool Held(int cell)
+    {
+        if (_held == null)
+        {
+            _held = new bool[_alive.Length];
+            _walk.Clear();
+            for (int i = 0; i < _alive.Length; i++)
+            {
+                int z = i / Cells.X % Cells.Z;
+                if (_alive[i] && (z == 0 || z == Cells.Z - 1 || _anchors.Contains(i)))
+                {
+                    _held[i] = true;
+                    _walk.Enqueue(i);
+                }
+            }
+            while (_walk.Count > 0)
+            {
+                int i = _walk.Dequeue();
+                int x = i % Cells.X, z = i / Cells.X % Cells.Z, y = i / (Cells.X * Cells.Z);
+                foreach (var (dx, dz) in Sides)
+                {
+                    if (!Alive(x + dx, y, z + dz)) continue;
+                    int n = Index(x + dx, y, z + dz);
+                    if (_held[n]) continue;
+                    _held[n] = true;
+                    _walk.Enqueue(n);
+                }
+            }
+        }
+        return _held[cell];
+    }
+
+    double _spanDue;
+
     public override void _Process(double delta)
     {
         _time += delta;
+        _held = null;
+        if (_spanDue > 0.0 && _spanDue <= _time)
+        {
+            _spanDue = 0.0;
+            // Every block no longer joined to an end or a pier goes, all of a section together.
+            for (int i = 0; i < _alive.Length; i++)
+                if (_alive[i] && !Held(i)) _pending.Enqueue((i, _time));
+        }
         while (_pending.Count > 0 && _pending.Peek().due <= _time)
         {
             int cell = _pending.Dequeue().cell;
@@ -552,7 +615,7 @@ public partial class ChunkedBuilding : StaticBody3D, Phys.IPenetrable, IDamageab
             _push = default;
             Remove(cell, true);
         }
-        if (_pending.Count == 0) SetProcess(false);
+        if (_pending.Count == 0 && _spanDue <= 0.0) SetProcess(false);
     }
 
     static bool AllowFx()

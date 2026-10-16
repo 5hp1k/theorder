@@ -214,6 +214,7 @@ omni_range = 8.37
 visible = false
 
 [node name="Sound" type="AudioStreamPlayer3D" parent="Jets"]
+bus = &"Effects"
 stream = ExtResource("10")
 unit_size = 6.51
 max_distance = 350

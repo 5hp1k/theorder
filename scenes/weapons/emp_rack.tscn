@@ -24,6 +24,7 @@ RackSize = Vector2(0, 0)
 Emp = true
 
 [node name="FireSound" type="AudioStreamPlayer3D" parent="."]
+bus = &"Effects"
 stream = ExtResource("3")
 unit_size = 10
 max_distance = 200
