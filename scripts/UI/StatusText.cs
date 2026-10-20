@@ -9,7 +9,13 @@ public partial class StatusText : HudWidget
     {
         float w = Size.X;
         var game = Game.Instance;
-        if (game is { TimeUp: true })
+        if (Mission.Current is { State: not Mission.Outcome.Playing } mission)
+        {
+            bool won = mission.State == Mission.Outcome.Won;
+            Text(won ? "МИССИЯ ВЫПОЛНЕНА" : "МИССИЯ ПРОВАЛЕНА", new Vector2(0f, 30f), 30, won ? Green : Red, HorizontalAlignment.Center, w);
+            if (!won) Text(mission.Reason, new Vector2(0f, 62f), 20, Amber, HorizontalAlignment.Center, w);
+        }
+        else if (game is { TimeUp: true })
         {
             Text("ВРЕМЯ ВЫШЛО", new Vector2(0f, 30f), 30, Amber, HorizontalAlignment.Center, w);
             Text($"Уничтожено командой: {Score.KillsOf(Game.PlayerUnit?.Team ?? Team.Player)}", new Vector2(0f, 62f), 20, Green, HorizontalAlignment.Center, w);

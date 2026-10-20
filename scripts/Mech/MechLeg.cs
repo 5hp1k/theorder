@@ -77,6 +77,24 @@ public partial class MechLeg : Node3D
 
     public event Action<MechLeg> Landed;
 
+    /// <summary>The furthest the hip is let be from the heel, a little short of the leg held straight, metres.</summary>
+    public float Reach => (ThighLength + ShinLength) * 0.96f;
+    /// <summary>How high the heel stands over the ground with the foot flat and the metatarsal at rest.</summary>
+    public float HeelRise => AnkleHeight + MetaLength * Mathf.Cos(MetaRestAngle);
+
+    /// <summary>
+    /// A pose laid over the walking one (kneeling, lying on the ground): where the ankle and the heel go,
+    /// which way the knee bends and how the foot lies, all in world space, taken in by Weight (0 = not at
+    /// all, 1 = entirely). The mech sets it each time before the leg is solved.
+    /// </summary>
+    public struct PoseOverride
+    {
+        public float Weight;
+        public Vector3 Ankle, Heel, Pole;
+        public Basis Foot;
+    }
+    public PoseOverride Override;
+
     /// <summary>Joint positions from the last IK solve (world space).</summary>
     public ChickenLegSolver.Result Pose { get; private set; }
     public Node3D Thigh => _thigh;
@@ -163,6 +181,14 @@ public partial class MechLeg : Node3D
         float lift = height + Mathf.Max(0f, to.Y - _from.Y) * 0.6f;
         _contact = _from.Lerp(to, s) + Vector3.Up * (arc * lift);
         _normal = _fromN.Lerp(toN, s).Normalized();
+    }
+
+    /// <summary>The ground under a planted foot has moved (a crater, a wreck gone from under it): the foot goes with it.</summary>
+    public void Settle(Vector3 contact, Vector3 normal)
+    {
+        if (!Planted) return;
+        _contact = contact;
+        _normal = normal;
     }
 
     public void Land(Vector3 to, Vector3 toN)
@@ -293,6 +319,17 @@ public partial class MechLeg : Node3D
         // The knee swings out a little as the leg is lifted and carried through, and back in under the load.
         Pull(ref _splay, ref _splayVel, _airborne ? KneeSplay * 0.6f : KneeSplay * SwingPhase, dt, 0.7f);
         Vector3 pole = forward + right * (Side * _splay);
+
+        if (Override.Weight > 0f)
+        {
+            float w = Mathf.Min(Override.Weight, 1f);
+            Vector3 heel = (ankle + metaVec).Lerp(Override.Heel, w);
+            ankle = ankle.Lerp(Override.Ankle, w);
+            Vector3 along = heel - ankle;
+            if (along.LengthSquared() > 1e-6f) metaVec = along.Normalized() * MetaLength;
+            pole = pole.Lerp(Override.Pole, w);
+            footBasis = footBasis.Orthonormalized().Slerp(Override.Foot.Orthonormalized(), w);
+        }
 
         var r = ChickenLegSolver.Solve(hip, ankle, metaVec, ThighLength, ShinLength, pole);
         Pose = r;

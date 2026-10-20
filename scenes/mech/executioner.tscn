@@ -67,10 +67,12 @@
 [ext_resource type="ArrayMesh" path="res://models/mechs/executioner/ArmR_Frame.res" id="x78"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/executioner/CockpitFrame.res" id="x79"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/executioner/CockpitDash.res" id="x80"]
-[ext_resource type="ArrayMesh" path="res://models/mechs/executioner/Footprint.res" id="x81"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/gauss.tscn" id="x1"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/large_laser.tscn" id="x2"]
 [ext_resource type="PackedScene" path="res://scenes/weapons/ams.tscn" id="w_ams"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/executioner/CockpitGlass.res" id="x3"]
+[ext_resource type="Material" path="res://materials/cockpit_glass.tres" id="x4"]
+[ext_resource type="Script" path="res://scripts/Fx/CockpitGlass.cs" id="x5"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 1.805
@@ -215,7 +217,6 @@ HasJumpJets = true
 FootprintTexture = ExtResource("fp_tex")
 FootprintSize = Vector2(2.026, 3.381)
 FootprintCentre = Vector2(0, -0.632)
-FootprintMesh = ExtResource("x81")
 
 [node name="Collision" type="CollisionShape3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4355, 0)
@@ -329,8 +330,10 @@ mesh = ExtResource("x48")
 material_override = ExtResource("2")
 
 [node name="HardpointChestLaser" type="Node3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.62, 0.9, -1.97)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.005, 1.32, -1.15)
 script = ExtResource("hardpoint")
+Area = Vector2(1.92, 1.29)
+Spacing = Vector3(0.45, 0, 0)
 Type = 3
 Slots = 2
 Mount = 1
@@ -378,8 +381,10 @@ mesh = SubResource("QuadMesh_25")
 material_override = ExtResource("6")
 
 [node name="HardpointGauss" type="Node3D" parent="Hips/Torso/ArmL"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -5.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, -3.1)
 script = ExtResource("hardpoint")
+Area = Vector2(0.87, 0.93)
+Spacing = Vector3(0.45, 0, 0)
 Type = 1
 Slots = 3
 Mount = 4
@@ -427,8 +432,9 @@ mesh = SubResource("QuadMesh_32")
 material_override = ExtResource("6")
 
 [node name="HardpointBeam" type="Node3D" parent="Hips/Torso/ArmR"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.02, -4.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.005, -3.1)
 script = ExtResource("hardpoint")
+Area = Vector2(0.87, 1.099)
 Type = 0
 Slots = 3
 Mount = 5
@@ -441,8 +447,10 @@ Mount = 5
 Mount = 5
 
 [node name="HardpointRackL" type="Node3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.55, 3.45, -1.45)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.55, 3.45, -1.34)
 script = ExtResource("hardpoint")
+Area = Vector2(1.26, 0.99)
+Spacing = Vector3(0.45, 0, 0)
 Type = 2
 Slots = 3
 Mount = 2
@@ -467,6 +475,12 @@ script = ExtResource("x38")
 [node name="Frame" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
 mesh = ExtResource("x79")
 material_override = ExtResource("17")
+
+[node name="Glass" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+mesh = ExtResource("x3")
+material_override = ExtResource("x4")
+script = ExtResource("x5")
+cast_shadow = 0
 
 [node name="Dash" type="Node3D" parent="Hips/Torso/CockpitCam/Cockpit"]
 transform = Transform3D(1, 0, 0, 0, 0.882948, 0.469472, 0, -0.469472, 0.882948, 0, -0.43, -0.98)

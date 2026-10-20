@@ -19,7 +19,6 @@
 [ext_resource type="ArrayMesh" path="res://models/vehicles/spg/RoadWheelR0.res" id="x12"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/spg/Turret.res" id="x13"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/spg/Gun.res" id="x15"]
-[ext_resource type="PackedScene" path="res://scenes/vehicles/track_belt.tscn" id="x3"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(4.0, 3.2, 8.0)
@@ -80,18 +79,6 @@ visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_insignia")
 material_override = ExtResource("insignia")
-
-[node name="TrackL" type="MeshInstance3D" parent="Hull"]
-material_override = ExtResource("2")
-
-[node name="Belt" parent="Hull/TrackL" instance=ExtResource("x3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.77, 0, 0)
-
-[node name="TrackR" type="MeshInstance3D" parent="Hull"]
-material_override = ExtResource("2")
-
-[node name="Belt" parent="Hull/TrackR" instance=ExtResource("x3")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.77, 0, 0)
 
 [node name="WheelL1" type="MeshInstance3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.95, 0.62, -3.42)
@@ -197,8 +184,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.93, 1.8, -0.9)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.25, 0.1)
 
 [node name="HardpointMachineGun" type="Node3D" parent="Turret/Sight"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.67, 0.19, -0.3)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.67, 0.19, -0.17)
 script = ExtResource("hardpoint")
+Area = Vector2(0.25, 0.21)
+Spacing = Vector3(0.45, 0, 0)
 DisplayName = "Башня"
 Type = 1
 Slots = 2
@@ -215,8 +204,10 @@ mesh = ExtResource("x15")
 material_override = ExtResource("2")
 
 [node name="HardpointHowitzer" type="Node3D" parent="Turret/Gun"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -6.55)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.15, -1.27)
 script = ExtResource("hardpoint")
+Area = Vector2(0.96, 0.735)
+Spacing = Vector3(0.45, 0, 0)
 DisplayName = "Орудие"
 Type = 1
 Slots = 4

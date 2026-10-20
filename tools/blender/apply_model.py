@@ -59,7 +59,9 @@ for path, size in data.get('shapes', {}).items():
 for path, props in data.get('props', {}).items():
     n = sc.node(path)
     if n is None: continue
-    for key, value in props.items(): n.set(key, '%.6g' % value)
+    for key, value in props.items():
+        if isinstance(value, (list, tuple)): n.set(key, 'Vector%d(%s)' % (len(value), ', '.join('%.6g' % v for v in value)))
+        else: n.set(key, '%.6g' % value)
 root = sc.nodes()[0]
 for prop, mesh in data.get('root', {}).items():
     root.set(prop, f'ExtResource("{sc.ext(models + "/" + mesh + ".res", "ArrayMesh")}")')

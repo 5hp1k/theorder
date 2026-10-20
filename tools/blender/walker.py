@@ -94,7 +94,9 @@ def legs(model, thigh, shin, meta, foot, joints, spur=True, foot_shift=0.0, foot
     myomer(f, (0, -1.08, -0.58), (0, 1.22, -0.4), 0.15, strands=3)
     for s in (-1, 1):
         myomer(f, (s * 0.24, -0.6, 0.5), (s * 0.2, 0.62, 0.46), 0.075, strands=1)
-    f.box((0, -1.3, 0), (0.56, 0.3, 0.8), FRAME)
+    # a hinge drum across the top, round the pelvis's hip axle (a flat block there lay flat against one
+    # face or another of the axle, depending on how the leg stands)
+    f.cyl((-0.28, -1.36, 0), (0.28, -1.36, 0), 0.38, segs=16, kind=FRAME)
     f.box((0, 1.28, 0), (0.46, 0.3, 0.6), FRAME)
     model.both(f.scale(k), "LegL/Thigh/Hit", "Frame", JOINT)
 
@@ -160,7 +162,8 @@ def legs(model, thigh, shin, meta, foot, joints, spur=True, foot_shift=0.0, foot
 
         toes = Part("FootL_Toes")
         for s in (-1, 1):
-            toes.stations("z", [(-1.72, 0.3, 0.14, s * 0.46, G + 0.07, 0.03), (-1.3, 0.46, 0.26, s * 0.42, G + 0.13, 0.06), (-0.7, 0.5, 0.34, s * 0.36, G + 0.17, 0.07)], kind=FRAME)
+            # (their outer sides 2.5 cm in from the sole's, which they would otherwise lie flat against as they bend)
+            toes.stations("z", [(-1.72, 0.3, 0.14, s * 0.435, G + 0.07, 0.03), (-1.3, 0.46, 0.26, s * 0.395, G + 0.13, 0.06), (-0.7, 0.5, 0.34, s * 0.335, G + 0.17, 0.07)], kind=FRAME)
             toes.cyl((s * 0.36 - 0.28, G + 0.2, -0.72), (s * 0.36 + 0.28, G + 0.2, -0.72), 0.17, segs=10, kind=SOFT)
         toes.cyl((-0.5, 0.2, 0.0), (0.5, 0.2, 0.0), 0.27, segs=14, kind=FRAME)  # ankle
         if not spur:
@@ -184,9 +187,8 @@ def legs(model, thigh, shin, meta, foot, joints, spur=True, foot_shift=0.0, foot
             # A bird's foot is all toes: the leg's own heel is high up the metatarsal, and does the rolling.
             model.props["LegL"] = model.props["LegR"] = {"ToeReach": toe, "HeelReach": heel, "HeelOffAngle": 0.3, "HeelStrikeAngle": 0.14, "ToeHang": 0.5}
 
-    # What the foot leaves on the ground: the outline of its sole.
+    # What the foot leaves on the ground: the outline of its sole (tools/footprint_textures.gd draws it).
     model.loose.append(print_)
-    model.root["FootprintMesh"] = "Footprint"
 
     for name, r in zip(("HipJoint", "KneeJoint", "HeelJoint"), joints):
         r *= HEAVY_JOINT
@@ -308,7 +310,8 @@ def cockpit(model):
         for i in range(4):
             d.box((sx * 0.87, -0.05 - i * 0.05, 0.0), (0.035, 0.022, 0.03), EDGE, 0.003)  # toggle switches
     d.box((0, 0.37, 0.07), (1.96, 0.05, 0.34), FRAME, 0.015)  # glare shield
-    d.stations("y", [(-0.34, 0.5, 0.2, 0, 0.02, 0.04), (-0.7, 0.4, 0.4, 0, 0.12, 0.05)], kind=FRAME, seams=dict(margin=0.03, width=0.008, depth=0.008, min_area=0.03))  # pedestal
+    # (from inside the panel, whose lower edge is at y = -0.32, down to the floor)
+    d.stations("y", [(-0.28, 0.5, 0.2, 0, 0.02, 0.04), (-0.7, 0.4, 0.4, 0, 0.12, 0.05), (-0.86, 0.4, 0.42, 0, 0.13, 0.05)], kind=FRAME, seams=dict(margin=0.03, width=0.008, depth=0.008, min_area=0.03))  # pedestal
     model.add(d, C + "/Dash", "Console", PANEL)
 
     f = Part("CockpitFrame")
@@ -318,21 +321,47 @@ def cockpit(model):
         f.box((s * 1.0, -0.32, -0.29), (0.07, 0.07, 1.88), FRAME, 0.01)
         f.box((s * 0.7, 0.98, 0.35), (0.07, 0.06, 1.3), FRAME, 0.01)
         # side consoles with rows of switches
-        f.stations("z", [(-0.7, 0.36, 0.28, s * 0.9, -0.66, 0.05), (0.6, 0.36, 0.28, s * 0.9, -0.66, 0.05)], kind=FRAME, seams=dict(margin=0.03, width=0.008, depth=0.008, min_area=0.06))
+        # (standing on the floor)
+        f.stations("z", [(-0.7, 0.36, 0.56, s * 0.9, -0.8, 0.05), (0.6, 0.36, 0.56, s * 0.9, -0.8, 0.05)], kind=FRAME, seams=dict(margin=0.03, width=0.008, depth=0.008, min_area=0.06))
         for i in range(6):
             f.box((s * 0.9 + 0.08, -0.515, -0.55 + i * 0.09), (0.035, 0.03, 0.022), EDGE, 0.003)
             f.box((s * 0.9 - 0.08, -0.515, -0.55 + i * 0.09), (0.05, 0.02, 0.03), SOFT, 0.003)
         f.box((s * 0.25, -0.98, -1.05), (0.16, 0.22, 0.05), FRAME, 0.01, None, Matrix.Rotation(math.radians(-25), 3, "X"))  # pedals
     f.box((0, 0.98, -0.3), (1.44, 0.05, 0.07), FRAME, 0.01)  # windscreen bow
-    f.box((0, 0.95, 0.1), (0.5, 0.05, 0.5), FRAME, 0.01)  # overhead panel
+    f.box((0, 0.95, 0.1), (1.4, 0.06, 0.5), FRAME, 0.01)  # overhead panel, from rail to rail
     for i in range(5):
         f.box((-0.16 + i * 0.08, 0.915, 0.0), (0.03, 0.03, 0.02), EDGE, 0.003)
     f.box((0, -1.08, -0.3), (2.2, 0.06, 2.4), FRAME, 0)  # floor
     f.box((0, 0.2, 0.75), (2.1, 2.6, 0.06), FRAME, 0)  # bulkhead behind the seat
     # throttle on the left console, stick on the right
-    f.box((-0.84, -0.44, -0.35), (0.12, 0.04, 0.3), FRAME, 0.01)
-    f.cyl((-0.84, -0.44, -0.4), (-0.84, -0.26, -0.47), 0.018, segs=6, kind=EDGE, bevel=0)
+    # (standing on the consoles, whose tops are at y = -0.52)
+    f.box((-0.84, -0.505, -0.35), (0.12, 0.04, 0.3), FRAME, 0.01)
+    f.cyl((-0.84, -0.5, -0.38), (-0.84, -0.26, -0.47), 0.018, segs=6, kind=EDGE, bevel=0)
     f.box((-0.84, -0.24, -0.48), (0.09, 0.07, 0.06), SOFT, 0.012)
-    f.cyl((0.84, -0.46, -0.45), (0.84, -0.2, -0.42), 0.022, segs=6, kind=EDGE, bevel=0)
+    f.cyl((0.84, -0.53, -0.45), (0.84, -0.2, -0.42), 0.022, segs=6, kind=EDGE, bevel=0)
     f.stations("y", [(-0.2, 0.06, 0.07, 0.84, -0.42, 0.015), (-0.04, 0.07, 0.08, 0.84, -0.43, 0.02)], kind=SOFT, bevel=0.01)
     model.add(f, C, "Frame", PANEL)
+
+    # The canopy glass: windscreen, side panes and roof, single sheets laid just outside the bows and
+    # rails (CockpitGlass cracks it, dirties it, puts the weather on it; materials/cockpit_glass.gdshader).
+    g = Part("CockpitGlass")
+    eye = Vector((0, 0.2, 0.1))
+
+    def sheet(*corners):
+        vs = []
+        for c in corners:
+            p = Vector(c)
+            vs.append(g.bm.verts.new(gd(p + (p - eye).normalized() * 0.05)))
+        g.bm.faces.new(vs)[g.kind] = PAINT
+
+    bow = [(1.0, -0.3, -1.25), (0.82, 0.62, -0.85), (0.7, 0.98, -0.3)]
+    back = 0.72
+    for (x0, y0, z0), (x1, y1, z1) in zip(bow, bow[1:]):
+        sheet((-x0, y0, z0), (x0, y0, z0), (x1, y1, z1), (-x1, y1, z1))
+        for s in (-1, 1):
+            sheet((s * x0, y0, z0), (s * x0, y0, back), (s * x1, y1, back), (s * x1, y1, z1))
+    x, y, z = bow[-1]
+    sheet((-x, y, z), (x, y, z), (x, y, back), (-x, y, back))
+    model.add(g, C, "Glass", "cockpit_glass")
+    model.scripts[C + "/Glass"] = "res://scripts/Fx/CockpitGlass.cs"
+    model.props[C + "/Glass"] = {"cast_shadow": 0}

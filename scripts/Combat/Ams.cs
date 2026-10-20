@@ -47,7 +47,7 @@ public partial class Ams : Node3D
         var missile = Threat();
         if (missile == null) return;
         _wait = Interval;
-        Ammo--;
+        if (!Cheats.Refills(_owner)) Ammo--;
         Vector3 from = GlobalPosition, at = missile.GlobalPosition;
         Node fx = GetTree().CurrentScene ?? GetParent();
         TimedFx.Tracer(fx, from, at, TracerColor, 0.05f);

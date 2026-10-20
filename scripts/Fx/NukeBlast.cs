@@ -259,6 +259,8 @@ public partial class NukeBlast : Node3D
             foreach (var building in _buildings)
                 // (Nothing is left standing inside the radius: even at its edge the wave still breaks a wall.)
                 if (IsInstanceValid(building)) building.BlastShell(center, _swept, to, d => Damage * Mathf.Max(Falloff(d), 0.06f));
+            // The woods are flattened as the front goes through them, out to where the blast is still strong.
+            ForestField.Flatten(center, Mathf.Min(to, Radius * 0.7f));
             _swept = to;
         }
 

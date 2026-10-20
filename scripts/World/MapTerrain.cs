@@ -80,6 +80,8 @@ public partial class MapTerrain : StaticBody3D
     [Export] public bool HasWater;
     /// <summary>Off: only the river (and the sea) hold water — the hollows are filled in to dry land.</summary>
     [Export] public bool Lakes = true;
+    /// <summary>Off: no river across the map, only the lakes (and the sea).</summary>
+    [Export] public bool River = true;
     [Export] public float WaterLevel = -4.5f;
     /// <summary>Deepest the water gets; mechs wade, they don't swim.</summary>
     [Export] public float MaxDepth = 3f;
@@ -88,6 +90,8 @@ public partial class MapTerrain : StaticBody3D
     [Export] public float RiverOffset = 170f;
     /// <summary>How much the river wanders from side to side.</summary>
     [Export] public float RiverMeander = 70f;
+    /// <summary>Basins dug for water where the map is laid out by hand: X, Z of the middle and radius (Z of the vector).</summary>
+    [Export] public Vector3[] Pools = System.Array.Empty<Vector3>();
     /// <summary>Everything with Z beyond this is open sea (the ground slopes away under water). 0 = no sea.</summary>
     [Export] public float SeaStart;
     /// <summary>Spawned where a foot comes down in water.</summary>
@@ -105,6 +109,8 @@ public partial class MapTerrain : StaticBody3D
     /// between (a slow noise decides where the woods are).
     /// </summary>
     [Export(PropertyHint.Range, "0,1")] public float PlantClumping = 0.7f;
+    /// <summary>No plants within this distance of the middle (0: a little over the start pad), for a map with something built there.</summary>
+    [Export] public float PlantClear;
     /// <summary>Plants and rocks come out between 1 − this and 1 + this of their size.</summary>
     [Export(PropertyHint.Range, "0,0.6")] public float SizeVariety = 0.3f;
     /// <summary>Things that move on their own (tumbleweeds). Optional.</summary>
@@ -295,9 +301,17 @@ public partial class MapTerrain : StaticBody3D
         }
 
         // The river runs roughly along X, wandering; its bed is cut below the water with sloping banks.
-        float centre = RiverOffset + RiverMeander * (Mathf.Sin(x / 140f + Seed) * 0.7f + Mathf.Sin(x / 57f + Seed * 2f) * 0.3f);
-        float bank = Mathf.SmoothStep(RiverWidth * 0.5f, RiverWidth * 1.5f, Mathf.Abs(z - centre));
-        h = Mathf.Lerp(Mathf.Min(h, WaterLevel - MaxDepth * 0.8f), h, bank);
+        if (River)
+        {
+            float centre = RiverOffset + RiverMeander * (Mathf.Sin(x / 140f + Seed) * 0.7f + Mathf.Sin(x / 57f + Seed * 2f) * 0.3f);
+            float bank = Mathf.SmoothStep(RiverWidth * 0.5f, RiverWidth * 1.5f, Mathf.Abs(z - centre));
+            h = Mathf.Lerp(Mathf.Min(h, WaterLevel - MaxDepth * 0.8f), h, bank);
+        }
+        foreach (var pool in Pools)
+        {
+            float shore = Mathf.SmoothStep(pool.Z * 0.75f, pool.Z * 1.2f, new Vector2(x - pool.X, z - pool.Y).Length());
+            h = Mathf.Lerp(Mathf.Min(h, WaterLevel - MaxDepth * 0.8f), h, shore);
+        }
         // The shore: land runs down a beach into the sea.
         if (SeaStart != 0f)
             h = Mathf.Lerp(h, WaterLevel - MaxDepth, Mathf.SmoothStep(SeaStart - 70f, SeaStart + 30f, z));
@@ -791,12 +805,13 @@ public partial class MapTerrain : StaticBody3D
             for (int i = 0; i < Total(PlantCount); i++)
             {
                 outer = rng.Randf() > innerShare;
-                Vector3 spot = RandomSpot(FlatRadius * 0.6f);
+                float clear = Mathf.Max(FlatRadius * 0.6f, PlantClear);
+                Vector3 spot = RandomSpot(clear);
                 for (int tries = 0; tries < 12; tries++)
                 {
                     float density = woods.GetNoise2D(spot.X, spot.Z) * 0.5f + 0.5f;
                     if (rng.Randf() > PlantClumping * (1f - Mathf.SmoothStep(0.42f, 0.62f, density))) break;
-                    spot = RandomSpot(FlatRadius * 0.6f);
+                    spot = RandomSpot(clear);
                 }
                 float kind = woods.GetNoise2D(spot.X * 0.6f + 500f, spot.Z * 0.6f) * 0.5f + 0.5f;
                 int pick = rng.Randf() < 0.65f ? Mathf.Clamp((int)(kind * PlantScenes.Length), 0, PlantScenes.Length - 1) : rng.RandiRange(0, PlantScenes.Length - 1);

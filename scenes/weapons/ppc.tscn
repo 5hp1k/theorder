@@ -1,11 +1,14 @@
 [gd_scene format=3]
 
+[ext_resource type="ArrayMesh" path="res://models/weapons/ppc.res" id="model_mesh"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="model_material"]
 [ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/fx/ppc_bolt.tscn" id="2"]
 [ext_resource type="AudioStream" path="res://audio/ppc.wav" id="3"]
 
 [node name="Ppc" type="Node3D"]
 script = ExtResource("1")
+ModelLength = 2.0
 Kick = 0.25
 RecoilTravel = 0.18
 RecoilReturn = 0.45
@@ -33,3 +36,8 @@ unit_size = 22
 max_distance = 600
 volume_db = 0
 max_polyphony = 2
+
+[node name="Model" type="MeshInstance3D" parent="."]
+visibility_range_end = 450.0
+mesh = ExtResource("model_mesh")
+material_override = ExtResource("model_material")

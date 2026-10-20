@@ -1,5 +1,7 @@
 [gd_scene format=3]
 
+[ext_resource type="ArrayMesh" path="res://models/weapons/autocannon.res" id="model_mesh"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="model_material"]
 [ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/fx/barrel_smoke.tscn" id="barrel_smoke"]
 [ext_resource type="PackedScene" path="res://scenes/fx/muzzle_flash.tscn" id="flash"]
@@ -8,6 +10,7 @@
 
 [node name="Autocannon" type="Node3D"]
 script = ExtResource("1")
+ModelLength = 2.0
 MuzzleFlash = ExtResource("flash")
 SmokeTime = 2.5
 MuzzleSmoke = ExtResource("smoke")
@@ -36,3 +39,8 @@ volume_db = -3
 max_polyphony = 3
 
 [node name="BarrelSmoke" parent="." instance=ExtResource("barrel_smoke")]
+
+[node name="Model" type="MeshInstance3D" parent="."]
+visibility_range_end = 450.0
+mesh = ExtResource("model_mesh")
+material_override = ExtResource("model_material")

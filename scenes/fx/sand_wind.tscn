@@ -38,6 +38,7 @@ material = ExtResource("2")
 
 [node name="SandWind" type="Node3D"]
 script = ExtResource("1")
+Dust = 1.0
 WindDirection = Vector3(1, 0, 0.35)
 WindSpeed = 9
 GustPeriod = 11

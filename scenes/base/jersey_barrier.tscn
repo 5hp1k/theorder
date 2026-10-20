@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/Destructible.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_puff.tscn" id="2"]
+[ext_resource type="ArrayMesh" path="res://models/base/jersey_barrier/Block.res" id="3"]
+[ext_resource type="Material" path="res://materials/concrete.tres" id="4"]
+
+[node name="JerseyBarrier" type="StaticBody3D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1")
+Hp = 14
+How = 2
+Footprint = Vector2(0.7, 3)
+Height = 0.85
+DestroyFx = ExtResource("2")
+
+[node name="Block" type="MeshInstance3D" parent="."]
+mesh = ExtResource("3")
+material_override = ExtResource("4")

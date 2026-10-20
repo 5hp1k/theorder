@@ -37,6 +37,12 @@ public enum SlotType
 public partial class Weapon : Node3D
 {
     [Export] public string DisplayName = "Оружие";
+    /// <summary>
+    /// How far its model (the "Model" child: the muzzle at this node, the body running back along +Z)
+    /// reaches back from the muzzle, metres: the hardpoint sets the weapon this far in front of itself
+    /// (Hardpoint.Layout). 0 — it has no model of its own (a bomb bay, a hand weapon).
+    /// </summary>
+    [Export] public float ModelLength;
     [Export(PropertyHint.Range, "1,6")] public int Group = 1;
     [Export] public WeaponKind Kind;
     /// <summary>Which hardpoints it fits.</summary>
@@ -52,6 +58,13 @@ public partial class Weapon : Node3D
     [Export] public float Cooldown = 1f;
     [Export] public float Range = 450f;
     [Export] public float BeamTime = 0.5f;
+    /// <summary>
+    /// A pulse laser: the beam comes in this many short bursts over BeamTime (dark between them), each
+    /// with its own crack; the damage is the same, dealt only while it burns. 0 — one steady beam.
+    /// </summary>
+    [Export] public int Pulses;
+    /// <summary>Share of each pulse's time that the beam burns.</summary>
+    [Export(PropertyHint.Range, "0.1,1")] public float PulseDuty = 0.5f;
     /// <summary>-1 = unlimited.</summary>
     [Export] public int MaxAmmo = -1;
     /// <summary>Muzzle flash, impact and tracer colour.</summary>
@@ -132,7 +145,17 @@ public partial class Weapon : Node3D
     public bool Lobbed => MuzzleSpeed > 0f && Kind == WeaponKind.Missile;
 
     public int Ammo { get; set; }
-    public bool Destroyed { get; set; }
+    /// <summary>Knocked out with its section: it can't fire, and its model (the "Model" child) is gone from the machine.</summary>
+    public bool Destroyed
+    {
+        get => _destroyed;
+        set
+        {
+            _destroyed = value;
+            if (GetNodeOrNull<Node3D>("Model") is { } model) model.Visible = !value && GetParent() is not Hardpoint { ShowModels: false };
+        }
+    }
+    bool _destroyed;
     public float CooldownLeft { get; set; }
     public float BeamLeft { get; set; }
     public int SalvoLeft { get; set; }
@@ -370,7 +393,7 @@ public sealed class WeaponSystem
     {
         aimPoint = AimFor(w, aimPoint);
         w.CooldownLeft = w.Cooldown;
-        if (w.Ammo > 0) w.Ammo--;
+        if (w.Ammo > 0 && !Cheats.Refills(_owner)) w.Ammo--;
 
         Vector3 from = w.GlobalPosition;
         switch (w.Kind)
@@ -472,8 +495,10 @@ public sealed class WeaponSystem
             if (w.CooldownLeft > 0f) w.CooldownLeft -= dt;
             if (w.BeamLeft > 0f)
             {
+                int pulse = w.Pulses > 0 ? (int)((w.BeamTime - w.BeamLeft) / w.BeamTime * w.Pulses) : 0;
                 w.BeamLeft -= dt;
                 if (w.BeamLeft <= 0f) w.StopFiring();
+                else if (w.Pulses > 0) UpdatePulse(w, aimPoint, space, dt, pulse);
                 else UpdateBeam(w, aimPoint, space, dt);
             }
             if (w.SwingLeft > 0f) UpdateSwing(w, dt, aimPoint, space);
@@ -556,6 +581,21 @@ public sealed class WeaponSystem
         }
         _fxRoot.AddChild(projectile);
         projectile.Launch(from, aimPoint, lockTarget, w.Damage * DamageScale, w.Range, Mask, _exclude, velocity);
+    }
+
+    /// <summary>A pulse laser between its bursts: dark, harmless; in one: a beam like any other (its damage packed into the time it burns).</summary>
+    void UpdatePulse(Weapon w, Vector3 aimPoint, PhysicsDirectSpaceState3D space, float dt, int pulseBefore)
+    {
+        float t = (w.BeamTime - w.BeamLeft) / w.BeamTime * w.Pulses;
+        int pulse = (int)t;
+        // Each burst after the first cracks out on its own.
+        if (pulse != pulseBefore && pulse < w.Pulses) Shot(w, w.GlobalPosition, 0.25f);
+        if (t - pulse > w.PulseDuty)
+        {
+            if (w.BeamMesh != null) w.BeamMesh.Visible = false;
+            return;
+        }
+        UpdateBeam(w, aimPoint, space, dt / Mathf.Clamp(w.PulseDuty, 0.1f, 1f));
     }
 
     void UpdateBeam(Weapon w, Vector3 aimPoint, PhysicsDirectSpaceState3D space, float dt)

@@ -21,6 +21,7 @@
 [ext_resource type="Script" path="res://scripts/UI/Scoreboard.cs" id="scoreboard"]
 [ext_resource type="Script" path="res://scripts/UI/ChatBox.cs" id="chatbox"]
 [ext_resource type="Script" path="res://scripts/UI/BoundsWarning.cs" id="boundswarn"]
+[ext_resource type="Script" path="res://scripts/Campaign/ObjectiveList.cs" id="objectives"]
 [ext_resource type="Script" path="res://scripts/UI/CockpitVoice.cs" id="voice"]
 [ext_resource type="Resource" path="res://audio/voice/voices.tres" id="voices"]
 [ext_resource type="Script" path="res://scripts/UI/VoiceLine.cs" id="voiceline"]
@@ -247,6 +248,20 @@ ArrowRing = 34.0
 bus = &"Signals"
 stream = ExtResource("missilebeep")
 volume_db = -6.0
+
+[node name="ObjectiveList" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 0
+offset_left = 20.0
+offset_top = 250.0
+offset_right = 460.0
+offset_bottom = 410.0
+mouse_filter = 2
+script = ExtResource("objectives")
+RedrawRate = 15.0
+FontSize = 15
+LineHeight = 20.0
+MarkerSize = 11.0
 
 [node name="CockpitVoice" type="Node" parent="."]
 script = ExtResource("voice")
@@ -540,7 +555,7 @@ E — ближайшая цель, T — следующая, Q — под при
 Ядерная бомба — группа 3; после сброса уходите на полной тяге
 ЛКМ — группа 1,  ПКМ — группа 2,  СКМ — группа 3,  4 / 5 / 6 — группы 4–6
 Группы оружия меняются в паузе (Esc)
-Пробел — прыжковые двигатели (вертолёт: вверх),  Shift — вниз
+Пробел — прыжковые двигатели (вертолёт: вверх),  Shift — вниз (мех: на колено / встать)
 L — фары,  M — режим радара
 V — кабина / внешний вид
 Y — цель из своих,  Tab (держать) — таблица боя

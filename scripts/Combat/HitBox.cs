@@ -62,6 +62,7 @@ public partial class HitBox : AnimatableBody3D, IDamageable
 
     public void TakeDamage(float amount, Vector3 point)
     {
+        if (Cheats.Spares(Unit)) return;
         Score.Hit(Unit as ITarget);
         NetLink.I?.QueueHurt(Unit, (int)Section, amount);
         _model?.Apply(Section, amount);

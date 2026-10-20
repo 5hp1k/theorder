@@ -17,15 +17,36 @@ public partial class Hud : Control
     [Export] public Color Panel = new(0f, 0.05f, 0.02f, 0.45f);
 
     public ICockpit Seat => Game.Cockpit;
-    /// <summary>The whole interface switched off (key I); stays so for the rest of the session.</summary>
-    public static bool Off;
+    /// <summary>
+    /// How much of the interface is up, switched round with key I: all of it; in a cockpit, only what its
+    /// own screens don't show (outside, the same as all of it); nothing. Stays so for the rest of the session.
+    /// </summary>
+    public enum Mode { Full, Cockpit, Off }
+    public static Mode Shown;
+    public static bool Off => Shown == Mode.Off;
     public float Time { get; private set; }
 
     Label _view, _timer, _unit;
-    // Instruments that a cockpit shows on its own screens; hidden here while it does.
+    // Instruments that a cockpit shows on its own screens; hidden here while it does, if so switched.
     static readonly string[] PanelInstruments = { "Minimap", "HeatGauge", "ThrottleGauge", "JumpGauge", "WeaponList", "PlayerDoll", "ArmorLabel" };
     readonly System.Collections.Generic.List<Control> _panel = new();
     Control _help, _helpHint;
+
+    public static Hud Instance { get; private set; }
+
+    public override void _EnterTree() => Instance = this;
+
+    public override void _ExitTree()
+    {
+        if (Instance == this) Instance = null;
+    }
+
+    /// <summary>Shown unless switched off, in a cutscene or while the console's free camera flies.</summary>
+    public void RefreshShown()
+    {
+        bool shown = !Off && !StoryOverlay.InCutscene && FreeCamera.Current == null;
+        if (Visible != shown) Visible = shown;
+    }
 
     public override void _Ready()
     {
@@ -52,7 +73,12 @@ public partial class Hud : Control
     {
         if (@event.IsActionPressed("toggle_hud"))
         {
-            Off = !Off;
+            Shown = Shown switch
+            {
+                Mode.Full => CockpitDisplays.Active ? Mode.Cockpit : Mode.Off,
+                Mode.Cockpit => Mode.Off,
+                _ => Mode.Full,
+            };
             Visible = !Off;
             return;
         }
@@ -64,6 +90,8 @@ public partial class Hud : Control
     public override void _Process(double delta)
     {
         Time += (float)delta;
+        // A cutscene hides the interface (the story's own layer stays: subtitles, letterbox).
+        RefreshShown();
 
         var game = Game.Instance;
         _timer.Visible = game != null && game.TimeLimited;
@@ -73,7 +101,7 @@ public partial class Hud : Control
             _timer.Text = Loc.T($"{left / 60}:{left % 60:00}");
         }
 
-        bool overlay = !CockpitDisplays.Active;
+        bool overlay = !CockpitDisplays.Active || Shown == Mode.Full;
         foreach (Control widget in _panel) widget.Visible = overlay;
 
         var seat = Seat;

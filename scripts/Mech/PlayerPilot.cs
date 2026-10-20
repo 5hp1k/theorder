@@ -185,7 +185,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
 
     public override void _UnhandledInput(InputEvent @event)
     {
-        if (Unit == null) return;
+        if (Unit == null || StoryOverlay.InCutscene || FreeCamera.Current != null) return;
         if (@event is InputEventMouseMotion motion && Input.MouseMode == Input.MouseModeEnum.Captured)
         {
             // Finer control when zoomed in.
@@ -265,6 +265,16 @@ public partial class PlayerPilot : MechPilot, ICockpit
     public override void Think(float dt)
     {
         if (Game.Typing) return;
+        // In a cutscene (or flying the console's free camera) the player has no controls: the machine
+        // stands, its guns quiet.
+        if (StoryOverlay.InCutscene || FreeCamera.Current != null)
+        {
+            Unit.Fire = 0;
+            Unit.Jump = false;
+            Unit.TurnInput = 0f;
+            if (Cutscene.Holding) Unit.Throttle = 0f;
+            return;
+        }
         if (Target != null && (Target is not Node node || !IsInstanceValid(node) || Target.IsDestroyed))
         {
             // The one we had in the sight is down: the computer says so.
@@ -284,6 +294,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
         Unit.Fire = fire;
         Unit.Jump = Input.IsActionPressed("jump");
         Unit.Descend = Input.IsActionPressed("descend");
+        if (Unit is Mech mech) Kneeling(mech);
 
         UpdateLock(dt);
         CounterTurn();
@@ -295,6 +306,26 @@ public partial class PlayerPilot : MechPilot, ICockpit
             return;
         }
         UpdateThrottle(dt);
+    }
+
+    bool _kneel;
+
+    /// <summary>
+    /// A mech goes down on one knee and up again on a key (Shift); opening the throttle or turning on the
+    /// legs gets it up too, and it goes on its way.
+    /// </summary>
+    void Kneeling(Mech mech)
+    {
+        if (Input.IsActionJustPressed("kneel"))
+        {
+            _kneel = !_kneel;
+            if (_kneel) Unit.Throttle = 0f;
+        }
+        else if (_kneel && (Input.IsActionPressed("throttle_up") || Input.IsActionPressed("throttle_down")
+                            || Input.IsActionPressed("turn_left") || Input.IsActionPressed("turn_right")))
+            _kneel = false;
+        if (mech.IsDestroyed) _kneel = false;
+        mech.Kneel = _kneel;
     }
 
     static readonly string[] FireActions = { "fire_group_1", "fire_group_2", "fire_group_3", "fire_group_4", "fire_group_5", "fire_group_6" };

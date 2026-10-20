@@ -8,6 +8,8 @@ namespace MechSim;
 /// (a mech with paint, emblem and loadout, a vehicle, or a soldier next to a suit of power armour) on
 /// the map's PlayerSpawn marker and the enemy mechs and vehicles around the map, each with its pilot.
 /// Also owns pausing and the battle clock.
+/// A campaign mission (<see cref="CampaignRun.Mission"/>) is played instead from its own scene
+/// (<see cref="Mission"/>): its map, its machines, its named lance; it ends when the mission says so.
 /// </summary>
 public partial class Game : Node3D
 {
@@ -39,8 +41,15 @@ public partial class Game : Node3D
     public bool TimeLimited { get; private set; }
     public float TimeLeft { get; private set; }
     public bool TimeUp { get; private set; }
+    /// <summary>A campaign mission is over (won or lost) and its debriefing is up.</summary>
+    public bool MissionOver { get; private set; }
+    public bool MissionWon { get; private set; }
+    /// <summary>The mission was won for the first time: its rewards went into the hangar.</summary>
+    public bool Rewarded { get; private set; }
+    public MissionInfo MissionInfo { get; private set; }
 
     Control _pauseMenu;
+    Mission _mission;
     Trooper _soldier, _suit;
     Node3D _units, _map;
     readonly List<Node3D> _spawns = new();
@@ -51,6 +60,9 @@ public partial class Game : Node3D
     public override void _ExitTree()
     {
         if (Instance == this) Instance = null;
+        // Time runs again in the next battle; the console's speed-up or slow-down goes with this one.
+        Cheats.TimeStopped = false;
+        Engine.TimeScale = 1.0;
         // Nothing of this battle may outlive it in the static lists.
         Impacts.Reset();
         Units.All.Clear();
@@ -67,23 +79,24 @@ public partial class Game : Node3D
         Score.Reset();
         _pauseMenu = GetNode<Control>("Menu/PauseMenu");
         _pauseMenu.Visible = false;
-        TimeLimited = GameConfig.TimeLimitMinutes > 0;
-        TimeLeft = GameConfig.TimeLimitMinutes * 60f;
+        MissionInfo = CampaignRun.Mission;
+        TimeLimited = (MissionInfo?.TimeLimit ?? GameConfig.TimeLimitMinutes) > 0;
+        TimeLeft = (MissionInfo?.TimeLimit ?? GameConfig.TimeLimitMinutes) * 60f;
 
-        _map = GD.Load<PackedScene>(Catalog.Find(Catalog.Maps, GameConfig.MapId).Path).Instantiate<Node3D>();
-        // The weather the player asked for, in place of the map's own.
-        if (GameConfig.WeatherId > 0 && GameConfig.WeatherId < Weather.Scenes.Length)
+        if (MissionInfo != null)
         {
-            if (_map.GetNodeOrNull("Weather") is { } own)
-            {
-                _map.RemoveChild(own);
-                own.QueueFree();
-            }
-            var weather = GD.Load<PackedScene>(Weather.Scenes[GameConfig.WeatherId]).Instantiate();
-            weather.Name = "Weather";
-            _map.AddChild(weather);
+            // A campaign mission: its scene brings the map with it. (One made in the editor is built from its data.)
+            _mission = CampaignRun.Custom != null ? MissionBuilder.Build(CampaignRun.Custom) : GD.Load<PackedScene>(MissionInfo.Scene).Instantiate<Mission>();
+            _map = _mission.Map;
+            SetWeather(_map, MissionInfo.Weather);
+            GetNode("Map").AddChild(_mission);
         }
-        GetNode("Map").AddChild(_map);
+        else
+        {
+            _map = GD.Load<PackedScene>(Catalog.Find(Catalog.Maps, GameConfig.MapId).Path).Instantiate<Node3D>();
+            SetWeather(_map, GameConfig.WeatherId);
+            GetNode("Map").AddChild(_map);
+        }
         _units = GetNode<Node3D>("Units");
 
         // Enemy spawn markers, in random order.
@@ -99,14 +112,18 @@ public partial class Game : Node3D
         {
             // A client of a network game: the host says what is on the field.
             TimeLeft = Net.ClientTimeLeft;
+            // A mission together: the host plays it; here it is only shown.
+            _mission?.Mirror();
             NetLink.I.ClientSceneReady();
         }
         else
         {
             SpawnPlayer();
             // One's own lance only when playing alone or together against the computer.
-            if (!Net.Online || Net.Mode == Net.GameMode.Pve) SpawnSquad();
-            SpawnEnemies();
+            if (MissionInfo != null) SpawnLance();
+            else if (!Net.Online || Net.Mode == Net.GameMode.Pve) SpawnSquad();
+            if (_mission != null) _mission.Begin();
+            else SpawnEnemies();
             if (Net.Online) NetLink.I.HostSceneReady(this);
         }
         // Effects and the shapes hit marks are laid on are prepared now, not at the first shot.
@@ -114,12 +131,39 @@ public partial class Game : Node3D
         Input.MouseMode = Input.MouseModeEnum.Captured;
     }
 
+    /// <summary>Weather in place of the map's own (0 — the map's own).</summary>
+    public static void SetWeather(Node3D map, int id)
+    {
+        if (id <= 0 || id >= Weather.Scenes.Length) return;
+        if (map.GetNodeOrNull("Weather") is { } own)
+        {
+            map.RemoveChild(own);
+            own.QueueFree();
+        }
+        var weather = GD.Load<PackedScene>(Weather.Scenes[id]).Instantiate();
+        weather.Name = "Weather";
+        map.AddChild(weather);
+    }
+
     // ── Spawning ────────────────────────────────────────────────
+
+    /// <summary>Where the player starts: a mission's own marker, or the map's.</summary>
+    Transform3D PlayerStart()
+        => OnGround(_mission?.GetNodeOrNull<Node3D>("PlayerSpawn")?.GlobalTransform ?? _map.GetNode<Node3D>("PlayerSpawn").Transform);
+
+    /// <summary>Not under the ground (a mission made in the editor keeps only where on the map, not how high).</summary>
+    static Transform3D OnGround(Transform3D at)
+    {
+        if (MapTerrain.Instance is { } terrain) at.Origin.Y = Mathf.Max(at.Origin.Y, terrain.HeightAt(at.Origin.X, at.Origin.Z));
+        return at;
+    }
 
     void SpawnPlayer()
     {
-        Transform3D spawn = _map.GetNode<Node3D>("PlayerSpawn").Transform;
-        var entry = Catalog.Find(Catalog.PlayerUnits, GameConfig.MechId);
+        Transform3D spawn = PlayerStart();
+        // In a mission: the machine the story puts the player in, or the one chosen in the campaign's hangar.
+        string unitId = MissionInfo is { PlayerUnit.Length: > 0 } ? MissionInfo.PlayerUnit : GameConfig.MechId;
+        var entry = Catalog.Find(Catalog.PlayerUnits, unitId);
         PaintJob paint = GameConfig.PlayerPaint();
 
         if (entry.Kind == Catalog.Kind.Infantry)
@@ -141,7 +185,7 @@ public partial class Game : Node3D
             mech.DisplayName = entry.Name;
             mech.RespawnTime = PlayerRespawnTime;
             mech.ApplyPaint(paint);
-            mech.ApplyInsignia(GameConfig.Insignia);
+            GameConfig.WearInsignia(mech, entry.Id);
         }
         else if (node is Vehicle vehicle)
         {
@@ -149,20 +193,27 @@ public partial class Game : Node3D
             vehicle.DisplayName = entry.Name;
             vehicle.RespawnTime = PlayerRespawnTime;
             vehicle.ApplyPaint(paint);
-            vehicle.ApplyInsignia(GameConfig.Insignia);
+            GameConfig.WearInsignia(vehicle, entry.Id);
             // A ship starts at sea; where the map has none, in the nearest water there is.
             if (entry.Kind == Catalog.Kind.Water)
                 spawn.Origin = MapTerrain.Instance?.RandomSeaSpot(24f) ?? WaterSpotNear(spawn.Origin) ?? spawn.Origin;
         }
-        // What the player fitted in the hangar.
-        string[] loadout = GameConfig.LoadoutFor(entry.Id);
+        // What the player fitted in the hangar (or what a mission made in the editor gives the machine it puts the player in).
+        string[] loadout = CampaignRun.Custom?.Player is { UnitId.Length: > 0, Loadout.Length: > 0 } given && given.UnitId == entry.Id ? given.Loadout : GameConfig.LoadoutFor(entry.Id);
         Hardpoint.Apply(node, loadout);
         node.AddChild(PlayerPilotScene.Instantiate());
         if (node is Mech named && Net.Online) named.DisplayName = NetLink.I.HostName;
+        if (MissionInfo != null && CampaignRun.Custom == null && CampaignState.Campaign?.Hero is { } hero)
+        {
+            if (node is Mech heroMech) heroMech.DisplayName = hero.Label;
+            else if (node is Vehicle heroVehicle) heroVehicle.DisplayName = hero.Label;
+        }
         node.Transform = spawn;
         _units.AddChild(node);
-        if (node is Mech own) own.Respawns = !Net.Online || Net.Respawns;
-        else if (node is Vehicle ownVehicle) ownVehicle.Respawns = !Net.Online || Net.Respawns;
+        // A mission is played with one life.
+        bool respawns = MissionInfo == null && (!Net.Online || Net.Respawns);
+        if (node is Mech own) own.Respawns = respawns;
+        else if (node is Vehicle ownVehicle) ownVehicle.Respawns = respawns;
         NetLink.I.Track(node, 1, loadout, GameConfig.PlayerPaint().Pack(), GameConfig.InsigniaBytes());
     }
 
@@ -188,11 +239,25 @@ public partial class Game : Node3D
         Team team = Net.Mode == Net.GameMode.Tdm && _joined % 2 == 1 ? Team.Enemy : Team.Player;
         Outfit(node, team, name, loadout, paint, emblem);
         node.AddChild(new RemotePilot());
-        Vector3 at = Net.Mode == Net.GameMode.Pve
+        Vector3 at;
+        if (MissionInfo != null)
+        {
+            // A mission together: alongside the host at the mission's start, right and left in turn.
+            var start = PlayerStart();
+            float side = 16f * ((_joined + 1) / 2) * (_joined % 2 == 1 ? 1f : -1f);
+            at = OnGround(new Transform3D(start.Basis, start * new Vector3(side, 0f, 10f))).Origin;
+        }
+        else at = Net.Mode == Net.GameMode.Pve
             ? _map.GetNode<Node3D>("PlayerSpawn").Position + new Vector3(18f * _joined, 0f, 14f)
             : NextSpawn();
         if (entry.Kind == Catalog.Kind.Water) at = MapTerrain.Instance?.RandomSeaSpot(24f) ?? WaterSpotNear(at) ?? at;
-        node.Transform = new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(at.X, at.Z)), at);
+        node.Transform = MissionInfo != null ? new Transform3D(PlayerStart().Basis, at) : new Transform3D(new Basis(Vector3.Up, Mathf.Atan2(at.X, at.Z)), at);
+        // A mission is played with one life, together as alone.
+        if (MissionInfo != null)
+        {
+            if (node is Mech once) once.Respawns = false;
+            else if (node is Vehicle onceVehicle) onceVehicle.Respawns = false;
+        }
         _units.AddChild(node);
         NetLink.I.Track(node, peer, loadout, paint, emblem);
         return node;
@@ -264,7 +329,7 @@ public partial class Game : Node3D
             mech.Respawns = GameConfig.SquadRespawn;
             mech.RespawnTime = EnemyRespawnTime;
             mech.ApplyPaint(paint);
-            mech.ApplyInsignia(GameConfig.Insignia);
+            GameConfig.WearInsignia(mech, entry.Id);
             // A wedge behind the leader: odd numbers to the left, even to the right, each pair further back.
             int row = i / 2 + 1;
             var slot = new Vector3((i % 2 == 0 ? -1f : 1f) * SquadSpacing * row, 0f, SquadSpacing * 0.8f * row);
@@ -277,6 +342,88 @@ public partial class Game : Node3D
             NetLink.I.Track(mech, 0, null, null);
             Squad.Add(pilot);
         }
+    }
+
+    /// <summary>A mission's lance: its named pilots in the machines the mission gives them, in formation on the player.</summary>
+    void SpawnLance()
+    {
+        Squad.Clear();
+        if (PlayerUnit is not IDrivable leader) return;
+        Transform3D spawn = PlayerStart();
+        PaintJob paint = GameConfig.PlayerPaint();
+        int i = 0;
+        foreach (var member in MissionInfo.Lance)
+        {
+            if (member == null) continue;
+            var entry = Catalog.Find(Catalog.PlayerUnits, member.UnitId);
+            var node = GD.Load<PackedScene>(entry.Path).Instantiate<Node3D>();
+            string name = member.Pilot?.Label ?? $"Звено-{i + 1}";
+            if (node is Mech mech)
+            {
+                mech.Team = Team.Player;
+                mech.DisplayName = name;
+                mech.Respawns = false;
+                mech.ApplyPaint(paint);
+                GameConfig.WearInsignia(mech, entry.Id);
+            }
+            else if (node is Vehicle vehicle)
+            {
+                vehicle.Team = Team.Player;
+                vehicle.DisplayName = name;
+                vehicle.Respawns = false;
+                vehicle.ApplyPaint(paint);
+                GameConfig.WearInsignia(vehicle, entry.Id);
+            }
+            if (!string.IsNullOrEmpty(member.Loadout)) Hardpoint.Apply(node, member.Loadout.Split('|'));
+            int row = i / 2 + 1;
+            var slot = new Vector3((i % 2 == 0 ? -1f : 1f) * SquadSpacing * row, 0f, SquadSpacing * 0.8f * row);
+            var pilot = AiPilotScene.Instantiate<AiPilot>();
+            member.Pilot?.ApplyTo(pilot);
+            pilot.Leader = leader;
+            pilot.FormationSlot = slot;
+            node.AddChild(pilot);
+            node.Transform = new Transform3D(spawn.Basis, spawn.Origin + spawn.Basis * slot);
+            _units.AddChild(node);
+            NetLink.I.Track(node, 0, null, null);
+            Squad.Add(pilot);
+            i++;
+        }
+    }
+
+    /// <summary>A machine of a mission takes the field where its marker stands.</summary>
+    public Node3D SpawnStoryUnit(MissionUnit spec)
+    {
+        var entry = Catalog.Find(Catalog.PlayerUnits, spec.UnitId);
+        var node = GD.Load<PackedScene>(entry.Path).Instantiate<Node3D>();
+        string name = spec.DisplayName.Length > 0 ? spec.DisplayName : spec.Pilot?.Label ?? entry.Name;
+        var paint = PaintJob.Unpack(spec.Paint) ?? (spec.Team == Team.Player ? GameConfig.PlayerPaint() : new PaintJob { Camo = EnemyCamo, Second = EnemyStripe, Scheme = EnemyScheme });
+        if (node is Mech mech)
+        {
+            mech.Team = spec.Team;
+            mech.DisplayName = name;
+            mech.Respawns = false;
+            mech.ApplyPaint(paint);
+            mech.ApplyInsignia(spec.Team == Team.Player ? GameConfig.Insignia : null);
+        }
+        else if (node is Vehicle vehicle)
+        {
+            vehicle.Team = spec.Team;
+            vehicle.DisplayName = name;
+            vehicle.Respawns = false;
+            vehicle.ApplyPaint(paint);
+        }
+        if (!string.IsNullOrEmpty(spec.Loadout)) Hardpoint.Apply(node, spec.Loadout.Split('|'));
+        var pilot = AiPilotScene.Instantiate<AiPilot>();
+        spec.Pilot?.ApplyTo(pilot);
+        pilot.PatrolRadius = spec.PatrolRadius;
+        node.AddChild(pilot);
+        Transform3D at = OnGround(spec.GlobalTransform.Orthonormalized());
+        if (entry.Kind == Catalog.Kind.Water) at.Origin = WaterSpotNear(at.Origin) ?? at.Origin;
+        node.Transform = at;
+        _units.AddChild(node);
+        NetLink.I.Track(node, 0, string.IsNullOrEmpty(spec.Loadout) ? null : spec.Loadout.Split('|'), spec.Paint.Length > 0 ? spec.Paint : null);
+        if (spec.HuntPlayer && PlayerUnit != null) pilot.Alert(PlayerUnit);
+        return node;
     }
 
     void SpawnEnemies()
@@ -387,7 +534,14 @@ public partial class Game : Node3D
         if (TimeLimited && !TimeUp)
         {
             TimeLeft -= (float)delta;
-            if (TimeLeft <= 0f)
+            if (TimeLeft <= 0f && _mission != null)
+            {
+                // A mission run out of time is lost.
+                TimeLeft = 0f;
+                TimeUp = true;
+                _mission.Lose("Время вышло");
+            }
+            else if (TimeLeft <= 0f)
             {
                 // Out of time: stop the battle and offer the way out.
                 TimeLeft = 0f;
@@ -397,7 +551,7 @@ public partial class Game : Node3D
             }
         }
 
-        if (Victory || GameConfig.EnemyRespawn) return;
+        if (Victory || GameConfig.EnemyRespawn || _mission != null) return;
         bool any = false, alive = false;
         foreach (var unit in Units.All)
         {
@@ -412,8 +566,15 @@ public partial class Game : Node3D
     {
         if (@event.IsActionPressed("release_mouse"))
         {
-            // Once time is up there's no going back in.
-            if (!TimeUp) SetPaused(!Paused);
+            // Esc in a cutscene skips it.
+            if (Cutscene.Playing != null && !Paused)
+            {
+                Cutscene.Playing.Skip();
+                GetViewport().SetInputAsHandled();
+                return;
+            }
+            // Once time is up, or the mission over, there's no going back in.
+            if (!TimeUp && !MissionOver) SetPaused(!Paused);
             GetViewport().SetInputAsHandled();
         }
     }
@@ -435,7 +596,8 @@ public partial class Game : Node3D
         // opens over a battle that goes on.
         if (!Net.Online || Net.IsHost)
         {
-            GetTree().Paused = paused;
+            // (time stopped from the console stays stopped when the pause menu closes)
+            GetTree().Paused = paused || Cheats.TimeStopped;
             NetLink.I?.HostPaused(paused);
         }
         _pauseMenu.Visible = paused;
@@ -444,8 +606,55 @@ public partial class Game : Node3D
         if (!paused && Cockpit is PlayerPilot pilot) pilot.SuppressFireUntilRelease();
     }
 
+    /// <summary>The mission is over: the first win puts its rewards in the hangar; the debriefing comes up.</summary>
+    public void EndMission(bool won)
+    {
+        if (MissionOver) return;
+        MissionOver = true;
+        MissionWon = won;
+        if (won && MissionInfo != null && CampaignRun.Custom == null && Net.Authority) Rewarded = CampaignState.Complete(MissionInfo);
+        NetLink.I?.MissionOver(won, Mission.Current?.Reason ?? "");
+        SetPaused(true);
+    }
+
+    /// <summary>Whether a machine is a player's (this computer's, or in a network game anyone's), not the computer's.</summary>
+    public static bool IsHuman(ITarget unit)
+    {
+        if (unit == null) return false;
+        if (unit == PlayerUnit) return true;
+        return Net.Online && unit is Node node && node.HasMeta("net_id")
+            && NetLink.I.UnitsById.TryGetValue((int)node.GetMeta("net_id"), out var info) && info.Owner != 0;
+    }
+
+    /// <summary>Every player's machine is destroyed (alone: this one's; in a network game: everyone's).</summary>
+    public static bool AllPlayersDown()
+    {
+        if (PlayerUnit is not { IsDestroyed: true }) return false;
+        if (!Net.Online) return true;
+        foreach (var info in NetLink.I.UnitsById.Values)
+            if (info.Owner != 0 && IsInstanceValid(info.Node) && info.Node is ITarget { IsDestroyed: false }) return false;
+        return true;
+    }
+
     public void QuitToMenu()
     {
+        // From a mission, back to the campaign's page.
+        CampaignRun.BackToCampaign = MissionInfo != null && CampaignRun.Custom == null && !Net.Online;
+        CampaignRun.BackToMissions = CampaignRun.Custom != null && !CampaignRun.FromEditor && !Net.Online;
+        CampaignRun.Mission = null;
+        if (CampaignRun.Custom != null && CampaignRun.FromEditor)
+        {
+            // Tried out from the editor: back to it, with the mission as it was.
+            CampaignRun.FromEditor = false;
+            MissionEditor.Opening = CampaignRun.Custom;
+            CampaignRun.Custom = null;
+            NetLink.I?.Stop();
+            GetTree().Paused = false;
+            Input.MouseMode = Input.MouseModeEnum.Visible;
+            GetTree().ChangeSceneToFile(MissionEditor.ScenePath);
+            return;
+        }
+        CampaignRun.Custom = null;
         NetLink.I?.Stop();
         GetTree().Paused = false;
         Input.MouseMode = Input.MouseModeEnum.Visible;

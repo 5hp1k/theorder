@@ -82,7 +82,7 @@ public partial class MapLighting : WorldEnvironment
         _volumeDensity = env.VolumetricFogDensity;
         _fogColor = env.FogLightColor;
 
-        string id = TimeIds[Mathf.Clamp(GameConfig.TimeOfDay, 0, TimeIds.Length - 1)];
+        string id = TimeIds[Mathf.Clamp(CampaignRun.Mission?.TimeOfDay ?? GameConfig.TimeOfDay, 0, TimeIds.Length - 1)];
         _mood = id == "" ? null : GD.Load<SkyMood>($"res://materials/sky/mood_{id}.tres");
         ApplyGraphics();
         Relight(1f, 1f, 1f);

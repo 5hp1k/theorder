@@ -98,6 +98,7 @@ material_override = ExtResource("2")
 [node name="HardpointRocketsL" type="Node3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.7, -0.6, -0.7)
 script = ExtResource("hardpoint")
+ShowModels = false
 DisplayName = "Корпус"
 Type = 2
 Slots = 2
@@ -118,6 +119,7 @@ material_override = ExtResource("2")
 [node name="HardpointRocketsR" type="Node3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.7, -0.6, -0.7)
 script = ExtResource("hardpoint")
+ShowModels = false
 DisplayName = "Корпус"
 Type = 2
 Slots = 2
@@ -163,8 +165,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, -0.4, -1)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.25, -0.4)
 
 [node name="HardpointMachineGun" type="Node3D" parent="Turret/Gun"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -1.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.32)
 script = ExtResource("hardpoint")
+Area = Vector2(0.27, 0.27)
+Spacing = Vector3(0.45, 0, 0)
 DisplayName = "Башня"
 Type = 1
 Slots = 2

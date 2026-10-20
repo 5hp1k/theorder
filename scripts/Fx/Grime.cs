@@ -92,9 +92,13 @@ public sealed class Grime
         }
     }
 
+    /// <summary>A blast threw up earth here (and this far about): for whatever else gets dirty, such as cockpit glass.</summary>
+    public static event System.Action<Vector3, float> Splashed;
+
     /// <summary>Spattered: everything this close to a blast takes some of the earth it threw up, the near side most.</summary>
     public static void Splash(Vector3 at, float radius)
     {
+        Splashed?.Invoke(at, radius);
         float reach = radius * 3f + 4f;
         foreach (var grime in All)
         {

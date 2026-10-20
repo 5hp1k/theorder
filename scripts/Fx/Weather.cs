@@ -37,6 +37,18 @@ public partial class Weather : Node3D
     [Export] public float QuietDb = -22f;
     [Export] public float LoudDb = -9f;
 
+    [ExportGroup("On the glass")]
+    /// <summary>
+    /// What it leaves on a cockpit's windscreen (see <see cref="CockpitGlass"/>), 0 to 1: drops of rain
+    /// running down it, snow settling on it, wind-blown dust or sand filming it over.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,1")] public float Rain;
+    [Export(PropertyHint.Range, "0,1")] public float Snow;
+    [Export(PropertyHint.Range, "0,1")] public float Dust;
+
+    /// <summary>The weather on the map now, if it has any.</summary>
+    public static Weather Current { get; private set; }
+
     public static Vector3 Direction { get; private set; } = Vector3.Right;
     public static float Speed { get; private set; } = 9f;
     /// <summary>0 = lull, 1 = gust peak.</summary>
@@ -44,6 +56,13 @@ public partial class Weather : Node3D
 
     float _time;
     AudioStreamPlayer _loop;
+
+    public override void _EnterTree() => Current = this;
+
+    public override void _ExitTree()
+    {
+        if (Current == this) Current = null;
+    }
 
     public override void _Ready()
     {

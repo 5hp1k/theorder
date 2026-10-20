@@ -18,6 +18,8 @@ from mathutils import Vector, Matrix
 from mathutils.bvhtree import BVHTree
 
 PAINT, EDGE, SOFT, RECESS, FRAME = range(5)
+SINK = 0.004   # how far a seated fitting is let into the surface it sits on, so no light shows under it
+TOUCH = 0.004  # solids closer than this touch
 COLORS = {PAINT: (1, 1, 1, 1), EDGE: (0, 1, 1, 1), SOFT: (0.45, 0.8, 1, 1), RECESS: (1, 0, 1, 1), FRAME: (1, 0.55, 1, 1)}
 
 
@@ -228,6 +230,106 @@ class Part:
                 if abs(shift) > reach or abs(shift) < 1e-4:
                     continue
                 bmesh.ops.translate(bm, vec=n * shift, verts=[v for v in vs if not v[self.marker]])
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if v[self.marker]], context="VERTS")
+        for v in bm.verts:
+            v[self.detail_id] = 0
+
+    def body_tree(self, matrix):
+        """BVH of the part's body (its fittings left out), placed by matrix (Blender axes)."""
+        body = [f for f in self.bm.faces if all(not v[self.detail_id] for v in f.verts)]
+        if not body:
+            return None
+        index, verts = {}, []
+        for f in body:
+            for v in f.verts:
+                if v not in index:
+                    index[v] = len(verts)
+                    verts.append(matrix @ v.co)
+        return BVHTree.FromPolygons(verts, [[index[v] for v in f.verts] for f in body])
+
+    def seat_fittings(self, matrix, hosts, reach=0.45):
+        """Seats the part's fittings on the bodies in hosts (BVHs in the same axes as matrix puts the part
+        in): see Model.seat. Then forgets which vertices were fittings."""
+        bm = self.bm
+        groups = {}
+        for v in bm.verts:
+            if v[self.detail_id]:
+                groups.setdefault(v[self.detail_id], []).append(v)
+        inverse = matrix.to_3x3().inverted()
+
+        def gap(points, n):
+            """How far the lowest of these points (world) stands off the surface under them along n
+            (less than nothing: let into it). For each point the surface is the outward face along its
+            line nearest to it, whether above (the body was pushed out over the fitting) or below — not a
+            neighbour standing out over it further off, nor the inside of anything."""
+            low = None
+            for p in points:
+                best = None
+                for tree in hosts:
+                    start, left = p + n * 1.0, 1.0 + reach
+                    while left > 0:
+                        hit, normal, _, d = tree.ray_cast(start, -n, left)
+                        if hit is None:
+                            break
+                        if normal.dot(n) > 0.2:
+                            g = (p - hit).dot(n)
+                            if best is None or abs(g) < abs(best):
+                                best = g
+                        start, left = hit - n * 1e-4, left - d - 1e-4
+                if best is not None:
+                    low = best if low is None else min(low, best)
+            return low
+
+        for ident, vs in groups.items():
+            marks = {v[self.marker]: v.co for v in vs if v[self.marker]}
+            solid = [v for v in vs if not v[self.marker]]
+            if 1 not in marks or 2 not in marks or not solid or not hosts:
+                continue
+            n = (matrix.to_3x3() @ (marks[2] - marks[1])).normalized()
+            # (a little deeper or shallower from one fitting to the next, so that two side by side on one
+            # surface don't end up with their undersides in one plane)
+            sink = SINK + 0.0015 * ((ident + len(self.name)) % 3)
+            low = gap([matrix @ v.co for v in solid], n)
+            if low is not None and abs(low + sink) > 1e-4:
+                bmesh.ops.translate(bm, vec=inverse @ (-n * (low + sink)), verts=solid)
+            # pieces of it that still touch nothing, by themselves
+            pieces, seen = [], set()
+            for v in solid:
+                if v in seen:
+                    continue
+                stack, piece = [v], []
+                seen.add(v)
+                while stack:
+                    w = stack.pop()
+                    piece.append(w)
+                    for e in w.link_edges:
+                        o = e.other_vert(w)
+                        if o not in seen and not o[self.marker]:
+                            seen.add(o)
+                            stack.append(o)
+                pieces.append(piece)
+            if len(pieces) < 2:
+                continue
+            # held: on the surface, or through another piece that is (a mast in its base)
+            points = [[matrix @ v.co for v in piece] for piece in pieces]
+            own = []
+            for piece in pieces:
+                faces = {f for v in piece for f in v.link_faces}
+                index = {v: i for i, v in enumerate(piece)}
+                own.append(BVHTree.FromPolygons(points[len(own)], [[index[v] for v in f.verts] for f in faces if all(v in index for v in f.verts)]))
+            held = [(lambda g: g is not None and g <= 0.001)(gap(pts, n)) for pts in points]
+            grew = True
+            while grew:
+                grew = False
+                for i in range(len(pieces)):
+                    if not held[i] and any(held[j] and own[i].overlap(own[j]) for j in range(len(pieces)) if j != i):
+                        held[i] = grew = True
+            for piece, pts, ok in zip(pieces, points, held):
+                if ok:
+                    continue
+                low = gap(pts, n)
+                if low is not None:
+                    bmesh.ops.translate(bm, vec=inverse @ (-n * (low + sink)), verts=piece)
         bmesh.ops.delete(bm, geom=[v for v in bm.verts if v[self.marker]], context="VERTS")
         for v in bm.verts:
             v[self.detail_id] = 0
@@ -529,11 +631,92 @@ class Model:
         self.add(other, swap_side(parent, left, right), swap_side(node, left, right), material, own_place, None if at is None else (-at[0], at[1], at[2]))
         return part
 
+    def _world(self, path):
+        """Basis and origin (game axes, numpy) of a node of the unit's scene, as the model will set it."""
+        import os
+        import sys
+        import numpy as np
+        here = os.path.dirname(os.path.abspath(__file__))
+        sys.path.insert(0, here)
+        import tscn
+        if not hasattr(self, "_scene_cache"):
+            self._scene_cache = (tscn.Scene(os.path.join(here, "..", "..", self.scene)) if self.scene else None, {})
+        sc, cache = self._scene_cache
+        if path in (".", None):
+            return np.eye(3), np.zeros(3)
+        if path in self.frames:
+            pm, po = self._world(path.rsplit("/", 1)[0] if "/" in path else ".")
+            rows, origin = self.frames[path]
+            return pm @ np.array(rows), po + pm @ np.array(origin)
+        if path in self.places:
+            pm, po = self._world(self.places[path][0])
+            return pm, po + pm @ np.array(self.places[path][1])
+        if sc is None:
+            return np.eye(3), np.zeros(3)
+        if path not in cache:
+            n = sc.node(path)
+            if n is None:
+                cache[path] = self._world(path.rsplit("/", 1)[0] if "/" in path else ".")
+            else:
+                m, o = tscn.parse_xf(n.get("transform"))
+                pm, po = self._world(n.attr("parent"))
+                cache[path] = (pm @ m, po + pm @ o)
+        return cache[path]
+
+    def _matrix(self, parent, node, own_place):
+        """Where a part stands in the unit (Blender axes), as a 4x4 matrix."""
+        conv = Matrix(((1, 0, 0), (0, 0, -1), (0, 1, 0)))
+        path = (node if parent == "." else parent + "/" + node) if own_place else parent
+        m, o = self._world(path)
+        mat = (conv @ Matrix(m.tolist()) @ conv.inverted()).to_4x4()
+        mat.translation = conv @ Vector(o.tolist())
+        return mat
+
+    # Nodes the game moves by themselves: parts on different ones don't hold each other up.
+    MOVING = {"Hips", "Hips/Torso", "Hips/Torso/ArmL", "Hips/Torso/ArmR", "Hull", "Turret", "Turret/Gun"}
+
+    def _body(self, path, own_place):
+        """The moving node a part rides on (see MOVING)."""
+        moving = self.MOVING | {(n if p == "." else p + "/" + n) for _, p, n, _, own in self.parts if own}
+        # (the inside of the cab is drawn only in first-person view: nothing outside sits on it)
+        if "/CockpitCam" in path:
+            return "cockpit"
+        bits = path.split("/")
+        if bits[0].startswith("Leg") and len(bits) > 1:
+            return "/".join(bits[:2])
+        for i in range(len(bits), 0, -1):
+            if "/".join(bits[:i]) in moving:
+                return "/".join(bits[:i])
+        return ""
+
+    def seat(self):
+        """Seats every fitting (see Part.detail) on the surface that is really under it: its own part's, or
+        that of any other part riding on the same moving node — a lifting eye on the plate of a side
+        torso, a grille on a housing. The fitting slides along its normal until its lowest point is just
+        let into the surface (SINK); then any piece of it that still touches nothing (one bar of a grille
+        on a sloping face) is seated by itself the same way. Without a scene (a sheet of separate models)
+        each part only sits on itself."""
+        firsts = {}
+        for part, parent, node, material, own_place in self.parts:
+            if part.name in firsts:
+                continue
+            path = (node if parent == "." else parent + "/" + node) if own_place else parent
+            key = self._body(path, own_place) if self.scene else part.name
+            firsts[part.name] = (part, self._matrix(parent, node, own_place) if self.scene else Matrix.Identity(4), key)
+        # (meshes on no node, such as the weapons, each sit on themselves)
+        for part in self.loose:
+            firsts.setdefault(part.name, (part, Matrix.Identity(4), "loose:" + part.name))
+        trees = {name: (part.body_tree(mat), key) for name, (part, mat, key) in firsts.items()}
+        for name, (part, mat, key) in firsts.items():
+            hosts = [tree for other, (tree, k) in trees.items() if k == key and tree is not None]
+            part.seat_fittings(mat, hosts)
+
     def finish(self, args):
         import json
         import os
         import sys
         out = args[0]
+        self.seat()
         scene = reset_scene()
         built, export, manifest, tris = {}, [], [], 0
         for part, parent, node, material, own_place in self.parts:
@@ -555,37 +738,6 @@ class Model:
         print("MODEL", self.name, "PARTS", len(export), "TRIS", tris)
         if "preview" not in args:
             return
-        # Stand every part where its node stands in the scene.
-        here = os.path.dirname(os.path.abspath(__file__))
-        sys.path.insert(0, here)
-        import numpy as np
-        import tscn
-        sc = tscn.Scene(os.path.join(here, "..", "..", self.scene)) if self.scene else None
-        cache = {}
-
-        def world(path):
-            if path in (".", None):
-                return np.eye(3), np.zeros(3)
-            if path in self.frames:
-                pm, po = world(path.rsplit("/", 1)[0] if "/" in path else ".")
-                rows, origin = self.frames[path]
-                return pm @ np.array(rows), po + pm @ np.array(origin)
-            if path in self.places:
-                pm, po = world(self.places[path][0])
-                return pm, po + pm @ np.array(self.places[path][1])
-            if sc is None:
-                return np.eye(3), np.zeros(3)
-            if path not in cache:
-                n = sc.node(path)
-                if n is None:
-                    cache[path] = world(path.rsplit("/", 1)[0] if "/" in path else ".")
-                else:
-                    m, o = tscn.parse_xf(n.get("transform"))
-                    pm, po = world(n.attr("parent"))
-                    cache[path] = (pm @ m, po + pm @ o)
-            return cache[path]
-
-        conv = Matrix(((1, 0, 0), (0, 0, -1), (0, 1, 0)))
         shades = {}
         for key, colour in PREVIEW_SHADES.items():
             m = bpy.data.materials.new(key)
@@ -601,11 +753,7 @@ class Model:
             if obj is not src:
                 scene.collection.objects.link(obj)
             placed.add(part.name)
-            path = (node if parent == "." else parent + "/" + node) if own_place else parent
-            m, o = world(path)
-            mat = (conv @ Matrix(m.tolist()) @ conv.inverted()).to_4x4()
-            mat.translation = conv @ Vector(o.tolist())
-            obj.matrix_world = mat
+            obj.matrix_world = self._matrix(parent, node, own_place)
             obj.data = obj.data.copy()
             obj.data.materials.clear()
             if material not in shades:
@@ -616,7 +764,7 @@ class Model:
                 shades[material].diffuse_color = tone.get(key, (0.5, 0.5, 0.5, 1))
             obj.data.materials.append(shades[material])
             for corner in obj.bound_box:
-                w = mat @ Vector(corner)
+                w = obj.matrix_world @ Vector(corner)
                 lo = Vector(map(min, lo, w))
                 hi = Vector(map(max, hi, w))
         centre = (lo + hi) / 2

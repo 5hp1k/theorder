@@ -1,0 +1,35 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/Destructible.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/explosion.tscn" id="2"]
+[ext_resource type="Material" path="res://materials/mech_charred.tres" id="3"]
+[ext_resource type="ArrayMesh" path="res://models/base/fuel_tank/Tank.res" id="4"]
+[ext_resource type="Material" path="res://materials/base_white.tres" id="5"]
+[ext_resource type="ArrayMesh" path="res://models/base/fuel_tank/Fittings.res" id="6"]
+[ext_resource type="Material" path="res://materials/street_steel.tres" id="7"]
+
+[sub_resource type="BoxShape3D" id="shape"]
+size = Vector3(6.2, 7, 6.2)
+
+[node name="FuelTank" type="StaticBody3D"]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("1")
+Hp = 30
+How = 2
+Footprint = Vector2(6.6, 6.6)
+Height = 7.4
+DestroyFx = ExtResource("2")
+CharredMaterial = ExtResource("3")
+
+[node name="Shell" type="MeshInstance3D" parent="."]
+mesh = ExtResource("4")
+material_override = ExtResource("5")
+
+[node name="Fittings" type="MeshInstance3D" parent="."]
+mesh = ExtResource("6")
+material_override = ExtResource("7")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.9, 0)
+shape = SubResource("shape")

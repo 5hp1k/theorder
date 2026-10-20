@@ -107,6 +107,7 @@ material_override = ExtResource("1")
 [node name="HardpointMissiles" type="Node3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.4, 10.3)
 script = ExtResource("hardpoint")
+ShowModels = false
 DisplayName = "Корпус"
 Type = 2
 Slots = 3
@@ -138,8 +139,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 1.15, -0.2)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.3, 0.4)
 
 [node name="HardpointCannon" type="Node3D" parent="Turret/Gun"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -4.5)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.87)
 script = ExtResource("hardpoint")
+Area = Vector2(0.762, 0.581)
+Spacing = Vector3(0.45, 0, 0)
 DisplayName = "Башня"
 Type = 1
 Slots = 4
@@ -148,8 +151,10 @@ Mount = 5
 [node name="Cannon" parent="Turret/Gun/HardpointCannon" instance=ExtResource("10")]
 
 [node name="HardpointMachineGun" type="Node3D" parent="Turret/Gun"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, 0.2, -1.4)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.7, -0.055, -0.3)
 script = ExtResource("hardpoint")
+Area = Vector2(0.25, 0.72)
+Spacing = Vector3(0.45, 0, 0)
 DisplayName = "Башня"
 Type = 1
 Slots = 2

@@ -141,12 +141,13 @@ void fragment() {
 
 		// The opening, 0..1 across and up; the frame is the outermost part of it.
 		vec2 lo = vec2((1.0 - window_size.x) * 0.5, sill);
-		vec2 w = (in_cell - lo) / window_size;
+		vec2 w = (in_cell - lo) / max(window_size, vec2(1e-4));
 		vec2 w_m = w * window_size * vec2(bay_width, floor_height);
 		vec2 size_m = window_size * vec2(bay_width, floor_height);
 		vec2 edge = min(w_m, size_m - w_m);
 		float aa = max(fwidth(at.x), fwidth(at.y)) * 1.5;
-		float opening = smoothstep(-aa, aa, min(edge.x, edge.y));
+		// (no windows at all on a wall with none: a bunker, a hangar)
+		float opening = window_size.x * window_size.y > 0.0 ? smoothstep(-aa, aa, min(edge.x, edge.y)) : 0.0;
 		if (opening > 0.0) {
 			// Bars between the panes.
 			vec2 pane = fract(w * panes);

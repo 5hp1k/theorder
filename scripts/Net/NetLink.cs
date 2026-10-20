@@ -71,6 +71,8 @@ public partial class NetLink : Node
         GameConfig.EnsureLoaded();
         Loc.Hook(GetTree());
         // For testing two copies on one computer: THEORDER_NET="host" or "join:127.0.0.1".
+        // (THEORDER_COOP="campaign:0" or "custom:<id>": the mission such a test plays together.)
+        if (OS.GetEnvironment("THEORDER_COOP") is { Length: > 0 } coop) Net.CoopMission = coop;
         string auto = OS.GetEnvironment("THEORDER_NET");
         if (auto == "host") Callable.From(() => StartHost("Хост", Net.DefaultPort, false)).CallDeferred();
         else if (auto.StartsWith("join:")) Callable.From(() => StartJoin("Клиент", auto[5..], Net.DefaultPort)).CallDeferred();
@@ -114,7 +116,11 @@ public partial class NetLink : Node
         _beacon.SetBroadcastEnabled(true);
         _beacon.SetDestAddress("255.255.255.255", BeaconPort);
         SendRoster();
-        if (!lobby) LoadingScreen.Start(GetTree());
+        if (!lobby)
+        {
+            PrepareMission();
+            LoadingScreen.Start(GetTree());
+        }
         return true;
     }
 
@@ -179,7 +185,7 @@ public partial class NetLink : Node
         {
             _beaconWait = 1f;
             string map = Catalog.Find(Catalog.Maps, GameConfig.MapId).Name;
-            _beacon.PutPacket($"THEORDER|{_port}|{_myName}|{Net.ModeNames[(int)Net.Mode]}|{map}|{_peers.Count + 1}".ToUtf8Buffer());
+            _beacon.PutPacket($"THEORDER|{_port}|{_myName}|{ModeText().Replace("|", "/")}|{map}|{_peers.Count + 1}".ToUtf8Buffer());
         }
         if (_ear == null) return;
         bool changed = false;
@@ -271,7 +277,46 @@ public partial class NetLink : Node
     void SendWelcome(long id)
     {
         float left = (GetTree().CurrentScene as Game)?.TimeLeft ?? GameConfig.TimeLimitMinutes * 60f;
-        RpcId(id, nameof(Welcome), GameConfig.MapId, (int)Net.Mode, GameConfig.TimeOfDay, GameConfig.WeatherId, GameConfig.TimeLimitMinutes, left, Net.Respawns);
+        // The mission being played together, if any: the campaign's by its number, one's own as it is.
+        string kind = "", data = "";
+        if (CampaignRun.Custom != null) (kind, data) = ("custom", CampaignRun.Custom.ToJson());
+        else if (CampaignRun.Mission != null && CampaignState.Campaign?.IndexOf(CampaignRun.Mission) is >= 0 and var index) (kind, data) = ("campaign", index.ToString());
+        RpcId(id, nameof(Welcome), GameConfig.MapId, (int)Net.Mode, GameConfig.TimeOfDay, GameConfig.WeatherId, GameConfig.TimeLimitMinutes, left, Net.Respawns, kind, data);
+    }
+
+    /// <summary>Host: the mission chosen to be played together (Net.CoopMission) is what the battle will be.</summary>
+    static void PrepareMission()
+    {
+        CampaignRun.Mission = null;
+        CampaignRun.Custom = null;
+        CampaignRun.FromEditor = false;
+        string pick = Net.CoopMission ?? "";
+        if (pick.StartsWith("campaign:") && int.TryParse(pick[9..], out int index))
+        {
+            CampaignState.EnsureLoaded();
+            if (CampaignState.Campaign is { } campaign && index >= 0 && index < campaign.Missions.Length) CampaignRun.Mission = campaign.Missions[index];
+        }
+        else if (pick.StartsWith("custom:") && MissionLibrary.All().Find(d => d.Id == pick[7..]) is { } doc)
+        {
+            CampaignRun.Custom = doc;
+            CampaignRun.Mission = MissionBuilder.Info(doc);
+        }
+        if (CampaignRun.Mission != null) Net.Mode = Net.GameMode.Pve;
+    }
+
+    /// <summary>What kind of game it is, for the lobby and the local network.</summary>
+    static string ModeText()
+    {
+        string pick = Net.CoopMission ?? "";
+        if (pick.StartsWith("custom:") && MissionLibrary.All().Find(d => d.Id == pick[7..]) is { } doc) return "Миссия: " + doc.Title;
+        if (pick.StartsWith("campaign:") && int.TryParse(pick[9..], out int i) && CampaignState.Campaign is { } c && i >= 0 && i < c.Missions.Length) return "Миссия: " + c.Missions[i].Title;
+        return Net.ModeNames[(int)Net.Mode];
+    }
+
+    /// <summary>Host: the game's settings have changed in the lobby; everyone there is told.</summary>
+    public void SettingsChanged()
+    {
+        if (Net.Online && Net.IsHost && InLobby) SendRoster();
     }
 
     /// <summary>Who is in the game (the host first), for the lobby.</summary>
@@ -284,8 +329,8 @@ public partial class NetLink : Node
     {
         var names = new List<string> { _myName + " (хост)" };
         foreach (Peer peer in _peers.Values) names.Add(peer.Name);
-        Rpc(nameof(RosterIs), names.ToArray(), Net.ModeNames[(int)Net.Mode], GameConfig.MapId);
-        RosterIs(names.ToArray(), Net.ModeNames[(int)Net.Mode], GameConfig.MapId);
+        Rpc(nameof(RosterIs), names.ToArray(), ModeText(), GameConfig.MapId);
+        RosterIs(names.ToArray(), ModeText(), GameConfig.MapId);
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
@@ -301,6 +346,7 @@ public partial class NetLink : Node
     public void BeginBattle()
     {
         if (!Net.Online || !Net.IsHost) return;
+        PrepareMission();
         LoadingScreen.Start(GetTree());
     }
 
@@ -363,7 +409,7 @@ public partial class NetLink : Node
 
     /// <summary>
     /// Host: something of the map has gone — a block of a building (0), a whole prop (1), a part of one
-    /// (2), a crater dug (3). Everyone is told, and whoever joins later is told all of it.
+    /// (2), a crater dug (3), a tree of a wood become its own prop (4), a wood flattened by a blast (5). Everyone is told, and whoever joins later is told all of it.
     /// </summary>
     public void World(int kind, int a, int b, Vector3 v, float f, float g = 0f)
     {
@@ -408,14 +454,30 @@ public partial class NetLink : Node
                     (Destructible.Everyone[a].GetChild(b) as PropPart)?.BreakOff();
                     break;
                 case 3: MapTerrain.Instance?.AddCrater(vectors[i], floats[i * 2], floats[i * 2 + 1], true); break;
+                case 4 when a < ForestField.All.Count: ForestField.All[a].NetMaterialize(b); break;
+                case 5: ForestField.Flatten(vectors[i], floats[i * 2]); break;
             }
         }
         _applying = false;
     }
 
     [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
-    void Welcome(string map, int mode, int timeOfDay, int weather, int timeLimit, float timeLeft, bool respawns)
+    void Welcome(string map, int mode, int timeOfDay, int weather, int timeLimit, float timeLeft, bool respawns, string missionKind, string missionData)
     {
+        _units.Clear();
+        CampaignRun.Mission = null;
+        CampaignRun.Custom = null;
+        CampaignRun.FromEditor = false;
+        if (missionKind == "custom" && MissionDoc.FromJson(missionData) is { } doc)
+        {
+            CampaignRun.Custom = doc;
+            CampaignRun.Mission = MissionBuilder.Info(doc);
+        }
+        else if (missionKind == "campaign" && int.TryParse(missionData, out int index))
+        {
+            CampaignState.EnsureLoaded();
+            if (CampaignState.Campaign is { } campaign && index >= 0 && index < campaign.Missions.Length) CampaignRun.Mission = campaign.Missions[index];
+        }
         GameConfig.MapId = map;
         Net.Mode = (Net.GameMode)mode;
         GameConfig.TimeOfDay = timeOfDay;
@@ -446,10 +508,19 @@ public partial class NetLink : Node
     {
         _worldLog.Clear();
         _worldNew.Clear();
+        // (machines of a battle before this one, if it has been started again)
+        foreach (int stale in new List<int>(_units.Keys))
+            if (!IsInstanceValid(_units[stale].Node)) _units.Remove(stale);
         foreach (var (id, peer) in _peers)
         {
-            if (peer.Ready && peer.Unit == 0) Admit(game, id, peer);
-            else if (!peer.Ready) SendWelcome(id); // was waiting in the lobby
+            if (peer.Ready && peer.Unit != 0)
+            {
+                // Was in the battle before it was started again (a mission played over): loads it afresh.
+                peer.Ready = false;
+                peer.Unit = 0;
+            }
+            if (peer.Ready) Admit(game, id, peer);
+            else SendWelcome(id); // was waiting in the lobby
         }
     }
 
@@ -459,6 +530,13 @@ public partial class NetLink : Node
         foreach (SpawnInfo info in _units.Values)
             if (IsInstanceValid(info.Node)) RpcId(id, nameof(Spawn), info.Id, info.UnitId, info.Team, info.Owner, info.Name, info.Loadout ?? System.Array.Empty<string>(), info.Node.GlobalTransform, info.Paint ?? System.Array.Empty<float>(), info.Emblem ?? System.Array.Empty<byte>());
         SendWorld(id, _worldLog);
+        // …how the mission stands, if one is being played…
+        if (Mission.Current is { } mission)
+        {
+            for (int i = 0; i < mission.Objectives.Count; i++)
+                if (mission.Objectives[i].State != Objective.Status.Waiting) RpcId(id, nameof(ObjectiveIs), i, (int)mission.Objectives[i].State, false);
+            if (game.MissionOver) RpcId(id, nameof(MissionOverIs), game.MissionWon, mission.Reason);
+        }
         // …and the damage they have taken so far.
         foreach (SpawnInfo info in _units.Values)
         {
@@ -568,6 +646,12 @@ public partial class NetLink : Node
                 tally.Add(line.Losses);
             }
             Rpc(nameof(Clock), game.TimeLeft, game.TimeUp, tally);
+            if (Mission.Current is { Begun: true } mission)
+            {
+                var progress = new string[mission.Objectives.Count];
+                for (int i = 0; i < progress.Length; i++) progress[i] = mission.Objectives[i].Progress;
+                Rpc(nameof(ProgressIs), progress);
+            }
         }
     }
 
@@ -604,12 +688,12 @@ public partial class NetLink : Node
     void State(byte[] data)
     {
         using var r = new BinaryReader(new MemoryStream(data));
-        while (r.BaseStream.Position + 29 <= data.Length)
+        while (r.BaseStream.Position + 22 + PilotInput.Size <= data.Length)
         {
             int id = r.ReadUInt16();
             var pos = new Vector3(r.ReadSingle(), r.ReadSingle(), r.ReadSingle());
             float yaw = r.ReadSingle(), speed = r.ReadSingle();
-            PilotInput input = PilotInput.Unpack(r.ReadBytes(7));
+            PilotInput input = PilotInput.Unpack(r.ReadBytes(PilotInput.Size));
             if (!_units.TryGetValue(id, out SpawnInfo info) || !IsInstanceValid(info.Node)) continue;
             bool mine = info.Node == Game.PlayerUnit as Node;
             if (!mine) Game.PilotOf<RemotePilot>(info.Node)?.Receive(input);
@@ -728,5 +812,62 @@ public partial class NetLink : Node
             line.Kills = tally[i + 1];
             line.Losses = tally[i + 2];
         }
+    }
+
+    // ── A mission played together ───────────────────────────────
+
+    public const int StepRadio = 0, StepCutscene = 1, StepCutsceneEnd = 2;
+
+    /// <summary>Host: a step that shows or says something (radio lines, a cutscene) has run; the others see and hear it too.</summary>
+    public void MissionStep(Node step, int what)
+    {
+        if (!Net.Online || !Net.IsHost || Mission.Current is not { } mission || !mission.IsAncestorOf(step)) return;
+        Rpc(nameof(MissionStepIs), mission.GetPathTo(step).ToString(), what);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    void MissionStepIs(string path, int what)
+    {
+        if (Mission.Current is not { Mirrored: true } mission) return;
+        switch (mission.GetNodeOrNull(path))
+        {
+            case RadioAction radio when what == StepRadio: radio.Say(); break;
+            case Cutscene cutscene when what == StepCutscene: cutscene.Play(); break;
+            case Cutscene cutscene when what == StepCutsceneEnd: cutscene.NetFinish(); break;
+        }
+    }
+
+    /// <summary>Host: an objective has been given, done or failed.</summary>
+    public void ObjectiveChanged(Objective objective, bool announce)
+    {
+        if (!Net.Online || !Net.IsHost || Mission.Current is not { } mission) return;
+        int index = mission.Objectives.IndexOf(objective);
+        if (index >= 0) Rpc(nameof(ObjectiveIs), index, (int)objective.State, announce);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    void ObjectiveIs(int index, int state, bool announce)
+    {
+        if (Mission.Current is { Mirrored: true } mission && index >= 0 && index < mission.Objectives.Count)
+            mission.Objectives[index].NetSet((Objective.Status)state, announce);
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.UnreliableOrdered)]
+    void ProgressIs(string[] progress)
+    {
+        if (Mission.Current is not { Mirrored: true } mission) return;
+        for (int i = 0; i < progress.Length && i < mission.Objectives.Count; i++) mission.Objectives[i].NetProgress = progress[i];
+    }
+
+    /// <summary>Host: the mission is over, for everyone.</summary>
+    public void MissionOver(bool won, string reason)
+    {
+        if (Net.Online && Net.IsHost) Rpc(nameof(MissionOverIs), won, reason ?? "");
+    }
+
+    [Rpc(MultiplayerApi.RpcMode.Authority, TransferMode = MultiplayerPeer.TransferModeEnum.Reliable)]
+    void MissionOverIs(bool won, string reason)
+    {
+        if (Mission.Current is { Mirrored: true } mission) mission.NetEnd(won, reason);
     }
 }

@@ -34,6 +34,7 @@ SolidCount = 108
 PlantCount = 220
 DrifterCount = 27
 HasWater = true
+River = false
 WaterLevel = -5.5
 MaxDepth = 3
 RiverWidth = 38

@@ -1,0 +1,17 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://textures/concrete_pavement/concrete_pavement_diff.jpg" id="1"]
+[ext_resource type="Texture2D" path="res://textures/concrete_pavement/concrete_pavement_nor.jpg" id="2"]
+[ext_resource type="Texture2D" path="res://textures/concrete_pavement/concrete_pavement_arm.jpg" id="3"]
+
+[resource]
+albedo_color = Color(0.68, 0.67, 0.63, 1)
+albedo_texture = ExtResource("1")
+roughness_texture = ExtResource("3")
+roughness_texture_channel = 1
+normal_enabled = true
+normal_texture = ExtResource("2")
+uv1_scale = Vector3(0.12, 0.12, 0.12)
+uv1_triplanar = true
+uv1_world_triplanar = true
+texture_filter = 5

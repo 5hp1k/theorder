@@ -1,0 +1,134 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Campaign/Mission.cs" id="1_6sg6s"]
+[ext_resource type="PackedScene" path="res://scenes/maps/desert.tscn" id="2_7k3jm"]
+[ext_resource type="Script" path="res://scripts/Campaign/Cutscene.cs" id="3_2dxt1"]
+[ext_resource type="Script" path="res://scripts/Campaign/RadioLine.cs" id="4_t1qk1"]
+[ext_resource type="Resource" path="res://campaign/pilots/hero.tres" id="5_ivjnk"]
+[ext_resource type="Resource" path="res://campaign/pilots/voron.tres" id="6_ts1hg"]
+[ext_resource type="Script" path="res://scripts/Campaign/TimerTrigger.cs" id="7_pom8g"]
+[ext_resource type="Script" path="res://scripts/Campaign/RadioAction.cs" id="8_xh3d5"]
+[ext_resource type="Script" path="res://scripts/Campaign/ReachObjective.cs" id="9_5exli"]
+[ext_resource type="Script" path="res://scripts/Campaign/MissionUnit.cs" id="10_jusyh"]
+[ext_resource type="Script" path="res://scripts/Campaign/DestroyObjective.cs" id="11_ekd28"]
+
+[sub_resource type="Resource" id="Resource_4dr8a"]
+script = ExtResource("4_t1qk1")
+SpeakerName = "Штаб"
+Text = "Звено «Сокол», доброе утро. Полигон ваш до полудня."
+
+[sub_resource type="Resource" id="Resource_nvly2"]
+script = ExtResource("4_t1qk1")
+Speaker = ExtResource("5_ivjnk")
+Text = "Связь чистая, Штаб. Ворон со мной."
+
+[sub_resource type="Resource" id="Resource_tpxjx"]
+script = ExtResource("4_t1qk1")
+Speaker = ExtResource("6_ts1hg")
+Text = "Сокол, я на позиции. Готов выдвигаться."
+
+[sub_resource type="Animation" id="Animation_1t3lr"]
+length = 9.0
+tracks/0/type = "position_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Camera")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, -40, 45, -90, 4.5, 1, 55, 24, -35, 9, 1, 8, 10, 24)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Camera")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, 0.04067954, 0.95925, 0.1916907, -0.2035667, 4.5, 1, -0.06800496, 0.86780804, 0.123882815, 0.4763797, 9, 1, -0.030904235, 0.062107645, 0.001924028, 0.99758905)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_6b2is"]
+_data = {
+&"play": SubResource("Animation_1t3lr")
+}
+
+[sub_resource type="Resource" id="Resource_k0hdu"]
+script = ExtResource("4_t1qk1")
+SpeakerName = "Штаб"
+Text = "Выдвигайтесь к контрольной точке «Альфа», ориентир — ромб на экране."
+
+[sub_resource type="Resource" id="Resource_yvxuu"]
+script = ExtResource("4_t1qk1")
+Speaker = ExtResource("6_ts1hg")
+Text = "Контакт! Двое с севера, идут прямо на нас!"
+
+[sub_resource type="Resource" id="Resource_jjigf"]
+script = ExtResource("4_t1qk1")
+SpeakerName = "Штаб"
+Text = "Налётчики. Сокол, огонь на поражение."
+
+[sub_resource type="Resource" id="Resource_bo67s"]
+script = ExtResource("4_t1qk1")
+SpeakerName = "Штаб"
+Text = "Чисто. Хорошая работа, Сокол. Возвращайтесь на базу."
+
+[node name="Mission" type="Node3D" unique_id=1665143261]
+script = ExtResource("1_6sg6s")
+EndDelay = 5.0
+
+[node name="Map" type="Node3D" parent="." unique_id=1853926037 instance=ExtResource("2_7k3jm")]
+
+[node name="Intro" type="Node3D" parent="." unique_id=634209518]
+script = ExtResource("3_2dxt1")
+Length = 9.0
+Lines = [SubResource("Resource_4dr8a"), SubResource("Resource_nvly2"), SubResource("Resource_tpxjx")]
+OnFinished = Array[NodePath]([NodePath("../GoRadio")])
+
+[node name="Camera" type="Camera3D" parent="Intro" unique_id=267180720]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 45, -90)
+fov = 55.0
+far = 8000.0
+
+[node name="Animator" type="AnimationPlayer" parent="Intro" unique_id=1266830239]
+libraries/ = SubResource("AnimationLibrary_6b2is")
+
+[node name="Start" type="Node3D" parent="." unique_id=1023388224]
+script = ExtResource("7_pom8g")
+Steps = Array[NodePath]([NodePath("../Intro")])
+
+[node name="GoRadio" type="Node" parent="." unique_id=961691211]
+script = ExtResource("8_xh3d5")
+Lines = [SubResource("Resource_k0hdu")]
+
+[node name="Alpha" type="Node3D" parent="." unique_id=677705226]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -220)
+script = ExtResource("9_5exli")
+Text = "Выйти к точке «Альфа»"
+OnDone = Array[NodePath]([NodePath("../AmbushRadio"), NodePath("../Raider1"), NodePath("../Raider2"), NodePath("../KillRaiders")])
+
+[node name="AmbushRadio" type="Node" parent="." unique_id=159784977]
+script = ExtResource("8_xh3d5")
+Lines = [SubResource("Resource_yvxuu"), SubResource("Resource_jjigf")]
+
+[node name="Raider1" type="Marker3D" parent="." unique_id=939968240]
+transform = Transform3D(-0.93834317, 0, -0.34570527, 0, 1, 0, 0.34570527, 0, -0.93834317, -140, 0, -380)
+script = ExtResource("10_jusyh")
+Group = "Raiders"
+SpawnAtStart = false
+HuntPlayer = true
+
+[node name="Raider2" type="Marker3D" parent="." unique_id=517565830]
+transform = Transform3D(-0.946164, 0, 0.3236876, 0, 1, 0, -0.3236876, 0, -0.946164, 130, 0, -380)
+script = ExtResource("10_jusyh")
+UnitId = "ostrich"
+Group = "Raiders"
+SpawnAtStart = false
+HuntPlayer = true
+
+[node name="KillRaiders" type="Node3D" parent="." unique_id=286839120]
+script = ExtResource("11_ekd28")
+Group = "Raiders"
+Text = "Уничтожить налётчиков"
+StartActive = false
+OnDone = Array[NodePath]([NodePath("../DoneRadio")])
+
+[node name="DoneRadio" type="Node" parent="." unique_id=1113314126]
+script = ExtResource("8_xh3d5")
+Lines = [SubResource("Resource_bo67s")]

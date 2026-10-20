@@ -1,0 +1,207 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Campaign/Mission.cs" id="1_wcfv2"]
+[ext_resource type="PackedScene" path="res://scenes/maps/desert.tscn" id="2_xtf7b"]
+[ext_resource type="Script" path="res://scripts/Campaign/MissionUnit.cs" id="3_6wsjp"]
+[ext_resource type="Script" path="res://scripts/Campaign/Cutscene.cs" id="4_semkf"]
+[ext_resource type="Script" path="res://scripts/Campaign/RadioLine.cs" id="5_jhww5"]
+[ext_resource type="Script" path="res://scripts/Campaign/TimerTrigger.cs" id="6_vk2g2"]
+[ext_resource type="Script" path="res://scripts/Campaign/SurviveObjective.cs" id="7_o1gen"]
+[ext_resource type="Script" path="res://scripts/Campaign/ProtectObjective.cs" id="8_8lua6"]
+[ext_resource type="Script" path="res://scripts/Campaign/DestroyObjective.cs" id="9_6c8au"]
+[ext_resource type="Resource" path="res://campaign/pilots/klyk.tres" id="10_kbf67"]
+[ext_resource type="Script" path="res://scripts/Campaign/RadioAction.cs" id="11_nkdgl"]
+
+[sub_resource type="Resource" id="Resource_2r0im"]
+script = ExtResource("5_jhww5")
+SpeakerName = "Штаб"
+Text = "Сокол, колонна стоит. Эвакуация будет через две с половиной минуты."
+
+[sub_resource type="Resource" id="Resource_k6v8i"]
+script = ExtResource("5_jhww5")
+SpeakerName = "Штаб"
+Text = "До тех пор ни одна машина не должна сгореть."
+
+[sub_resource type="Animation" id="Animation_ew17v"]
+length = 8.0
+tracks/0/type = "position_3d"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("Camera")
+tracks/0/interp = 2
+tracks/0/loop_wrap = true
+tracks/0/keys = PackedFloat32Array(0, 1, 60, 30, -120, 4, 1, -50, 18, -90, 8, 1, 0, 9, 26)
+tracks/1/type = "rotation_3d"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Camera")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = PackedFloat32Array(0, 1, -0.046789967, 0.93415314, 0.13338795, 0.32768324, 4, 1, 0.0473936, 0.90728056, 0.106415816, -0.4040687, 8, 1, -0.026288504, 0, 0, 0.9996544)
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_4t4qx"]
+_data = {
+&"play": SubResource("Animation_ew17v")
+}
+
+[sub_resource type="Resource" id="Resource_4bihi"]
+script = ExtResource("5_jhww5")
+SpeakerName = "Штаб"
+Text = "Два меха с севера, расходятся в клещи!"
+
+[sub_resource type="Resource" id="Resource_vapqg"]
+script = ExtResource("5_jhww5")
+SpeakerName = "Штаб"
+Text = "Бронетехника с севера, идут к колонне."
+
+[sub_resource type="Resource" id="Resource_5i3fd"]
+script = ExtResource("5_jhww5")
+Speaker = ExtResource("10_kbf67")
+Text = "Сокол… Колонна будет моей."
+
+[sub_resource type="Resource" id="Resource_20hqv"]
+script = ExtResource("5_jhww5")
+SpeakerName = "Штаб"
+Text = "Клык! С тыла, с юга!"
+
+[sub_resource type="Resource" id="Resource_j8kp4"]
+script = ExtResource("5_jhww5")
+SpeakerName = "Штаб"
+Text = "Эвакуация на месте. Колонна уходит, Сокол. Отличная работа."
+
+[node name="Mission" type="Node3D" unique_id=1931877022]
+script = ExtResource("1_wcfv2")
+OnWon = Array[NodePath]([NodePath("WinRadio")])
+EndDelay = 5.0
+
+[node name="Map" type="Node3D" parent="." unique_id=1773806660 instance=ExtResource("2_xtf7b")]
+
+[node name="Convoy1" type="Marker3D" parent="." unique_id=1914974338]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25, 0, -40)
+script = ExtResource("3_6wsjp")
+UnitId = "apc"
+Team = 0
+Group = "Convoy"
+PatrolRadius = 0.0
+
+[node name="Convoy2" type="Marker3D" parent="." unique_id=940887589]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -55)
+script = ExtResource("3_6wsjp")
+UnitId = "apc"
+Team = 0
+Group = "Convoy"
+PatrolRadius = 0.0
+
+[node name="Convoy3" type="Marker3D" parent="." unique_id=1582529781]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 25, 0, -40)
+script = ExtResource("3_6wsjp")
+UnitId = "apc"
+Team = 0
+Group = "Convoy"
+PatrolRadius = 0.0
+
+[node name="Intro" type="Node3D" parent="." unique_id=1482263625]
+script = ExtResource("4_semkf")
+Length = 8.0
+Lines = [SubResource("Resource_2r0im"), SubResource("Resource_k6v8i")]
+
+[node name="Camera" type="Camera3D" parent="Intro" unique_id=395781511]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 30, -120)
+fov = 55.0
+far = 8000.0
+
+[node name="Animator" type="AnimationPlayer" parent="Intro" unique_id=682179723]
+libraries/ = SubResource("AnimationLibrary_4t4qx")
+
+[node name="Start" type="Node3D" parent="." unique_id=2116488162]
+script = ExtResource("6_vk2g2")
+Steps = Array[NodePath]([NodePath("../Intro")])
+
+[node name="Hold" type="Node3D" parent="." unique_id=1036942313]
+script = ExtResource("7_o1gen")
+Seconds = 150.0
+Text = "Продержаться до прихода эвакуации"
+
+[node name="KeepConvoy" type="Node3D" parent="." unique_id=1653565471]
+script = ExtResource("8_8lua6")
+Group = "Convoy"
+MayLose = 1
+Text = "Сохранить колонну"
+
+[node name="KillAll" type="Node3D" parent="." unique_id=919384557]
+script = ExtResource("9_6c8au")
+Group = "Attackers"
+Text = "Уничтожить всех нападающих"
+Required = false
+
+[node name="A1" type="Marker3D" parent="." unique_id=2055850601]
+transform = Transform3D(-0.73279357, 0, -0.68045104, 0, 1, 0, 0.68045104, 0, -0.73279357, -260, 0, -280)
+script = ExtResource("3_6wsjp")
+Group = "Attackers"
+SpawnAtStart = false
+HuntPlayer = true
+
+[node name="A2" type="Marker3D" parent="." unique_id=1671806695]
+transform = Transform3D(-0.73279357, 0, 0.68045104, 0, 1, 0, -0.68045104, 0, -0.73279357, 260, 0, -280)
+script = ExtResource("3_6wsjp")
+UnitId = "agni"
+Group = "Attackers"
+SpawnAtStart = false
+HuntPlayer = true
+
+[node name="A3" type="Marker3D" parent="." unique_id=214533455]
+transform = Transform3D(-0.987763, 0, -0.15596251, 0, 1, 0, 0.15596251, 0, -0.987763, -60, 0, -380)
+script = ExtResource("3_6wsjp")
+UnitId = "tank"
+Group = "Attackers"
+SpawnAtStart = false
+HuntPlayer = true
+
+[node name="A4" type="Marker3D" parent="." unique_id=1038270465]
+transform = Transform3D(-0.9785498, 0, 0.20601057, 0, 1, 0, -0.20601057, 0, -0.9785498, 80, 0, -380)
+script = ExtResource("3_6wsjp")
+UnitId = "apc"
+Group = "Attackers"
+SpawnAtStart = false
+HuntPlayer = true
+
+[node name="Klyk" type="Marker3D" parent="." unique_id=296648295]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 360)
+script = ExtResource("3_6wsjp")
+UnitId = "ballista"
+DisplayName = "Клык"
+Pilot = ExtResource("10_kbf67")
+Group = "Attackers"
+SpawnAtStart = false
+HuntPlayer = true
+
+[node name="Wave1" type="Node3D" parent="." unique_id=1115146454]
+script = ExtResource("6_vk2g2")
+Delay = 8.0
+Steps = Array[NodePath]([NodePath("../A1"), NodePath("../A2"), NodePath("../Wave1Radio")])
+
+[node name="Wave2" type="Node3D" parent="." unique_id=1993904098]
+script = ExtResource("6_vk2g2")
+Delay = 55.0
+Steps = Array[NodePath]([NodePath("../A3"), NodePath("../A4"), NodePath("../Wave2Radio")])
+
+[node name="Wave3" type="Node3D" parent="." unique_id=802854534]
+script = ExtResource("6_vk2g2")
+Delay = 95.0
+Steps = Array[NodePath]([NodePath("../Klyk"), NodePath("../Wave3Radio")])
+
+[node name="Wave1Radio" type="Node" parent="." unique_id=781014241]
+script = ExtResource("11_nkdgl")
+Lines = [SubResource("Resource_4bihi")]
+
+[node name="Wave2Radio" type="Node" parent="." unique_id=542961669]
+script = ExtResource("11_nkdgl")
+Lines = [SubResource("Resource_vapqg")]
+
+[node name="Wave3Radio" type="Node" parent="." unique_id=772970013]
+script = ExtResource("11_nkdgl")
+Lines = [SubResource("Resource_5i3fd"), SubResource("Resource_20hqv")]
+
+[node name="WinRadio" type="Node" parent="." unique_id=433583148]
+script = ExtResource("11_nkdgl")
+Lines = [SubResource("Resource_j8kp4")]

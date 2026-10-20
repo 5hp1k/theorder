@@ -1,0 +1,121 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Campaign/StoryOverlay.cs" id="1"]
+[ext_resource type="AudioStream" path="res://audio/radio_squelch.wav" id="squelch"]
+
+[sub_resource type="StyleBoxFlat" id="SubtitleBox"]
+bg_color = Color(0.02, 0.03, 0.03, 0.72)
+border_width_left = 3
+border_color = Color(0.95, 0.75, 0.3, 0.9)
+content_margin_left = 14.0
+content_margin_top = 10.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+
+[node name="StoryOverlay" type="CanvasLayer"]
+layer = 3
+script = ExtResource("1")
+BarTime = 0.6
+BannerTime = 4.0
+
+[node name="BarTop" type="ColorRect" parent="."]
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="BarBottom" type="ColorRect" parent="."]
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+color = Color(0, 0, 0, 1)
+
+[node name="Banner" type="VBoxContainer" parent="."]
+anchors_preset = -1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -360.0
+offset_top = 118.0
+offset_right = 360.0
+offset_bottom = 190.0
+grow_horizontal = 2
+mouse_filter = 2
+alignment = 1
+
+[node name="BannerTitle" type="Label" parent="Banner"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 26
+text = "НОВАЯ ЦЕЛЬ"
+horizontal_alignment = 1
+
+[node name="BannerText" type="Label" parent="Banner"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.92, 0.94, 0.95, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 0.8)
+theme_override_constants/outline_size = 5
+theme_override_font_sizes/font_size = 19
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Subtitle" type="PanelContainer" parent="."]
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -336.0
+offset_right = 400.0
+offset_bottom = -234.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("SubtitleBox")
+
+[node name="Row" type="HBoxContainer" parent="Subtitle"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Portrait" type="TextureRect" parent="Subtitle/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 84)
+layout_mode = 2
+size_flags_vertical = 0
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Words" type="VBoxContainer" parent="Subtitle/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Speaker" type="Label" parent="Subtitle/Row/Words"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="Line" type="Label" parent="Subtitle/Row/Words"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.94, 0.95, 0.96, 1)
+theme_override_font_sizes/font_size = 20
+autowrap_mode = 3
+
+[node name="Voice" type="AudioStreamPlayer" parent="."]
+bus = &"Voice"
+
+[node name="Squelch" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("squelch")
+volume_db = -6.0
+bus = &"Signals"

@@ -429,7 +429,7 @@ public partial class Trooper : CharacterBody3D, IDamageable, ITarget, ICockpit
 
     public void TakeDamage(float amount, Vector3 point)
     {
-        if (IsDestroyed || !Controlled) return;
+        if (IsDestroyed || !Controlled || Cheats.Spares(this)) return;
         Hp -= amount;
         if (Hp > 0f) return;
 

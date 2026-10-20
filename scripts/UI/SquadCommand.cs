@@ -39,6 +39,7 @@ public partial class SquadCommand : HudWidget
 
     public override void _UnhandledInput(InputEvent @event)
     {
+        if (OnScreen) return;
         var squad = Game.Instance?.Squad;
         if (squad == null || squad.Count == 0 || @event is not InputEventKey { Pressed: true, Echo: false } key) return;
 

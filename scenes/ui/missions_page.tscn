@@ -1,0 +1,118 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Editor/MissionsPage.cs" id="1"]
+
+[node name="MissionsPage" type="VBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_vertical = 2
+theme_override_constants/separation = 8
+script = ExtResource("1")
+
+[node name="Heading" type="Label" parent="."]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 28
+text = "Свои миссии"
+
+[node name="Body" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="MyMissions" type="ItemList" parent="Body"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+
+[node name="Column" type="VBoxContainer" parent="Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="MyTitle" type="Label" parent="Body/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
+
+[node name="MyAbout" type="Label" parent="Body/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+theme_override_font_sizes/font_size = 15
+autowrap_mode = 3
+
+[node name="MyBriefing" type="RichTextLabel" parent="Body/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/normal_font_size = 16
+
+[node name="Buttons" type="HFlowContainer" parent="."]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+
+[node name="BtnMyPlay" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Играть"
+
+[node name="BtnMyEdit" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+text = "Изменить"
+
+[node name="BtnMyNew" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 44)
+layout_mode = 2
+text = "Новая в редакторе"
+
+[node name="BtnMyDelete" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+text = "Удалить"
+
+[node name="BtnMyExport" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+text = "Экспорт"
+
+[node name="BtnMyImport" type="Button" parent="Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 44)
+layout_mode = 2
+text = "Импорт"
+
+[node name="MyDeleteDialog" type="ConfirmationDialog" parent="."]
+unique_name_in_owner = true
+title = "Удаление"
+ok_button_text = "Удалить"
+cancel_button_text = "Отмена"
+
+[node name="MyExportDialog" type="FileDialog" parent="."]
+unique_name_in_owner = true
+title = "Экспорт миссии"
+size = Vector2i(760, 520)
+access = 2
+filters = PackedStringArray("*.json ; Миссия")
+use_native_dialog = true
+
+[node name="MyImportDialog" type="FileDialog" parent="."]
+unique_name_in_owner = true
+title = "Импорт миссии"
+size = Vector2i(760, 520)
+ok_button_text = "Открыть"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.json ; Миссия")
+use_native_dialog = true

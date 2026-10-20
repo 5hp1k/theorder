@@ -222,6 +222,12 @@ variants = {
 for name, a in variants.items():
     save(name, a / np.abs(a).max() * 0.55)
 
+# the radio opening for a line that has no recording (the story's subtitles): a click, a breath of
+# static, a short tone, as a channel keys up
+hiss = np.random.default_rng(11).standard_normal(int(0.16 * RATE)) * np.linspace(1, 0, int(0.16 * RATE)) ** 2
+key = np.concatenate([np.ones(int(0.002 * RATE)) * 0.9, gap(0.01), hiss * 0.5, gap(0.02), beep(1250, 0.05, 0.6) * 0.5])
+save('radio_squelch', radio(key) / np.abs(radio(key)).max() * 0.5)
+
 # a falling bomb: a whistle sliding down as it drops, with air rushing past, louder as it nears
 t = np.arange(int(3.2 * RATE)) / RATE
 f = 1900 * np.exp(-t / 2.6) + 650 + 18 * np.sin(2 * np.pi * 5.5 * t)

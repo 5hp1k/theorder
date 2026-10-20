@@ -47,7 +47,7 @@ public partial class NukeWarning : HudWidget
     {
         base._Process(delta);
         bool on = Threat(out _) != null && !GetTree().Paused;
-        if (_siren == null || _siren.Playing == on) return;
+        if (_siren == null || OnScreen || _siren.Playing == on) return;
         if (on) _siren.Play();
         else _siren.Stop();
     }

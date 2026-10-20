@@ -312,7 +312,7 @@ public partial class Mech : CharacterBody3D, IDrivable
     public void ApplyPaint(PaintJob paint) => ArmorMaterial = paint.Apply(this, ArmorMaterial);
 
     /// <summary>Shows a picture on the plates named "Insignia…" in the scene, or hides them.</summary>
-    public void ApplyInsignia(Texture2D picture) => Units.ApplyInsignia(this, picture);
+    public void ApplyInsignia(Texture2D picture, bool plates = true) => Units.ApplyInsignia(this, picture, plates);
 
     /// <summary>Shows or hides this mech in the HUD's target window (a dedicated render layer).</summary>
     public void SetPreview(bool on, int layer) => Units.SetPreview(this, on, layer);
@@ -387,23 +387,24 @@ public partial class Mech : CharacterBody3D, IDrivable
         Pilot?.Think(dt);
         Prof.Add(8, profT);
         Throttle = Mathf.Clamp(Throttle, -ReverseFraction, 1f);
+        UpdatePosture(dt);
 
-        // Legs: steering and speed.
+        // Legs: steering and speed. (On its knee it stays put: a kneel stops it first.)
         float speedNorm = Mathf.Clamp(Mathf.Abs(Speed) / MaxForwardSpeed, 0f, 1f);
-        _yawRate = Offline ? 0f : Mathf.Clamp(TurnInput, -1f, 1f) * Mathf.Lerp(TurnRateStanding, TurnRateFull, speedNorm);
+        _yawRate = Offline || Posed ? 0f : Mathf.Clamp(TurnInput, -1f, 1f) * Mathf.Lerp(TurnRateStanding, TurnRateFull, speedNorm);
         if (_yawRate != 0f)
             Rotation = new Vector3(0, Rotation.Y + _yawRate * dt, 0);
 
         bool legged = Damage.IsDestroyed(Section.LeftLeg) || Damage.IsDestroyed(Section.RightLeg);
         // Wading slows a mech down.
         float wade = Mathf.Lerp(1f, 0.6f, Mathf.Clamp((WaterDepth - 0.8f) / 2.5f, 0f, 1f));
-        float targetSpeed = Offline ? 0f : Throttle * MaxForwardSpeed * wade * (legged ? LeggedSpeedFactor : 1f);
+        float targetSpeed = Offline || Posed || (Kneel && !Airborne) ? 0f : Throttle * MaxForwardSpeed * wade * (legged ? LeggedSpeedFactor : 1f);
         bool speedingUp = Mathf.Abs(targetSpeed) > Mathf.Abs(Speed) && targetSpeed * Speed >= 0f;
         float rate = speedingUp ? Acceleration : Deceleration;
         Speed = Mathf.MoveToward(Speed, targetSpeed, rate * dt);
 
         // Jump jets: burn while held and there's fuel, refill on the ground.
-        Thrusting = Jump && HasJumpJets && !Offline && !legged && JumpFuel > 0f;
+        Thrusting = Jump && HasJumpJets && !Offline && !Posed && !legged && JumpFuel > 0f;
         if (Thrusting)
         {
             JumpFuel = Mathf.Max(0f, JumpFuel - dt / JumpFuelTime);
@@ -463,9 +464,10 @@ public partial class Mech : CharacterBody3D, IDrivable
                 leg.Hang(GlobalTransform, foot, dt);
             }
         }
-        else
+        else if (!Posed)
         {
             _gait.MaxSpeed = MaxForwardSpeed;
+            _gait.Reach = StrideReach;
             _gait.StepLength = StepLength;
             _gait.StepHeight = StepHeight;
             _gait.RunSwing = RunSwing;
@@ -531,6 +533,21 @@ public partial class Mech : CharacterBody3D, IDrivable
         _legsInitialized = true;
     }
 
+    /// <summary>
+    /// How far ahead of or behind its hip a foot can be planted with the leg still reaching it: worked out
+    /// from the leg's length and how high the hips ride at a run.
+    /// </summary>
+    float StrideReach
+    {
+        get
+        {
+            var leg = Legs[0];
+            float high = HipHeight + leg.HipLocal.Y - 0.45f - leg.HeelRise;
+            float room = leg.Reach * leg.Reach - high * high - (leg.HomeLocal.X - leg.HipLocal.X) * (leg.HomeLocal.X - leg.HipLocal.X);
+            return Mathf.Sqrt(Mathf.Max(room, 0.25f)) * 0.92f;
+        }
+    }
+
     float HeightAboveGround()
     {
         var terrain = MapTerrain.Instance;
@@ -586,7 +603,7 @@ public partial class Mech : CharacterBody3D, IDrivable
             _armReturn[arm] = travel / Mathf.Max(w.RecoilReturn, 0.05f);
         }
         if (w.Kick <= 0f) return;
-        float k = w.Kick * RecoilGive / Mathf.Max(ChaseScale, 0.5f);
+        float k = w.Kick * RecoilGive / Mathf.Max(ChaseScale, 0.5f) * Mathf.Lerp(1f, KneelRecoil, _kneel);
         _nodVel += k * 0.9f;
         _bobVel -= k * 0.6f;
         _listVel += (arm == 0 ? 1f : arm == 1 ? -1f : 0f) * k * 0.35f;
@@ -595,6 +612,7 @@ public partial class Mech : CharacterBody3D, IDrivable
 
     void UpdateHeat(float dt)
     {
+        if (Cheats.Cools(this)) Heat = 0f;
         // Standing in water cools the mech faster.
         float dissipation = HeatDissipation * (IsShutdown ? 1.6f : 1f) * (1f + WaterCooling * Mathf.Clamp(WaterDepth / Mathf.Max(WaterCoolingDepth, 0.1f), 0f, 1f));
         Heat = Mathf.Max(0f, Heat - dissipation * dt);
@@ -780,6 +798,27 @@ public partial class Mech : CharacterBody3D, IDrivable
         // "lift" peaks mid-step: the body vaults up over the standing leg and falls into the next footfall.
         Hips.Position = new Vector3(-roll * BodySway, _hipY + _bob + lift * 0.32f * (HipHeight / 5.6f) + slump + stride, 0);
         Hips.Rotation = new Vector3(_lean - 0.04f * speedNorm + _nod, _twist, _roll * 2f + _list);
+
+        // Lower, if a leg can't reach its foot from here (downhill, a foot in a dip): the knees bend
+        // instead of the leg being torn off its foot.
+        float need = 0f;
+        foreach (var leg in Legs)
+        {
+            Vector3 hip = Hips.GlobalTransform * leg.HipLocal;
+            Vector3 toHip = hip - (leg.Contact + Vector3.Up * leg.HeelRise);
+            float up = toHip.Y;
+            toHip.Y = 0f;
+            float room = leg.Reach * leg.Reach - toHip.LengthSquared();
+            need = Mathf.Max(need, up - (room > 0f ? Mathf.Sqrt(room) : 0f));
+        }
+        need = Mathf.Clamp(need, 0f, HipHeight * 0.4f) * (1f - _kneel);
+        // (At once when it must, back up at leisure.)
+        _reachDrop = need >= _reachDrop ? need : Mathf.Lerp(_reachDrop, need, 1f - Mathf.Exp(-4f * dt));
+
+        Vector3 position = Hips.Position - new Vector3(0f, _reachDrop, 0f);
+        Basis pose = Hips.Basis;
+        Pose(ref position, ref pose);
+        Hips.Transform = new Transform3D(pose, position);
 
         var hips = Hips.GlobalTransform;
         var basis = GlobalTransform.Basis;
@@ -1047,6 +1086,7 @@ public partial class Mech : CharacterBody3D, IDrivable
 
         Damage.Reset();
         _grime.Clean();
+        CockpitInterior?.GetNodeOrNull<CockpitGlass>("Glass")?.Clean();
         for (int i = 0; i < DamageModel.Count; i++) Weapons.SetSectionDestroyed((Section)i, false);
         Weapons.Rearm();
         Ams.Of(this)?.Rearm();
@@ -1111,6 +1151,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         _yaw = _pitch = TargetYaw = TargetPitch = 0f;
         _hipY = HipHeight;
         _bob = _bobVel = _twist = _nod = _nodVel = _list = _listVel = 0f;
+        ResetPosture();
         JumpFuel = 1f;
         Hips.Position = new Vector3(0, HipHeight, 0);
         Hips.Rotation = Vector3.Zero;

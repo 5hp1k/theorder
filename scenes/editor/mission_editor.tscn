@@ -1,0 +1,437 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Editor/MissionEditor.cs" id="1"]
+[ext_resource type="Script" path="res://scripts/Editor/EditorCamera.cs" id="2"]
+
+[sub_resource type="StyleBoxFlat" id="Panel"]
+bg_color = Color(0.06, 0.07, 0.08, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.25, 0.28, 0.3, 1)
+content_margin_left = 8.0
+content_margin_top = 6.0
+content_margin_right = 8.0
+content_margin_bottom = 6.0
+
+[node name="MissionEditor" type="Node3D"]
+script = ExtResource("1")
+
+[node name="World" type="Node3D" parent="."]
+
+[node name="Gizmos" type="Node3D" parent="."]
+
+[node name="Camera" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.76, 0.65, 0, -0.65, 0.76, 0, 140, 220)
+current = true
+fov = 60.0
+far = 6000.0
+script = ExtResource("2")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Root" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Top" type="PanelContainer" parent="UI/Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 44.0
+theme_override_styles/panel = SubResource("Panel")
+
+[node name="Bar" type="HBoxContainer" parent="UI/Root/Top"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="BtnNew" type="Button" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Новая"
+
+[node name="BtnOpen" type="Button" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Открыть"
+
+[node name="BtnSave" type="Button" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Сохранить"
+
+[node name="BtnExport" type="Button" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Экспорт"
+
+[node name="BtnImport" type="Button" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Импорт"
+
+[node name="Sep1" type="VSeparator" parent="UI/Root/Top/Bar"]
+layout_mode = 2
+
+[node name="BtnSettings" type="Button" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Миссия"
+
+[node name="BtnPilots" type="Button" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Персонажи"
+
+[node name="Sep2" type="VSeparator" parent="UI/Root/Top/Bar"]
+layout_mode = 2
+
+[node name="BtnTest" type="Button" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.55, 1, 0.6, 1)
+text = "▶ Проверить"
+
+[node name="BtnExit" type="Button" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Выход"
+
+[node name="Title" type="Label" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+clip_text = true
+
+[node name="Status" type="Label" parent="UI/Root/Top/Bar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+horizontal_alignment = 2
+clip_text = true
+
+[node name="Left" type="PanelContainer" parent="UI/Root"]
+layout_mode = 1
+anchors_preset = 9
+anchor_bottom = 1.0
+offset_top = 48.0
+offset_right = 270.0
+offset_bottom = -4.0
+theme_override_styles/panel = SubResource("Panel")
+
+[node name="Column" type="VBoxContainer" parent="UI/Root/Left"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="AddHeading" type="Label" parent="UI/Root/Left/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+text = "Добавить"
+
+[node name="UnitRow" type="HBoxContainer" parent="UI/Root/Left/Column"]
+layout_mode = 2
+
+[node name="UnitKind" type="OptionButton" parent="UI/Root/Left/Column/UnitRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+fit_to_longest_item = false
+
+[node name="UnitTeam" type="OptionButton" parent="UI/Root/Left/Column/UnitRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(84, 0)
+layout_mode = 2
+
+[node name="BtnAddUnit" type="Button" parent="UI/Root/Left/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Поставить машину"
+
+[node name="PropRow" type="HBoxContainer" parent="UI/Root/Left/Column"]
+layout_mode = 2
+
+[node name="PropGroup" type="OptionButton" parent="UI/Root/Left/Column/PropRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(96, 0)
+layout_mode = 2
+fit_to_longest_item = false
+
+[node name="PropKind" type="OptionButton" parent="UI/Root/Left/Column/PropRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+fit_to_longest_item = false
+
+[node name="BtnAddProp" type="Button" parent="UI/Root/Left/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Поставить объект"
+
+[node name="Palette" type="GridContainer" parent="UI/Root/Left/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+columns = 2
+
+[node name="Sep" type="HSeparator" parent="UI/Root/Left/Column"]
+layout_mode = 2
+
+[node name="ObjectsHeading" type="Label" parent="UI/Root/Left/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+text = "В миссии"
+
+[node name="Objects" type="Tree" parent="UI/Root/Left/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+hide_root = true
+
+[node name="Right" type="PanelContainer" parent="UI/Root"]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -370.0
+offset_top = 48.0
+offset_bottom = -4.0
+theme_override_styles/panel = SubResource("Panel")
+
+[node name="Column" type="VBoxContainer" parent="UI/Root/Right"]
+layout_mode = 2
+
+[node name="InspectorHeading" type="Label" parent="UI/Root/Right/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
+theme_override_font_sizes/font_size = 17
+text = "Свойства"
+
+[node name="Scroll" type="ScrollContainer" parent="UI/Root/Right/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Inspector" type="VBoxContainer" parent="UI/Root/Right/Column/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="Hint" type="Label" parent="UI/Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 280.0
+offset_top = -30.0
+offset_right = -380.0
+offset_bottom = -6.0
+theme_override_colors/font_color = Color(0.85, 0.88, 0.9, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+horizontal_alignment = 1
+text = "ПКМ — осмотреться · WASD, Q/E — лететь (Shift быстрее) · колесо — вперёд/назад · ЛКМ — выбрать, тащить · R/T, Shift/Ctrl+колесо, Alt+тащить — повернуть · Del — удалить · Ctrl+D — копия · F — к выбранному"
+
+[node name="SettingsDialog" type="AcceptDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Миссия"
+size = Vector2i(720, 720)
+ok_button_text = "Готово"
+
+[node name="Scroll" type="ScrollContainer" parent="UI/SettingsDialog"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 712.0
+offset_bottom = 671.0
+horizontal_scroll_mode = 0
+
+[node name="SettingsForm" type="VBoxContainer" parent="UI/SettingsDialog/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="PilotsDialog" type="AcceptDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Персонажи"
+size = Vector2i(820, 620)
+ok_button_text = "Готово"
+
+[node name="Body" type="HBoxContainer" parent="UI/PilotsDialog"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 812.0
+offset_bottom = 571.0
+theme_override_constants/separation = 10
+
+[node name="Side" type="VBoxContainer" parent="UI/PilotsDialog/Body"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+
+[node name="PilotList" type="ItemList" parent="UI/PilotsDialog/Body/Side"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="BtnAddPilot" type="Button" parent="UI/PilotsDialog/Body/Side"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Новый персонаж"
+
+[node name="CampaignPilots" type="OptionButton" parent="UI/PilotsDialog/Body/Side"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="BtnRemovePilot" type="Button" parent="UI/PilotsDialog/Body/Side"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Удалить"
+
+[node name="Scroll" type="ScrollContainer" parent="UI/PilotsDialog/Body"]
+layout_mode = 2
+size_flags_horizontal = 3
+horizontal_scroll_mode = 0
+
+[node name="PilotForm" type="VBoxContainer" parent="UI/PilotsDialog/Body/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="LoadoutDialog" type="AcceptDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Вооружение"
+size = Vector2i(560, 620)
+ok_button_text = "Готово"
+
+[node name="Scroll" type="ScrollContainer" parent="UI/LoadoutDialog"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 552.0
+offset_bottom = 571.0
+horizontal_scroll_mode = 0
+
+[node name="LoadoutForm" type="VBoxContainer" parent="UI/LoadoutDialog/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="PaintDialog" type="AcceptDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Окраска"
+size = Vector2i(480, 560)
+ok_button_text = "Готово"
+
+[node name="Scroll" type="ScrollContainer" parent="UI/PaintDialog"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 472.0
+offset_bottom = 511.0
+horizontal_scroll_mode = 0
+
+[node name="PaintForm" type="VBoxContainer" parent="UI/PaintDialog/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 5
+
+[node name="NewDialog" type="ConfirmationDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Новая миссия"
+size = Vector2i(460, 260)
+ok_button_text = "Создать"
+cancel_button_text = "Отмена"
+
+[node name="Column" type="VBoxContainer" parent="UI/NewDialog"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 452.0
+offset_bottom = 211.0
+
+[node name="TypeLabel" type="Label" parent="UI/NewDialog/Column"]
+layout_mode = 2
+text = "Тип миссии"
+
+[node name="NewType" type="OptionButton" parent="UI/NewDialog/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="NewAbout" type="Label" parent="UI/NewDialog/Column"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 44)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+autowrap_mode = 3
+
+[node name="MapLabel" type="Label" parent="UI/NewDialog/Column"]
+layout_mode = 2
+text = "Карта"
+
+[node name="NewMap" type="OptionButton" parent="UI/NewDialog/Column"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="OpenDialog" type="ConfirmationDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Открыть миссию"
+size = Vector2i(520, 460)
+ok_button_text = "Открыть"
+cancel_button_text = "Отмена"
+
+[node name="MissionList" type="ItemList" parent="UI/OpenDialog"]
+unique_name_in_owner = true
+offset_left = 8.0
+offset_top = 8.0
+offset_right = 512.0
+offset_bottom = 411.0
+
+[node name="ExitDialog" type="ConfirmationDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Выход"
+dialog_text = "Сохранить миссию перед выходом?"
+ok_button_text = "Сохранить и выйти"
+cancel_button_text = "Отмена"
+
+[node name="ExportDialog" type="FileDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Экспорт миссии"
+size = Vector2i(760, 520)
+access = 2
+filters = PackedStringArray("*.json ; Миссия")
+use_native_dialog = true
+
+[node name="ImportDialog" type="FileDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Импорт миссии"
+size = Vector2i(760, 520)
+ok_button_text = "Открыть"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.json ; Миссия")
+use_native_dialog = true
+
+[node name="PortraitDialog" type="FileDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Портрет"
+size = Vector2i(760, 520)
+ok_button_text = "Открыть"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.png, *.jpg, *.jpeg, *.webp ; Картинки")
+use_native_dialog = true
+
+[node name="Message" type="AcceptDialog" parent="UI"]
+unique_name_in_owner = true
+title = "Редактор миссий"

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PilotProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/Campaign/PilotProfile.cs" id="1_ajm1i"]
+
+[resource]
+script = ExtResource("1_ajm1i")
+Id = "lis"
+Name = "Алина Лисицкая"
+Callsign = "Лис"
+Bio = "Разведчица: замечает всё, бережёт машину."
+Piloting = 72
+Awareness = 82
+Aggression = 38

@@ -78,21 +78,51 @@ public partial class MainMenu : Control
 
         // The hangar is the first page: the choice of machine and what it carries.
         // (The second place was the paint page; paint is now a tab of the hangar.)
-        _pages = new[] { GetNode<Control>("%PageHangar"), null, GetNode<Control>("%PageBattle"), GetNode<Control>("%PageSettings"), GetNode<Control>("%PageNet") };
+        _pages = new[] { GetNode<Control>("%PageHangar"), null, GetNode<Control>("%PageBattle"), GetNode<Control>("%PageSettings"), GetNode<Control>("%PageNet"), GetNode<Control>("%PageCampaign"), GetNode<Control>("%PageMissions") };
         SetupHangarTabs();
-        // The stand can be turned by hand: drag over the picture.
+        // The stand can be turned by hand: drag over the picture. While emblems are being put on, a click
+        // (without a drag) puts one where the cursor is; the right button stops.
         GetNode<Node3D>("%PreviewPivot").GetParent().GetParent<Control>().GuiInput += @event =>
         {
-            if (@event is not InputEventMouseMotion { ButtonMask: MouseButtonMask.Left } drag) return;
-            _pivot.RotateY(drag.Relative.X * 0.012f);
-            _handTurned = 5f;
+            if (@event is InputEventMouseMotion motion)
+            {
+                if ((motion.ButtonMask & MouseButtonMask.Left) != 0)
+                {
+                    _pivot.RotateY(motion.Relative.X * 0.012f);
+                    _handTurned = 5f;
+                }
+                if (_placing) AimMark(motion.Position);
+            }
+            else if (_placing && @event is InputEventMouseButton button)
+            {
+                if (button.ButtonIndex == MouseButton.Left && button.Pressed) _pressAt = button.Position;
+                else if (button.ButtonIndex == MouseButton.Left && button.Position.DistanceTo(_pressAt) < 6f) PlaceMark(button.Position);
+                else if (button.ButtonIndex == MouseButton.Right && button.Pressed) SetPlacing(false);
+            }
         };
         GetNode<Button>("%BtnHangar").Pressed += () => ShowPage(0);
+        GetNode<Button>("%BtnCampaign").Pressed += () => ShowPage(5);
+        var campaign = GetNode<CampaignPage>("%PageCampaign");
+        campaign.OpenHangar = () => ShowPage(0);
+        campaign.Launch = mission =>
+        {
+            GameConfig.Save();
+            CampaignRun.Mission = mission;
+            LoadingScreen.Start(GetTree(), GameScene);
+        };
         GetNode<Button>("%BtnNet").Pressed += () => ShowPage(4);
+        // One's own missions, made in the editor: played with the hangar of a battle of one's own.
+        GetNode<Button>("%BtnMissions").Pressed += () => ShowPage(6);
+        GetNode<MissionsPage>("%PageMissions").Launch = () =>
+        {
+            GameConfig.Save();
+            LoadingScreen.Start(GetTree(), GameScene);
+        };
         SetupNetPage();
         _shelf = GetNode<HardpointDrop>("%Shelf");
-        GetNode<Button>("%BtnPlay").Pressed += StartBattle;
-        GetNode<Button>("%BtnBattle").Pressed += () => ShowPage(2);
+        // "Free battle": its page sets the battle up (map, weather, enemies…), its button starts it.
+        GetNode<Button>("%BtnPlay").Pressed += () => ShowPage(2);
+        GetNode<Button>("%BtnStartSkirmish").Pressed += StartBattle;
         GetNode<Button>("%BtnSettings").Pressed += () => ShowPage(3);
         GetNode<Button>("%BtnQuit").Pressed += () =>
         {
@@ -103,7 +133,10 @@ public partial class MainMenu : Control
         SetupMechPage();
         SetupCustomPage();
         SetupBattlePage();
-        ShowPage(0);
+        // Back from a mission: the campaign's page.
+        ShowPage(CampaignRun.BackToCampaign ? 5 : CampaignRun.BackToMissions ? 6 : 0);
+        CampaignRun.BackToCampaign = false;
+        CampaignRun.BackToMissions = false;
         RebuildPreview();
         RebuildSlots();
         Refresh();
@@ -113,6 +146,8 @@ public partial class MainMenu : Control
     {
         // It turns by itself, except for a few seconds after the player has turned it.
         _handTurned -= (float)delta;
+        // (it holds still while emblems are being put on)
+        if (_placing) _handTurned = Mathf.Max(_handTurned, 1f);
         if (_handTurned <= 0f) _pivot.RotateY(PreviewTurnSpeed * (float)delta);
     }
 
@@ -134,6 +169,11 @@ public partial class MainMenu : Control
 
     void ShowPage(int index)
     {
+        // The campaign's page puts the hangar on the campaign; the pages of a battle of one's own take it back.
+        if (index == 5) SwitchMode(true);
+        else if (index is 2 or 4 or 6) SwitchMode(false);
+        if (index == 5) GetNode<CampaignPage>("%PageCampaign").Refresh();
+        if (index != 0) SetPlacing(false);
         PlaceBattleSettings(index == 4);
         for (int i = 0; i < _pages.Length; i++)
             if (_pages[i] != null) _pages[i].Visible = i == index;
@@ -142,8 +182,34 @@ public partial class MainMenu : Control
         _click?.Play();
     }
 
+    /// <summary>After the console has changed the campaign (missions done, everything given): show it.</summary>
+    public void RefreshCampaign()
+    {
+        if (GameConfig.CampaignMode)
+        {
+            _syncPicker?.Invoke();
+            RebuildSlots();
+            Refresh();
+        }
+        if (GetNode<Control>("%PageCampaign").Visible) GetNode<CampaignPage>("%PageCampaign").Refresh();
+    }
+
+    /// <summary>Whether the hangar works on the campaign (only what the story has given) or on a battle of one's own.</summary>
+    void SwitchMode(bool campaign)
+    {
+        if (campaign == GameConfig.CampaignMode) return;
+        if (campaign) GameConfig.EnterCampaign();
+        else GameConfig.LeaveCampaign();
+        _syncPicker?.Invoke();
+        RebuildPreview();
+        RebuildSlots();
+        Refresh();
+    }
+
     void StartBattle()
     {
+        SwitchMode(false);
+        CampaignRun.Mission = null;
         GameConfig.Save();
         LoadingScreen.Start(GetTree(), GameScene);
     }
@@ -161,6 +227,8 @@ public partial class MainMenu : Control
     /// What the player goes out in: first a group (mechs, ground vehicles, aircraft), then the machine,
     /// the mechs under headings by weight class and lightest first, the ships under their own heading.
     /// </summary>
+    System.Action _syncPicker;
+
     void SetupMechPage()
     {
         var groupOption = GetNode<OptionButton>("%UnitKindOption");
@@ -168,6 +236,8 @@ public partial class MainMenu : Control
         var units = Catalog.PlayerUnits;
         // The machine last picked in each group, to go back to it.
         var last = new System.Collections.Generic.Dictionary<Catalog.Group, string>();
+        // In the campaign, only the machines the story has given.
+        bool Offered(Catalog.Entry e) => !GameConfig.CampaignMode || CampaignState.OwnsUnit(e.Id);
         // Item ids are catalog indices plus this, so they never meet the ids a heading (separator) is given.
         const int IdBase = 1000;
 
@@ -176,7 +246,7 @@ public partial class MainMenu : Control
             unitOption.Clear();
             var members = new System.Collections.Generic.List<int>();
             for (int i = 0; i < units.Length; i++)
-                if (Catalog.GroupOf(units[i]) == group) members.Add(i);
+                if (Catalog.GroupOf(units[i]) == group && Offered(units[i])) members.Add(i);
             if (group == Catalog.Group.Mechs)
                 members.Sort((a, b) => Catalog.Tonnage(units[a]).CompareTo(Catalog.Tonnage(units[b])));
             string heading = null;
@@ -206,10 +276,23 @@ public partial class MainMenu : Control
 
         groupOption.Clear();
         foreach (string name in Catalog.GroupNames) groupOption.AddItem(Loc.T(name));
-        var group = Catalog.GroupOf(Catalog.Find(units, GameConfig.MechId));
-        groupOption.Selected = (int)group;
-        FillUnits(group);
-        Pick(GameConfig.MechId);
+        // Shows the machine chosen now (also after the hangar has gone over to the campaign or back).
+        _syncPicker = () =>
+        {
+            last.Clear();
+            for (int g = 0; g < Catalog.GroupNames.Length; g++)
+            {
+                bool any = false;
+                foreach (var e in units) any |= Catalog.GroupOf(e) == (Catalog.Group)g && Offered(e);
+                groupOption.SetItemDisabled(g, !any);
+            }
+            var group = Catalog.GroupOf(Catalog.Find(units, GameConfig.MechId));
+            groupOption.Selected = (int)group;
+            FillUnits(group);
+            Pick(GameConfig.MechId);
+            GetNode<Control>("%PageHangar").GetNode<Label>("Heading").Text = Loc.T(GameConfig.CampaignMode ? "Ангар кампании" : "Ангар");
+        };
+        _syncPicker();
         groupOption.ItemSelected += index =>
         {
             var chosen = (Catalog.Group)(int)index;
@@ -236,6 +319,7 @@ public partial class MainMenu : Control
             paint.SetPressedNoSignal(painting);
             bench.Visible = stock.Visible = !painting;
             page.Visible = painting;
+            if (!painting) SetPlacing(false);
             _click?.Play();
         }
         weapons.Pressed += () => Show(false);
@@ -353,6 +437,35 @@ public partial class MainMenu : Control
         _insigniaDialog.FileSelected += SetInsignia;
         _insigniaPreview.Texture = GameConfig.Insignia;
 
+        // Emblems put anywhere on the machine (see InsigniaMarks).
+        GetNode<Button>("%BtnPlaceMark").Toggled += SetPlacing;
+        GetNode<Button>("%BtnUndoMark").Pressed += () =>
+        {
+            var marks = InsigniaMarks.For(GameConfig.MechId);
+            if (marks.Count > 0) marks.RemoveAt(marks.Count - 1);
+            _click?.Play();
+            RebuildPreview();
+        };
+        GetNode<Button>("%BtnClearMarks").Pressed += () =>
+        {
+            InsigniaMarks.For(GameConfig.MechId).Clear();
+            _click?.Play();
+            RebuildPreview();
+        };
+        var plates = GetNode<CheckButton>("%ChkPlates");
+        plates.SetPressedNoSignal(GameConfig.InsigniaPlates);
+        plates.Toggled += on =>
+        {
+            GameConfig.InsigniaPlates = on;
+            RebuildPreview();
+        };
+        GetNode<HSlider>("%MarkSizeSlider").ValueChanged += v =>
+        {
+            _markSize = (float)v;
+            if (_ghost != null) _ghost.Size = new Vector3(_markSize, _ghost.Size.Y, _markSize);
+        };
+        GetNode<HSlider>("%MarkAngleSlider").ValueChanged += v => _markAngle = (float)v;
+
     }
 
     void Picker(string name, Color value, System.Action<Color> set)
@@ -379,7 +492,85 @@ public partial class MainMenu : Control
     {
         GameConfig.InsigniaPath = path;
         _insigniaPreview.Texture = GameConfig.Insignia;
+        if (_ghost != null) _ghost.TextureAlbedo = GameConfig.Insignia;
+        if (GameConfig.Insignia == null) SetPlacing(false);
         RebuildPreview();
+    }
+
+    // ── Emblems put on by hand ──────────────────────────────────
+
+    bool _placing;
+    Decal _ghost;
+    Vector2 _pressAt;
+    float _markSize = 1f, _markAngle;
+
+    SubViewport Stand => GetNode<Node3D>("%PreviewPivot").GetParent<SubViewport>();
+
+    void SetPlacing(bool on)
+    {
+        // Nothing to put on without a picture.
+        if (on && GameConfig.Insignia == null)
+        {
+            on = false;
+            GetNode<Label>("%MarkHint").Text = Loc.T("Сначала выберите картинку эмблемы.");
+        }
+        _placing = on;
+        GetNode<Button>("%BtnPlaceMark").SetPressedNoSignal(on);
+        if (on && _ghost == null)
+        {
+            _ghost = InsigniaMarks.Make(GameConfig.Insignia, _markSize, true);
+            _ghost.Visible = false;
+            Stand.AddChild(_ghost);
+        }
+        else if (!on && _ghost != null)
+        {
+            _ghost.QueueFree();
+            _ghost = null;
+        }
+    }
+
+    /// <summary>Where on the machine on the stand the cursor is, and which way an emblem there would stand.</summary>
+    bool AimAt(Vector2 at, out MeshInstance3D part, out Vector3 point, out Vector3 normal, out Vector3 up)
+    {
+        up = default;
+        var cam = Stand.GetCamera3D();
+        part = null;
+        point = normal = default;
+        if (cam == null || !IsInstanceValid(_preview)) return false;
+        Vector3 from = cam.ProjectRayOrigin(at), dir = cam.ProjectRayNormal(at);
+        if (!InsigniaMarks.Pick(_preview, from, dir, out part, out point, out normal)) return false;
+        // The picture upright as the camera sees it, then turned as the slider says.
+        Vector3 camUp = cam.GlobalBasis.Y;
+        up = camUp - normal * camUp.Dot(normal);
+        if (up.LengthSquared() < 1e-4f) up = -cam.GlobalBasis.Z;
+        up = up.Normalized().Rotated(normal, Mathf.DegToRad(_markAngle));
+        return true;
+    }
+
+    void AimMark(Vector2 at)
+    {
+        if (_ghost == null) return;
+        bool hit = AimAt(at, out _, out Vector3 point, out Vector3 normal, out Vector3 up);
+        _ghost.Visible = hit;
+        if (hit) _ghost.GlobalTransform = InsigniaMarks.Placement(point, normal, up);
+    }
+
+    void PlaceMark(Vector2 at)
+    {
+        var marks = InsigniaMarks.For(GameConfig.MechId);
+        if (marks.Count >= InsigniaMarks.MaxPerUnit) return;
+        if (!AimAt(at, out var part, out Vector3 point, out Vector3 normal, out Vector3 up)) return;
+        marks.Add(InsigniaMarks.MarkAt(_preview, part, point, normal, up, _markSize));
+        _click?.Play();
+        RebuildPreview();
+    }
+
+    void RefreshMarks()
+    {
+        int count = InsigniaMarks.For(GameConfig.MechId).Count;
+        GetNode<Label>("%MarksCount").Text = Loc.T($"{count} из {InsigniaMarks.MaxPerUnit}");
+        GetNode<Button>("%BtnUndoMark").Disabled = count == 0;
+        GetNode<Button>("%BtnClearMarks").Disabled = count == 0;
     }
 
     /// <summary>Network game: who you are, what kind of battle, and either open one or join one.</summary>
@@ -396,6 +587,43 @@ public partial class MainMenu : Control
         var respawn = GetNode<CheckButton>("%NetRespawnCheck");
         respawn.ButtonPressed = Net.Respawns;
         respawn.Toggled += on => Net.Respawns = on;
+
+        // A mission played together: one of the campaign's (as far as it has got) or one's own from the editor.
+        var mission = GetNode<OptionButton>("%NetMissionOption");
+        var picks = new System.Collections.Generic.List<string> { "" };
+        mission.Clear();
+        mission.AddItem(Loc.T("— нет, обычный бой —"));
+        CampaignState.EnsureLoaded();
+        if (CampaignState.Campaign is { } campaign)
+            for (int i = 0; i < campaign.Missions.Length; i++)
+                if (CampaignState.IsOpen(campaign.Missions[i]))
+                {
+                    picks.Add("campaign:" + i);
+                    mission.AddItem(Loc.T("Кампания: ") + Loc.T(campaign.Missions[i].Title));
+                }
+        foreach (var doc in MissionLibrary.All())
+        {
+            picks.Add("custom:" + doc.Id);
+            mission.AddItem(Loc.T("Своя: ") + doc.Title);
+        }
+        void ShowMission()
+        {
+            bool together = (Net.CoopMission ?? "") != "";
+            // A mission is all the players against the computer, with one life each.
+            if (together) mode.Selected = (int)Net.GameMode.Pve;
+            mode.Disabled = together;
+            respawn.Disabled = together;
+        }
+        mission.Selected = Mathf.Max(picks.IndexOf(Net.CoopMission ?? ""), 0);
+        Net.CoopMission = picks[mission.Selected];
+        mission.ItemSelected += index =>
+        {
+            Net.CoopMission = picks[(int)index];
+            if (Net.CoopMission != "") Net.Mode = Net.GameMode.Pve;
+            ShowMission();
+            NetLink.I.SettingsChanged();
+        };
+        ShowMission();
         var address = GetNode<LineEdit>("%NetAddressEdit");
         address.Text = Loc.T(GameConfig.NetAddress);
         address.TextChanged += text => GameConfig.NetAddress = text.Trim();
@@ -404,7 +632,7 @@ public partial class MainMenu : Control
         port.ValueChanged += value => GameConfig.NetPort = (int)value;
         var status = GetNode<Label>("%NetStatus");
         status.Text = Loc.T(NetLink.I.Status);
-        void Show() => status.Text = NetLink.I.Status;
+        void Show() => status.Text = Loc.T(NetLink.I.Status);
         NetLink.I.StatusChanged += Show;
         TreeExiting += () => NetLink.I.StatusChanged -= Show;
         GetNode<Button>("%BtnHost").Pressed += () =>
@@ -604,7 +832,9 @@ public partial class MainMenu : Control
         // (With every box of a kind unticked there is nothing of that kind to field.)
         int mechs = GameConfig.EnemyPool(Catalog.Mechs).Length > 0 ? GameConfig.EnemyCount : 0;
         int vehicles = GameConfig.EnemyPool(Catalog.Vehicles).Length > 0 ? GameConfig.EnemyVehicleCount : 0;
-        _summary.Text = Loc.T($"{mech.Name}  ·  {map.Name}  ·  мехов: {mechs}, техники: {vehicles}");
+        _summary.Text = GameConfig.CampaignMode
+            ? Loc.T($"Кампания  ·  {mech.Name}  ·  " + (CampaignState.Next is { } next ? $"следующая миссия: {next.Title}" : "пройдена"))
+            : Loc.T($"{mech.Name}  ·  {map.Name}  ·  мехов: {mechs}, техники: {vehicles}");
     }
 
     // ── Mech preview and weapon slots ───────────────────────────
@@ -618,16 +848,10 @@ public partial class MainMenu : Control
         // A statue: no pilot and no simulation, just the model in its rest pose.
         _preview.ProcessMode = ProcessModeEnum.Disabled;
         Hardpoint.Apply(_preview, GameConfig.LoadoutFor(GameConfig.MechId));
-        if (_preview is Mech mech)
-        {
-            mech.ApplyPaint(GameConfig.PlayerPaint());
-            mech.ApplyInsignia(GameConfig.Insignia);
-        }
-        else if (_preview is Vehicle vehicle)
-        {
-            vehicle.ApplyPaint(GameConfig.PlayerPaint());
-            vehicle.ApplyInsignia(GameConfig.Insignia);
-        }
+        if (_preview is Mech mech) mech.ApplyPaint(GameConfig.PlayerPaint());
+        else if (_preview is Vehicle vehicle) vehicle.ApplyPaint(GameConfig.PlayerPaint());
+        GameConfig.WearInsignia(_preview, GameConfig.MechId);
+        RefreshMarks();
         _pivot.AddChild(_preview);
         if (_preview is not Mech)
         {
@@ -702,6 +926,8 @@ public partial class MainMenu : Control
         };
         foreach (var w in Weapons())
         {
+            // In the campaign, only what the story has given (and what comes fitted to the player's machines).
+            if (GameConfig.CampaignMode && !CampaignState.OwnsWeapon(w.Id)) continue;
             bool mountable = false;
             for (int i = 0; i < points.Count; i++) mountable |= Hardpoint.Fits(types[i], w.Slot) && w.Slots <= room[i];
             if (!mountable) continue;

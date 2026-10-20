@@ -57,7 +57,6 @@
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/HipJoint.res" id="x35"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/KneeJoint.res" id="x36"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/HeelJoint.res" id="x37"]
-[ext_resource type="ArrayMesh" path="res://models/mechs/hound/Footprint.res" id="x2"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/CockpitFrame.res" id="x38"]
 [ext_resource type="ArrayMesh" path="res://models/mechs/hound/CockpitDash.res" id="x39"]
 [ext_resource type="Script" path="res://scripts/UI/CockpitDisplays.cs" id="x40"]
@@ -65,6 +64,9 @@
 [ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
 [ext_resource type="PackedScene" path="res://scenes/fx/dust_burst.tscn" id="x1"]
 [ext_resource type="PackedScene" path="res://scenes/fx/dust_puff.tscn" id="x11"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/hound/CockpitGlass.res" id="x41"]
+[ext_resource type="Material" path="res://materials/cockpit_glass.tres" id="x42"]
+[ext_resource type="Script" path="res://scripts/Fx/CockpitGlass.cs" id="x43"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 1.52
@@ -320,7 +322,7 @@ mesh = ExtResource("x12")
 material_override = ExtResource("2")
 
 [node name="ArmL" type="Node3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.88, 0.8, -0.24)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.08, 0.8, -0.24)
 
 [node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmL"]
 sync_to_physics = false
@@ -342,8 +344,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.56)
 shape = SubResource("BoxShape3D_19")
 
 [node name="HardpointLaser" type="Node3D" parent="Hips/Torso/ArmL"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -2.92)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, -1.714)
 script = ExtResource("hardpoint")
+Area = Vector2(0.87, 0.9)
+Spacing = Vector3(0.45, 0, 0)
 Type = 0
 Slots = 3
 Mount = 4
@@ -359,7 +363,7 @@ mesh = SubResource("QuadMesh_20")
 material_override = ExtResource("6")
 
 [node name="ArmR" type="Node3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.88, 0.8, -0.24)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.08, 0.8, -0.24)
 
 [node name="Hit" type="AnimatableBody3D" parent="Hips/Torso/ArmR"]
 sync_to_physics = false
@@ -381,8 +385,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.56)
 shape = SubResource("BoxShape3D_24")
 
 [node name="HardpointLaser" type="Node3D" parent="Hips/Torso/ArmR"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.2, -2.92)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.005, -1.714)
 script = ExtResource("hardpoint")
+Area = Vector2(0.87, 0.9)
+Spacing = Vector3(0.45, 0, 0)
 Type = 0
 Slots = 3
 Mount = 5
@@ -398,8 +404,10 @@ mesh = SubResource("QuadMesh_25")
 material_override = ExtResource("6")
 
 [node name="HardpointNoseLaser" type="Node3D" parent="Hips/Torso"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, -3.04)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.855, -2.61)
 script = ExtResource("hardpoint")
+Area = Vector2(0.81, 0.6)
+Spacing = Vector3(0.45, 0, 0)
 Type = 3
 Slots = 2
 Mount = 1
@@ -424,6 +432,12 @@ script = ExtResource("x40")
 [node name="Frame" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
 mesh = ExtResource("x38")
 material_override = ExtResource("16")
+
+[node name="Glass" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+mesh = ExtResource("x41")
+material_override = ExtResource("x42")
+script = ExtResource("x43")
+cast_shadow = 0
 
 [node name="Dash" type="Node3D" parent="Hips/Torso/CockpitCam/Cockpit"]
 transform = Transform3D(1, 0, 0, 0, 0.882948, 0.469472, 0, -0.469472, 0.882948, 0, -0.43, -0.98)

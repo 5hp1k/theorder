@@ -1,8 +1,10 @@
 [gd_scene format=3 uid="uid://cjh152qn62qbq"]
 
 [ext_resource type="Script" uid="uid://bgrixffnsyem6" path="res://scripts/UI/MainMenu.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/ui/missions_page.tscn" id="missions_page"]
 [ext_resource type="PackedScene" path="res://scenes/ui/weapon_slot_row.tscn" id="2"]
 [ext_resource type="AudioStream" uid="uid://vlsw34aqu0gy" path="res://audio/ui_click.wav" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/ui/campaign_page.tscn" id="campaign_page"]
 [ext_resource type="PackedScene" path="res://scenes/ui/fps_counter.tscn" id="fps_counter"]
 [ext_resource type="PackedScene" path="res://scenes/ui/hardpoint_row.tscn" id="hardpoint_row"]
 [ext_resource type="PackedScene" path="res://scenes/ui/settings_panel.tscn" id="settings_panel"]
@@ -126,12 +128,26 @@ size_flags_vertical = 0
 mouse_filter = 0
 theme_override_constants/separation = 12
 
+[node name="BtnCampaign" type="Button" parent="Layout/Rows/Body/Nav" unique_id=359111078]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Кампания"
+
+[node name="BtnMissions" type="Button" parent="Layout/Rows/Body/Nav"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 60)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Свои миссии"
+
 [node name="BtnPlay" type="Button" parent="Layout/Rows/Body/Nav" unique_id=880893547]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(260, 60)
 layout_mode = 2
-theme_override_font_sizes/font_size = 26
-text = "В БОЙ"
+theme_override_font_sizes/font_size = 24
+text = "Свободный бой"
 
 [node name="BtnNet" type="Button" parent="Layout/Rows/Body/Nav" unique_id=1345822521]
 unique_name_in_owner = true
@@ -146,13 +162,6 @@ custom_minimum_size = Vector2(260, 46)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Ангар"
-
-[node name="BtnBattle" type="Button" parent="Layout/Rows/Body/Nav" unique_id=967321398]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(260, 46)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Карта и противники"
 
 [node name="BtnSettings" type="Button" parent="Layout/Rows/Body/Nav" unique_id=1146916282]
 unique_name_in_owner = true
@@ -564,7 +573,7 @@ theme_override_constants/separation = 12
 custom_minimum_size = Vector2(210, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Размер эмблемы"
+text = "Размер на пластинах"
 
 [node name="InsigniaSizeSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/InsigniaSizeRow" unique_id=574628827]
 unique_name_in_owner = true
@@ -575,6 +584,104 @@ min_value = 0.5
 max_value = 1.8
 step = 0.01
 value = 0.5
+
+[node name="MarksRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=1547395889]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarksRow" unique_id=1386324683]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Эмблемы на корпусе"
+
+[node name="MarksCount" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarksRow" unique_id=1959957421]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+theme_override_font_sizes/font_size = 16
+
+[node name="ChkPlates" type="CheckButton" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarksRow" unique_id=1855703568]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "и на пластинах"
+
+[node name="MarkButtons" type="HFlowContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=248048612]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 6
+
+[node name="BtnPlaceMark" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarkButtons" unique_id=693235583]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 16
+toggle_mode = true
+text = "Поставить на машину"
+
+[node name="BtnUndoMark" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarkButtons" unique_id=480551529]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Убрать последнюю"
+
+[node name="BtnClearMarks" type="Button" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarkButtons" unique_id=179258962]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Убрать все"
+
+[node name="MarkSizeRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=2070858815]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarkSizeRow" unique_id=1768146350]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Размер на корпусе"
+
+[node name="MarkSizeSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarkSizeRow" unique_id=2059173000]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = 0.3
+max_value = 3.0
+step = 0.05
+value = 1.0
+
+[node name="MarkAngleRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=29721654]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarkAngleRow" unique_id=1444441459]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Поворот"
+
+[node name="MarkAngleSlider" type="HSlider" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column/MarkAngleRow" unique_id=541062214]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+min_value = -180.0
+max_value = 180.0
+step = 5.0
+
+[node name="MarkHint" type="Label" parent="Layout/Rows/Body/Pages/PageHangar/PageCustom/Column" unique_id=1766740491]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+theme_override_font_sizes/font_size = 15
+text = "«Поставить на машину», затем щелчок по машине справа: эмблема ляжет туда, где курсор. Перетаскивание крутит машину, правая кнопка мыши — закончить."
+autowrap_mode = 3
 
 [node name="PageNet" type="ScrollContainer" parent="Layout/Rows/Body/Pages" unique_id=2027477515]
 unique_name_in_owner = true
@@ -635,6 +742,23 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 18
+
+[node name="NetMissionRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=1488302117]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Layout/Rows/Body/Pages/PageNet/Column/NetMissionRow" unique_id=1488302118]
+custom_minimum_size = Vector2(210, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Миссия вместе"
+
+[node name="NetMissionOption" type="OptionButton" parent="Layout/Rows/Body/Pages/PageNet/Column/NetMissionRow" unique_id=1488302119]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+fit_to_longest_item = false
 
 [node name="NetRespawnRow" type="HBoxContainer" parent="Layout/Rows/Body/Pages/PageNet/Column" unique_id=755171793]
 layout_mode = 2
@@ -790,7 +914,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.75, 0.3, 1)
 theme_override_font_sizes/font_size = 28
-text = "Карта и противники"
+text = "Свободный бой"
 
 [node name="BattleScroll" type="ScrollContainer" parent="Layout/Rows/Body/Pages/PageBattle" unique_id=1465333615]
 layout_mode = 2
@@ -1147,10 +1271,27 @@ popup/item_4/id = 15
 popup/item_5/text = "20 минут"
 popup/item_5/id = 20
 
+[node name="BtnStartSkirmish" type="Button" parent="Layout/Rows/Body/Pages/PageBattle" unique_id=1090837841]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "В бой"
+
 [node name="PageSettings" parent="Layout/Rows/Body/Pages" unique_id=1868852132 instance=ExtResource("settings_panel")]
 unique_name_in_owner = true
 anchor_right = 1.0
 anchor_bottom = 1.0
+
+[node name="PageCampaign" parent="Layout/Rows/Body/Pages" unique_id=287285670 instance=ExtResource("campaign_page")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+
+[node name="PageMissions" parent="Layout/Rows/Body/Pages" instance=ExtResource("missions_page")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
 
 [node name="Preview" type="SubViewportContainer" parent="Layout/Rows/Body" unique_id=1360887202]
 custom_minimum_size = Vector2(360, 0)

@@ -1,5 +1,7 @@
 [gd_scene format=3]
 
+[ext_resource type="ArrayMesh" path="res://models/weapons/srm.res" id="model_mesh"]
+[ext_resource type="Material" path="res://materials/mech_joint.tres" id="model_material"]
 [ext_resource type="Script" path="res://scripts/Combat/Weapon.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/fx/barrel_smoke_small.tscn" id="barrel_smoke"]
 [ext_resource type="PackedScene" path="res://scenes/fx/muzzle_smoke_small.tscn" id="smoke"]
@@ -8,6 +10,7 @@
 
 [node name="Srm" type="Node3D"]
 script = ExtResource("1")
+ModelLength = 0.45
 SmokeTime = 2
 MuzzleSmoke = ExtResource("smoke")
 Kick = 0.05
@@ -37,3 +40,8 @@ volume_db = -6
 max_polyphony = 2
 
 [node name="BarrelSmoke" parent="." instance=ExtResource("barrel_smoke")]
+
+[node name="Model" type="MeshInstance3D" parent="."]
+visibility_range_end = 450.0
+mesh = ExtResource("model_mesh")
+material_override = ExtResource("model_material")

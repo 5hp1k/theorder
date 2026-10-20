@@ -1,0 +1,83 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/MapTerrain.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/props/rock_small.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/props/rock_medium.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/props/pine_tall.tscn" id="5"]
+[ext_resource type="PackedScene" path="res://scenes/props/tree_oak.tscn" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/props/tree_birch.tscn" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/props/fir_tall_green.tscn" id="p8"]
+[ext_resource type="PackedScene" path="res://scenes/props/fir_medium_green.tscn" id="p9"]
+[ext_resource type="PackedScene" path="res://scenes/props/pine_small.tscn" id="p10"]
+[ext_resource type="PackedScene" path="res://scenes/props/fir_small_green.tscn" id="p11"]
+[ext_resource type="PackedScene" path="res://scenes/fx/footprint_dirt.tscn" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/fx/splash.tscn" id="10"]
+[ext_resource type="Material" path="res://materials/terrain_forest.tres" id="11"]
+[ext_resource type="Material" path="res://materials/water.tres" id="12"]
+[ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="13"]
+[ext_resource type="PackedScene" path="res://scenes/props/repair_bay.tscn" id="repair_bay"]
+[ext_resource type="Script" path="res://scripts/World/ForestField.cs" id="forest"]
+
+[node name="Forest_Terrain" type="StaticBody3D"]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1")
+Seed = 4242
+Size = 1600
+Border = 400
+RepairBayScene = ExtResource("repair_bay")
+RepairBaySpots = PackedVector2Array()
+CellSize = 4
+RidgeHeight = 3
+RidgeLength = 80
+HillHeight = 16
+HillLength = 300
+FlatRadius = 28
+SolidCount = 70
+PlantCount = 0
+DrifterCount = 0
+HasWater = true
+Lakes = false
+WaterLevel = -6
+MaxDepth = 2.5
+RiverWidth = 22
+RiverOffset = 140
+RiverMeander = 80
+MapLow = Color(0.08, 0.2, 0.08, 1)
+MapHigh = Color(0.4, 0.66, 0.3, 1)
+MapWater = Color(0.1, 0.35, 0.65, 1)
+SolidScenes = Array[PackedScene]([ExtResource("3"), ExtResource("4")])
+PlantScenes = Array[PackedScene]([ExtResource("5"), ExtResource("p8"), ExtResource("p10"), ExtResource("6"), ExtResource("7"), ExtResource("p9"), ExtResource("5"), ExtResource("p11")])
+FootprintScene = ExtResource("9")
+SplashScene = ExtResource("10")
+PlantClumping = 0.92
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+material_override = ExtResource("11")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="Water" type="MeshInstance3D" parent="."]
+material_override = ExtResource("12")
+cast_shadow = 0
+visible = false
+layers = 2048
+script = ExtResource("13")
+ReflectionScale = 0.5
+
+[node name="Reflection" type="SubViewport" parent="Water"]
+size = Vector2i(640, 360)
+render_target_update_mode = 0
+
+[node name="Camera" type="Camera3D" parent="Water/Reflection"]
+cull_mask = 1046015
+current = true
+
+[node name="Forest" type="Node3D" parent="."]
+script = ExtResource("forest")
+TreeScenes = Array[PackedScene]([ExtResource("5"), ExtResource("p8"), ExtResource("p10"), ExtResource("6"), ExtResource("7"), ExtResource("p9"), ExtResource("5"), ExtResource("p11")])
+Seed = 4242
+Spacing = 8.0
+Cover = 0.6

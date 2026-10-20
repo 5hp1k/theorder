@@ -27,6 +27,11 @@ public static class Net
     public static readonly string[] ModeNames = { "Каждый за себя", "Команда на команду", "Вместе против ботов" };
 
     public static GameMode Mode = GameMode.Pve;
+    /// <summary>
+    /// A mission played together (all against the computer): "campaign:N" — the campaign's N-th,
+    /// "custom:ID" — one of the player's own from the editor; empty — an ordinary battle.
+    /// </summary>
+    public static string CoopMission = "";
     /// <summary>Destroyed players come back. Without it they watch the others.</summary>
     public static bool Respawns = true;
     /// <summary>This computer decides what is hit and destroyed: always, except on a client of a network game.</summary>

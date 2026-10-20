@@ -152,7 +152,10 @@ public static class Units
     public static readonly List<ITarget> All = new();
 
     public static bool Hostile(ITarget a, ITarget b)
-        => a != b && (Net.FreeForAll || a.Team != b.Team || (a.Team == Team.Enemy && GameConfig.BotsFight));
+        => a != b && (Net.FreeForAll || a.Team != b.Team || (a.Team == Team.Enemy && BotsFight));
+
+    /// <summary>The enemy's machines fight one another too (a battle set up so; never in a mission).</summary>
+    static bool BotsFight => GameConfig.BotsFight && CampaignRun.Mission == null;
 
     /// <summary>What a unit's shots can hit. Its own hit boxes must be on its exclude list.</summary>
     /// <param name="human">The player's own guns can hit their own side too (computer pilots of the squad never do).</param>
@@ -160,7 +163,7 @@ public static class Units
     {
         if (Net.FreeForAll) return Phys.MaskPlayerFire | Phys.MaskEnemyFire | Phys.LayerHitPlayer | Phys.LayerHitEnemy;
         if (team == Team.Player) return human ? Phys.MaskPlayerFire | Phys.LayerHitPlayer : Phys.MaskPlayerFire;
-        return GameConfig.BotsFight ? Phys.MaskEnemyFire | Phys.LayerHitEnemy : Phys.MaskEnemyFire;
+        return BotsFight ? Phys.MaskEnemyFire | Phys.LayerHitEnemy : Phys.MaskEnemyFire;
     }
 
     /// <summary>The unit a shot landed on, whether it hit a section box or the hull itself.</summary>
@@ -168,12 +171,13 @@ public static class Units
         => collider is HitBox box ? box.Unit as ITarget : collider as ITarget;
 
     /// <summary>Shows a picture on every plate named "Insignia…" under the unit, or hides the plates.</summary>
-    public static void ApplyInsignia(Node root, Texture2D picture)
+    /// <summary>The emblem on the machine's own emblem plates (those of its scene; <paramref name="plates"/> off — none).</summary>
+    public static void ApplyInsignia(Node root, Texture2D picture, bool plates = true)
     {
         foreach (var mesh in Geo.Collect<MeshInstance3D>(root))
         {
             if (!mesh.Name.ToString().StartsWith("Insignia")) continue;
-            mesh.Visible = picture != null;
+            mesh.Visible = picture != null && plates;
             if (picture == null || mesh.MaterialOverride is not StandardMaterial3D std) continue;
             var copy = (StandardMaterial3D)std.Duplicate();
             copy.AlbedoTexture = picture;

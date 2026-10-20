@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://cir5n20k8r31d"]
 
+[ext_resource type="PackedScene" path="res://scenes/ui/story_overlay.tscn" id="story_overlay"]
 [ext_resource type="Script" uid="uid://bkuur6cw3l2f5" path="res://scripts/Game/Game.cs" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/mech/player_pilot.tscn" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/mech/ai_pilot.tscn" id="3"]
@@ -37,6 +38,9 @@ process_mode = 1
 [node name="Hud" parent="HUD" unique_id=1611065041 instance=ExtResource("7")]
 anchor_right = 1.0
 anchor_bottom = 1.0
+
+[node name="StoryOverlay" parent="." instance=ExtResource("story_overlay")]
+process_mode = 1
 
 [node name="Menu" type="CanvasLayer" parent="." unique_id=1768770095]
 layer = 10

@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace MechSim;
 
 /// <summary>
@@ -22,11 +24,13 @@ public static class Catalog
         new("cleaver", "Секач", "res://scenes/mech/cleaver.tscn"),
         new("agni", "Агни", "res://scenes/mech/agni.tscn"),
         new("executioner", "Палач", "res://scenes/mech/executioner.tscn"),
+        new("mantis", "Мантис", "res://scenes/mech/mantis.tscn"),
     };
 
     public static readonly Entry[] Vehicles =
     {
         new("tank", "Танк", "res://scenes/vehicles/tank.tscn", Kind: Kind.Ground),
+        new("laser_tank", "Лазерный танк", "res://scenes/vehicles/laser_tank.tscn", Kind: Kind.Ground),
         new("apc", "БТР", "res://scenes/vehicles/apc.tscn", Kind: Kind.Ground),
         new("amphibian", "Танк-амфибия", "res://scenes/vehicles/amphibian.tscn", Kind: Kind.Ground),
         new("spg", "Самоходная гаубица", "res://scenes/vehicles/spg.tscn", Kind: Kind.Ground),
@@ -55,13 +59,53 @@ public static class Catalog
         new("winter", "Зима", "res://scenes/maps/winter.tscn"),
         new("city", "Город", "res://scenes/maps/city.tscn"),
         new("coast", "Побережье", "res://scenes/maps/coast.tscn"),
+        new("forest", "Лес", "res://scenes/maps/forest.tscn"),
+        new("base", "Военная база", "res://scenes/maps/base.tscn"),
+        new("arena", "Арена", "res://scenes/maps/arena.tscn"),
     };
+
+    /// <summary>What the mission editor can put on a map, in its groups (Id is the scene's file name).</summary>
+    public static readonly (string Group, Entry[] Items)[] Props =
+    {
+        ("Укрытия", Scenes("base", ("jersey_barrier", "Бетонный блок"), ("sandbags", "Мешки с песком"), ("base_wall", "Стена базы"), ("barrier_wall", "Высокая стена"), ("concrete_block", "Бетонный куб"),
+            ("bunker", "Бетонный бункер"), ("container_green", "Контейнер (зелёный)"), ("container_blue", "Контейнер (синий)"), ("container_red", "Контейнер (красный)"))),
+        ("Постройки", Scenes("base", ("barracks", "Казарма (здание)"), ("hangar", "Ангар"), ("hq", "Штаб"), ("warehouse", "Складское здание"),
+            ("control_tower", "Диспетчерская вышка"), ("watchtower", "Вышка охраны"), ("radar", "Радарная станция"), ("fuel_tank", "Топливный бак"))),
+        ("Город", Scenes("city", ("house_small_a", "Дом малый А"), ("house_small_b", "Дом малый Б"), ("house_mid_a", "Дом средний А"),
+            ("house_mid_b", "Дом средний Б"), ("office", "Офисное здание"), ("tower_a", "Башня А"), ("tower_b", "Башня Б"), ("bus_stop", "Автобусная остановка"),
+            ("street_lamp", "Уличный фонарь"), ("traffic_light", "Светофор"))),
+        ("Техника", Scenes("base", ("army_truck", "Армейский грузовик")).Concat(Scenes("city", ("car_sedan_black", "Легковой седан"), ("car_suv_silver", "Внедорожник"),
+            ("car_pickup_blue", "Пикап (синий)"), ("car_van_white", "Фургон (белый)"), ("car_bus", "Городской автобус"), ("car_police", "Полицейская машина"), ("car_ambulance", "Машина скорой помощи"), ("car_fire", "Пожарная машина"))).ToArray()),
+        ("Природа", Scenes("props", ("rock_large", "Скала большая"), ("rock_medium", "Скала средняя"), ("rock_small", "Скала малая"),
+            ("stone_large", "Камень большой"), ("stone_medium", "Камень средний"), ("stone_small", "Камень малый"), ("tree_oak", "Дерево: дуб"),
+            ("tree_birch", "Дерево: берёза"), ("pine_tall", "Дерево: сосна"), ("fir_tall_green", "Дерево: ель"), ("palm_tall", "Дерево: пальма"), ("cactus_saguaro", "Кактус-сагуаро"))),
+        ("Прочее", Scenes("props", ("oil_rig", "Нефтекачалка"), ("repair_bay", "Ремонтная площадка"))),
+    };
+
+    static Entry[] Scenes(string folder, params (string id, string name)[] items)
+    {
+        var list = new Entry[items.Length];
+        for (int i = 0; i < items.Length; i++) list[i] = new Entry(items[i].id, items[i].name, $"res://scenes/{folder}/{items[i].id}.tscn");
+        return list;
+    }
+
+    /// <summary>A prop by its id; null if there is none.</summary>
+    public static Entry Prop(string id)
+    {
+        foreach (var (_, items) in Props)
+            foreach (var e in items)
+                if (e.Id == id) return e;
+        return null;
+    }
 
     public static readonly Entry[] Weapons =
     {
         new("small_laser", "Малый лазер", "res://scenes/weapons/small_laser.tscn"),
         new("medium_laser", "Средний лазер", "res://scenes/weapons/medium_laser.tscn"),
         new("large_laser", "Большой лазер", "res://scenes/weapons/large_laser.tscn"),
+        new("small_pulse_laser", "Малый пульс-лазер", "res://scenes/weapons/small_pulse_laser.tscn"),
+        new("medium_pulse_laser", "Средний пульс-лазер", "res://scenes/weapons/medium_pulse_laser.tscn"),
+        new("large_pulse_laser", "Большой пульс-лазер", "res://scenes/weapons/large_pulse_laser.tscn"),
         new("flamethrower", "Огнемёт", "res://scenes/weapons/flamethrower.tscn"),
         new("ppc", "Протонная пушка (ППЦ)", "res://scenes/weapons/ppc.tscn"),
         new("machine_gun", "Пулемёт", "res://scenes/weapons/machine_gun.tscn"),

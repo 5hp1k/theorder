@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="PilotProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/Campaign/PilotProfile.cs" id="1_h0m7s"]
+
+[resource]
+script = ExtResource("1_h0m7s")
+Id = "hero"
+Callsign = "Сокол"
+Bio = "Командир звена. Это вы."
+Gunnery = 60
+Piloting = 60
+Awareness = 60
+Aggression = 60

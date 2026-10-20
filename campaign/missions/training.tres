@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Resource" path="res://campaign/pilots/burya.tres" id="1_oyfm8"]
+[ext_resource type="Resource" path="res://campaign/pilots/voron.tres" id="2_2byyp"]
+[ext_resource type="Script" path="res://scripts/Campaign/LanceMember.cs" id="3_jw5to"]
+[ext_resource type="Script" path="res://scripts/Campaign/MissionInfo.cs" id="4_twn2v"]
+
+[sub_resource type="Resource" id="Resource_6ufrt"]
+script = ExtResource("3_jw5to")
+Pilot = ExtResource("2_2byyp")
+
+[resource]
+script = ExtResource("4_twn2v")
+Id = "training"
+Title = "Учения"
+Location = "Полигон в пустыне, 06:40"
+Briefing = "Звено заступает на дежурство. Выйдите к контрольной точке «Альфа» и проверьте связь. Разведка сообщает о налётчиках в районе полигона — держите оружие наготове."
+Objectives = PackedStringArray("Выйти к точке «Альфа»", "Уничтожить налётчиков (если появятся)")
+Scene = "res://campaign/missions/training.tscn"
+TimeOfDay = 1
+Lance = [SubResource("Resource_6ufrt")]
+GrantUnits = PackedStringArray("panther")
+GrantWeapons = PackedStringArray("gauss")
+GrantPilots = [ExtResource("1_oyfm8")]
+Debriefing = "Налётчики рассеяны. Штаб передаёт звену трофейную «Пантеру» и гаусс-пушку со склада, в звено переведён пилот Буря."

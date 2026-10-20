@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/Game/FreeCamera.cs" id="1"]
+
+[node name="FreeCamera" type="Camera3D"]
+process_mode = 3
+fov = 70.0
+far = 8000.0
+script = ExtResource("1")
+Speed = 20.0
+FastFactor = 4.0
+SlowFactor = 0.25
+Sensitivity = 0.003

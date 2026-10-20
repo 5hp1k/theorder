@@ -96,6 +96,13 @@ public partial class AiPilot : MechPilot
 
     /// <summary>Seconds the guns must stay on the target before its missiles will home.</summary>
     [Export] public float LockTime = 1.8f;
+    /// <summary>
+    /// Share of a fight at its preferred range a mech's pilot spends down on one knee, shooting from a
+    /// standstill, and how long it stays down each time (from, to; seconds).
+    /// </summary>
+    [Export(PropertyHint.Range, "0,1")] public float KneelShare = 0.4f;
+    [Export] public Vector2 KneelSpell = new(4f, 9f);
+    [ExportGroup("")]
     /// <summary>How far off the target the sight may wander and still keep the lock building, radians.</summary>
     [Export] public float LockCone = 0.07f;
     /// <summary>Share of the sensor range the pilot still sees to with the electronics knocked out.</summary>
@@ -137,7 +144,7 @@ public partial class AiPilot : MechPilot
         foreach (var w in unit.Weapons.Weapons) _brawler |= w.Kind == WeaponKind.Melee && w.Damage > 20f;
         unit.Weapons.MeleeInReachOnly = true;
         unit.Weapons.HoldStrategic = true;
-        unit.Weapons.HoldEmp = !GameConfig.BotEmp;
+        unit.Weapons.HoldEmp = !(CampaignRun.Mission?.EnemyEmp ?? GameConfig.BotEmp);
         if (unit is Vehicle { Kind: Vehicle.MoveKind.Plane } plane) _plane = plane;
         if (unit is Vehicle { Kind: Vehicle.MoveKind.Ship } ship) _ship = ship;
         // Tanks and the like drown in deep water: they keep out of it.
@@ -158,9 +165,32 @@ public partial class AiPilot : MechPilot
 
     // ── Brain ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// Told where an enemy is (a mission's machine sent after the player): it heads for that place and
+    /// goes for it, as if it had been shot at from there.
+    /// </summary>
+    public void Alert(ITarget enemy)
+    {
+        if (enemy == null || enemy.IsDestroyed) return;
+        _target = enemy;
+        _pickTimer = 3f;
+        _sinceSeen = 0f;
+        _lastKnown = enemy.GlobalPosition;
+        _home = enemy.GlobalPosition;
+        PickWaypoint();
+    }
+
     public override void Think(float dt)
     {
         if (Unit.Offline) return;
+        // A cutscene holds the battle: nobody fires or moves.
+        if (Cutscene.Holding)
+        {
+            Unit.Fire = 0;
+            Unit.Throttle = 0f;
+            Unit.TurnInput = 0f;
+            return;
+        }
         PickTarget(dt);
         bool alive = _target != null && !_target.IsDestroyed;
         Perceive(dt, alive);
@@ -212,6 +242,11 @@ public partial class AiPilot : MechPilot
                 break;
         }
         KeepInside(dt);
+        if (Unit is Mech mech)
+        {
+            if (_state != State.Engage) _kneeling = false;
+            mech.Kneel = _kneeling;
+        }
         if (Leader != null && (HoldFire || Order is SquadOrder.Shutdown or SquadOrder.Repair && NeedsWork() && FlatDistance(_home) < 20f))
             Unit.Fire = 0;
     }
@@ -405,6 +440,8 @@ public partial class AiPilot : MechPilot
         else if (dist > 1f)
             Steer(toTarget.Rotated(Vector3.Up, angle * _strafeSign), throttle, dt);
 
+        Brace(dt, dist, hot, toTarget);
+
         if (_sinceSeen > 1.5f)
         {
             // Lost sight: keep the guns on where the target was.
@@ -417,7 +454,7 @@ public partial class AiPilot : MechPilot
         if (_aimTimer <= 0f)
         {
             _aimTimer = (float)GD.RandRange(0.5, 1.1);
-            float spread = AimSpread * dist / 100f * (1f + Mathf.Abs(Unit.Speed) / Unit.MaxForwardSpeed);
+            float spread = AimSpread * dist / 100f * (1f + Mathf.Abs(Unit.Speed) / Unit.MaxForwardSpeed) * (_kneeling ? 0.75f : 1f);
             _aimOffsetGoal = new Vector3((float)GD.RandRange(-1.0, 1.0), (float)GD.RandRange(-0.7, 0.7), (float)GD.RandRange(-1.0, 1.0)) * spread;
         }
         _aimOffset = _aimOffset.Lerp(_aimOffsetGoal, 1f - Mathf.Exp(-3f * dt));
@@ -450,6 +487,52 @@ public partial class AiPilot : MechPilot
         }
     }
 
+    bool _kneeling;
+    float _kneelTimer;
+
+    /// <summary>
+    /// A mech fighting at its range now and then stops and goes down on one knee to shoot, steadier and
+    /// lower; it gets up when the spell is over, or sooner if it runs hot, loses the target, the enemy
+    /// closes in or gets round past where the torso turns.
+    /// </summary>
+    void Brace(float dt, float dist, bool hot, Vector3 toTarget)
+    {
+        if (Unit is not Mech mech || _brawler || KneelShare <= 0f)
+        {
+            _kneeling = false;
+            return;
+        }
+        float off = Mathf.Abs(Mathf.AngleDifference(Mathf.Atan2(-toTarget.X, -toTarget.Z), mech.HullYaw));
+        bool fit = !hot && _sinceSeen < 2f && dist > PreferredRange * 0.45f && dist < PreferredRange * 1.5f && off < mech.MaxTwist * 0.85f;
+        _kneelTimer -= dt;
+        if (_kneeling && !fit)
+        {
+            _kneeling = false;
+            _kneelTimer = (float)GD.RandRange(3.0, 6.0);
+        }
+        else if (_kneelTimer <= 0f)
+        {
+            if (_kneeling)
+            {
+                _kneeling = false;
+                // Up and moving for a while: long enough that it is down for its share of the time.
+                float mean = (KneelSpell.X + KneelSpell.Y) * 0.5f;
+                _kneelTimer = mean * (1f - KneelShare) / Mathf.Max(KneelShare, 0.05f) * (float)GD.RandRange(0.6, 1.4);
+            }
+            else if (fit && _sinceSeen < 0.5f)
+            {
+                _kneeling = true;
+                _kneelTimer = (float)GD.RandRange(KneelSpell.X, KneelSpell.Y);
+            }
+            else _kneelTimer = 1f;
+        }
+        if (_kneeling)
+        {
+            Unit.Throttle = 0f;
+            Unit.TurnInput = 0f;
+        }
+    }
+
     /// <summary>
     /// Whether there is something worth the nuclear bomb: a knot of hostile machines with none of this
     /// pilot's own side near it. Looked for now and then, and only while the bomb is aboard, allowed in
@@ -462,7 +545,7 @@ public partial class AiPilot : MechPilot
         if (_nukeTimer > 0f) return;
         _nukeTimer = 1f;
         _nukeRun = false;
-        if (!GameConfig.BotNukes || NukeSpent || Unit.Time < NukeNotBefore || Emp.Jammed(Unit) || Unit.Weapons.ReadyStrategic == null) return;
+        if (!(CampaignRun.Mission?.EnemyNukes ?? GameConfig.BotNukes) || NukeSpent || Unit.Time < NukeNotBefore || Emp.Jammed(Unit) || Unit.Weapons.ReadyStrategic == null) return;
 
         int best = 0;
         foreach (var middle in Units.All)
@@ -767,6 +850,7 @@ public partial class AiPilot : MechPilot
 
     public override void OnRespawn()
     {
+        _kneeling = false;
         _state = State.Patrol;
         _sinceSeen = 999f;
         _seesTarget = false;

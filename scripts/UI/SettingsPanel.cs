@@ -65,6 +65,7 @@ public partial class SettingsPanel : Control
         Slide("%SensSlider", () => GameConfig.MouseSensitivity, v => GameConfig.MouseSensitivity = v);
         Slide("%FovSlider", () => GameConfig.Fov, v => GameConfig.Fov = v);
         Check("%ShowFpsCheck", () => GameConfig.ShowFps, v => GameConfig.ShowFps = v);
+        Check("%GlassFxCheck", () => GameConfig.CockpitGlassFx, v => GameConfig.CockpitGlassFx = v);
         Pick("%SimRateOption", () => GameConfig.SimulationRate >= 120 ? 1 : 0, i => GameConfig.SimulationRate = i == 1 ? 120 : 60);
 
         // The window.
@@ -193,6 +194,7 @@ public partial class SettingsPanel : Control
         {
             if (_filling) return;
             GameConfig.Voice = index == 0 ? GameConfig.VoiceOff : packs[index - 1].Id;
+            GameConfig.VoicePicked = true;
             preview.Disabled = index == 0;
             PlayVoice();
         };

@@ -16,6 +16,13 @@ public abstract partial class HudWidget : Control
     /// </summary>
     [Export] public float RedrawRate = 30f;
 
+    /// <summary>
+    /// A copy on one of a cockpit's screens (set by CockpitDisplays before it comes in): it takes the
+    /// HUD's colours and seat from <see cref="MechSim.Hud.Instance"/>, and leaves keys and sounds to the
+    /// HUD's own instrument.
+    /// </summary>
+    public bool OnScreen;
+
     protected Hud Hud { get; private set; }
     /// <summary>The seat the player is in; never null inside Paint().</summary>
     protected ICockpit Seat => Game.Cockpit;
@@ -49,7 +56,7 @@ public abstract partial class HudWidget : Control
         _font = ThemeDB.FallbackFont;
         Node n = GetParent();
         while (n != null && n is not MechSim.Hud) n = n.GetParent();
-        Hud = n as MechSim.Hud;
+        Hud = n as MechSim.Hud ?? (OnScreen ? MechSim.Hud.Instance : null);
     }
 
     float _redrawWait;

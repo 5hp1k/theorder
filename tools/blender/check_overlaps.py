@@ -178,4 +178,5 @@ def main():
             print("      %s#%d  from (%.2f, %.2f, %.2f) to (%.2f, %.2f, %.2f)" % (key[0], key[1], lo.x, lo.y, lo.z, hi.x, hi.y, hi.z))
 
 
-main()
+if __name__ == "__main__":
+    main()

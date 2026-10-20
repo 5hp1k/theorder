@@ -50,14 +50,44 @@ public partial class PauseMenu : Control
     void Refresh()
     {
         ShowPage(_buttons);
-        bool over = Game.Instance is { TimeUp: true };
-        _title.Text = Loc.T(over ? "ВРЕМЯ ВЫШЛО" : "ПАУЗА");
+        var game = Game.Instance;
+        bool debrief = game is { MissionOver: true };
+        bool over = debrief || game is { TimeUp: true };
+        _title.Text = Loc.T(debrief ? (game.MissionWon ? "МИССИЯ ВЫПОЛНЕНА" : "МИССИЯ ПРОВАЛЕНА") : over ? "ВРЕМЯ ВЫШЛО" : "ПАУЗА");
         // When the time is up: what the player's side, the player and each lancemate destroyed.
+        // After a mission: the debriefing, what was given for it, and the tally.
         _tally.Visible = over;
-        if (over) _tally.Text = Loc.T(Score.Summary());
+        if (over) _tally.Text = debrief ? Debriefing(game) : Loc.T(Score.Summary());
         _resume.Visible = !over;
+        GetNode<Button>("%BtnRestart").Text = Loc.T(debrief ? "Переиграть миссию" : "Начать заново");
+        // In a network game only the host starts the battle again (and takes everyone along).
+        GetNode<Button>("%BtnRestart").Visible = !Net.Online || Net.IsHost;
+        string back = CampaignRun.FromEditor ? "В редактор" : CampaignRun.Custom != null ? "К своим миссиям" : "К кампании";
+        GetNode<Button>("%BtnMenu").Text = Loc.T(debrief ? (game.MissionWon && CampaignRun.Custom == null ? "Дальше" : back) : CampaignRun.FromEditor ? "В редактор" : "В главное меню");
         // Only something with weapons has groups to set.
         GetNode<Control>("%BtnGroups").Visible = !over && Game.Cockpit?.Weapons is { Weapons.Count: > 0 };
+    }
+
+    static string Debriefing(Game game)
+    {
+        var info = game.MissionInfo;
+        var text = new System.Text.StringBuilder();
+        if (!game.MissionWon && Mission.Current is { Reason.Length: > 0 } mission) text.Append(Loc.T(mission.Reason)).Append("\n\n");
+        if (game.MissionWon && info.Debriefing.Length > 0) text.Append(Loc.T(info.Debriefing)).Append("\n\n");
+        if (game.Rewarded)
+        {
+            var given = new System.Collections.Generic.List<string>();
+            foreach (string id in info.GrantUnits) given.Add(Loc.T(Catalog.Find(Catalog.PlayerUnits, id).Name));
+            foreach (string id in info.GrantWeapons) given.Add(Loc.T(Catalog.Find(Catalog.Weapons, id).Name));
+            if (given.Count > 0) text.Append(Loc.T("В ангар поступило: ")).Append(string.Join(", ", given)).Append('\n');
+            var pilots = new System.Collections.Generic.List<string>();
+            foreach (var pilot in info.GrantPilots)
+                if (pilot != null) pilots.Add(pilot.Label);
+            if (pilots.Count > 0) text.Append(Loc.T("В звено зачислены: ")).Append(string.Join(", ", pilots)).Append('\n');
+            if (given.Count + pilots.Count > 0) text.Append('\n');
+        }
+        text.Append(Loc.T(Score.Summary()));
+        return text.ToString();
     }
 
     /// <summary>A row for every weapon the player's machine carries, its group pressed in.</summary>

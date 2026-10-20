@@ -122,6 +122,20 @@ theme_override_font_sizes/font_size = 17
 layout_mode = 2
 unique_name_in_owner = true
 
+[node name="GlassFxRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Game/Rows/GlassFxRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Дождь, грязь и трещины на стекле кабины"
+theme_override_font_sizes/font_size = 17
+
+[node name="GlassFxCheck" type="CheckButton" parent="Tabs/Game/Rows/GlassFxRow"]
+layout_mode = 2
+unique_name_in_owner = true
+
 [node name="SimRateRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
 layout_mode = 2
 theme_override_constants/separation = 12

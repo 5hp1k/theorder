@@ -46,7 +46,7 @@ public partial class MissileWarning : HudWidget
         base._Process(delta);
         // (Heard even with the interface switched off.)
         bool on = Threat(out _) != null && !GetTree().Paused;
-        if (_beep == null || _beep.Playing == on) return;
+        if (_beep == null || OnScreen || _beep.Playing == on) return;
         if (on) _beep.Play();
         else _beep.Stop();
     }

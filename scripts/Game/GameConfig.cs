@@ -13,18 +13,18 @@ public static class GameConfig
     /// <summary>Actions the player can rebind from the customisation page.</summary>
     public static readonly string[] BindableActions =
     {
-        "throttle_up", "throttle_down", "turn_left", "turn_right", "full_stop", "jump", "descend",
+        "throttle_up", "throttle_down", "turn_left", "turn_right", "full_stop", "jump", "descend", "kneel",
         "fire_group_1", "fire_group_2", "fire_group_3", "fire_group_4", "fire_group_5", "fire_group_6",
         "target_nearest", "target_next", "target_reticle", "target_friendly", "center_torso", "arm_look", "counter_rotate", "free_look", "zoom",
-        "toggle_view", "toggle_lights", "radar_mode", "scoreboard", "toggle_help", "toggle_hud", "toggle_fps",
+        "toggle_view", "toggle_lights", "radar_mode", "scoreboard", "toggle_help", "toggle_hud", "toggle_fps", "toggle_console",
     };
     /// <summary>What the actions above are called on the controls page, in the same order.</summary>
     public static readonly string[] ActionNames =
     {
-        "Газ вперёд", "Газ назад", "Поворот влево", "Поворот вправо", "Полный стоп", "Прыжок / вверх", "Вниз (вертолёт)",
+        "Газ вперёд", "Газ назад", "Поворот влево", "Поворот вправо", "Полный стоп", "Прыжок / вверх", "Вниз (вертолёт)", "На колено / встать (мех)",
         "Огонь: группа 1", "Огонь: группа 2", "Огонь: группа 3", "Огонь: группа 4", "Огонь: группа 5", "Огонь: группа 6",
         "Цель: ближайшая", "Цель: следующая", "Цель: под прицелом", "Цель: свой (следующий)", "Торс по ногам", "Руки отдельно от торса (держать)", "Контрвращение торса", "Свободный обзор (держать)", "Приближение",
-        "Кабина / внешний вид", "Фары", "Режим радара", "Таблица боя (держать)", "Справка", "Интерфейс вкл/выкл", "Счётчик кадров",
+        "Кабина / внешний вид", "Фары", "Режим радара", "Таблица боя (держать)", "Справка", "Интерфейс вкл/выкл", "Счётчик кадров", "Консоль",
     };
 
     // ── Battle ──────────────────────────────────────────────────
@@ -125,6 +125,15 @@ public static class GameConfig
     public static readonly Dictionary<string, string> Bindings = new();
     /// <summary>Picture file the player chose as an emblem; empty = none.</summary>
     public static string InsigniaPath = "";
+    /// <summary>The emblem also on the machines' own emblem plates (besides those put on by hand, InsigniaMarks).</summary>
+    public static bool InsigniaPlates = true;
+
+    /// <summary>The player's emblem on a machine of the player's: on its plates and wherever it was put by hand on that kind of machine.</summary>
+    public static void WearInsignia(Node unit, string unitId)
+    {
+        Units.ApplyInsignia(unit, Insignia, InsigniaPlates);
+        InsigniaMarks.Apply(unit, Insignia, InsigniaMarks.For(unitId));
+    }
 
     // ── Settings ────────────────────────────────────────────────
     /// <summary>"ru" or "en" (see <see cref="Loc"/>). Until the player chooses: Russian on a Russian system, English elsewhere.</summary>
@@ -133,7 +142,11 @@ public static class GameConfig
     /// <summary>Loudness of each kind of sound, 0..1, on its own audio bus (default_bus_layout.tres).</summary>
     public static float EffectsVolume = 1f, AmbienceVolume = 1f, SignalsVolume = 1f, VoiceVolume = 1f;
     /// <summary>Whose voice the cockpit computer speaks with (a <see cref="VoicePack"/> id); <see cref="VoiceOff"/> = silent.</summary>
-    public static string Voice = "betty";
+    public static string Voice = DefaultVoice;
+    /// <summary>The British voice, unless the player picks another.</summary>
+    public const string DefaultVoice = "cori";
+    /// <summary>The player has picked the voice in the settings (otherwise it follows <see cref="DefaultVoice"/>).</summary>
+    public static bool VoicePicked;
     public const string VoiceOff = "off";
     /// <summary>Audio buses and the setting for each (Master is the overall volume).</summary>
     static (string bus, System.Func<float> volume)[] Buses => new (string, System.Func<float>)[]
@@ -183,6 +196,8 @@ public static class GameConfig
     public static float DebrisAmount = 1f;
     /// <summary>Frames per second in a corner of the screen (F3).</summary>
     public static bool ShowFps;
+    /// <summary>What the cockpit's glass picks up (rain, snow, dust, dirt) and its cracks from hits; off — always clean glass.</summary>
+    public static bool CockpitGlassFx = true;
     /// <summary>The preset the detailed settings were last filled from: 0 = low, 1 = medium, 2 = high, 3 = the player's own mix.</summary>
     public static int EffectsQuality = 2;
 
@@ -260,6 +275,10 @@ public static class GameConfig
             Gloss = (float)cfg.GetValue("paint", "gloss", Gloss);
             PatternSize = (float)cfg.GetValue("paint", "pattern_size", PatternSize);
             InsigniaSize = (float)cfg.GetValue("paint", "insignia_size", InsigniaSize);
+            InsigniaPlates = (bool)cfg.GetValue("paint", "insignia_plates", InsigniaPlates);
+            if (cfg.HasSection("insignia_marks"))
+                foreach (string unit in cfg.GetSectionKeys("insignia_marks"))
+                    InsigniaMarks.Unpack(unit, (string[])cfg.GetValue("insignia_marks", unit));
             if (cfg.HasSection("equipment"))
                 foreach (string unit in cfg.GetSectionKeys("equipment"))
                     Fitted[unit] = Equipment.Unpack((string)cfg.GetValue("equipment", unit));
@@ -275,7 +294,9 @@ public static class GameConfig
             AmbienceVolume = (float)cfg.GetValue("sound", "ambience", AmbienceVolume);
             SignalsVolume = (float)cfg.GetValue("sound", "signals", SignalsVolume);
             VoiceVolume = (float)cfg.GetValue("sound", "voice_volume", VoiceVolume);
-            Voice = (string)cfg.GetValue("sound", "voice", Voice);
+            // (A voice saved before it could be picked was only the old default.)
+            VoicePicked = (bool)cfg.GetValue("sound", "voice_picked", false);
+            if (VoicePicked) Voice = (string)cfg.GetValue("sound", "voice", Voice);
             MouseSensitivity = (float)cfg.GetValue("settings", "sensitivity", MouseSensitivity);
             Fov = (float)cfg.GetValue("settings", "fov", Fov);
             WindowMode = cfg.HasSectionKey("settings", "window_mode") ? (int)cfg.GetValue("settings", "window_mode", 0)
@@ -283,6 +304,7 @@ public static class GameConfig
             WindowSize = (Vector2I)cfg.GetValue("settings", "window_size", WindowSize);
             MaxFps = (int)cfg.GetValue("settings", "max_fps", MaxFps);
             ShowFps = (bool)cfg.GetValue("settings", "show_fps", ShowFps);
+            CockpitGlassFx = (bool)cfg.GetValue("settings", "cockpit_glass_fx", CockpitGlassFx);
             VSync = (bool)cfg.GetValue("settings", "vsync", VSync);
             EffectsQuality = (int)cfg.GetValue("settings", "effects", EffectsQuality);
             // Settings saved before the detailed ones existed carry only the preset.
@@ -384,7 +406,9 @@ public static class GameConfig
         if (_quick) return;
         var cfg = new ConfigFile();
         cfg.SetValue("battle", "map", MapId);
-        cfg.SetValue("battle", "mech", MechId);
+        // (In the campaign the live values are the campaign's — they go to its own save — and the battle's own are kept aside.)
+        if (CampaignMode) CampaignState.Save();
+        cfg.SetValue("battle", "mech", CampaignMode ? _ownMech : MechId);
         cfg.SetValue("battle", "enemy_count", EnemyCount);
         cfg.SetValue("battle", "enemy_vehicles", EnemyVehicleCount);
         cfg.SetValue("battle", "enemy_respawn", EnemyRespawn);
@@ -420,8 +444,11 @@ public static class GameConfig
         cfg.SetValue("paint", "gloss", Gloss);
         cfg.SetValue("paint", "pattern_size", PatternSize);
         cfg.SetValue("paint", "insignia_size", InsigniaSize);
-        foreach (var (unit, fit) in Loadouts) cfg.SetValue("hardpoints", unit, fit);
-        foreach (var (unit, kit) in Fitted) cfg.SetValue("equipment", unit, Equipment.Pack(kit));
+        cfg.SetValue("paint", "insignia_plates", InsigniaPlates);
+        foreach (var (unit, marks) in InsigniaMarks.ByUnit)
+            if (marks.Count > 0) cfg.SetValue("insignia_marks", unit, InsigniaMarks.Pack(marks));
+        foreach (var (unit, fit) in CampaignMode ? _ownLoadouts : Loadouts) cfg.SetValue("hardpoints", unit, fit);
+        foreach (var (unit, kit) in CampaignMode ? _ownFitted : Fitted) cfg.SetValue("equipment", unit, Equipment.Pack(kit));
         foreach (var (action, code) in Bindings) cfg.SetValue("bindings", action, code);
         cfg.SetValue("settings", "language", Language);
         cfg.SetValue("settings", "volume", MasterVolume);
@@ -430,12 +457,14 @@ public static class GameConfig
         cfg.SetValue("sound", "signals", SignalsVolume);
         cfg.SetValue("sound", "voice_volume", VoiceVolume);
         cfg.SetValue("sound", "voice", Voice);
+        cfg.SetValue("sound", "voice_picked", VoicePicked);
         cfg.SetValue("settings", "sensitivity", MouseSensitivity);
         cfg.SetValue("settings", "fov", Fov);
         cfg.SetValue("settings", "window_mode", WindowMode);
         cfg.SetValue("settings", "window_size", WindowSize);
         cfg.SetValue("settings", "max_fps", MaxFps);
         cfg.SetValue("settings", "show_fps", ShowFps);
+        cfg.SetValue("settings", "cockpit_glass_fx", CockpitGlassFx);
         cfg.SetValue("graphics", "render_scale", RenderScale);
         cfg.SetValue("graphics", "msaa", Msaa);
         cfg.SetValue("graphics", "fxaa", Fxaa);
@@ -456,6 +485,58 @@ public static class GameConfig
         cfg.SetValue("settings", "effects", EffectsQuality);
         cfg.SetValue("settings", "simulation_rate", SimulationRate);
         cfg.Save(FilePath);
+    }
+
+    // ── Campaign ────────────────────────────────────────────────
+
+    /// <summary>
+    /// The menus are working on the campaign: the hangar shows only what the story has given, and the
+    /// machine and loadouts it edits are the campaign's (CampaignState), not those of a battle of one's
+    /// own — which are put aside meanwhile and are what goes into settings.cfg.
+    /// </summary>
+    public static bool CampaignMode { get; private set; }
+    static string _ownMech = "";
+    static readonly Dictionary<string, string[]> _ownLoadouts = new();
+    static readonly Dictionary<string, Dictionary<string, bool>> _ownFitted = new();
+
+    public static void EnterCampaign()
+    {
+        if (CampaignMode) return;
+        CampaignState.EnsureLoaded();
+        _ownMech = MechId;
+        Swap(Loadouts, _ownLoadouts, Fitted, _ownFitted);
+        Swap(CampaignState.Loadouts, Loadouts, CampaignState.Fitted, Fitted, keep: true);
+        if (CampaignState.OwnsUnit(CampaignState.UnitId)) MechId = CampaignState.UnitId;
+        else foreach (string id in CampaignState.Units) { MechId = id; break; }
+        CampaignMode = true;
+    }
+
+    public static void LeaveCampaign()
+    {
+        if (!CampaignMode) return;
+        CampaignState.Save();
+        MechId = _ownMech;
+        Swap(_ownLoadouts, Loadouts, _ownFitted, Fitted);
+        CampaignMode = false;
+    }
+
+    /// <summary>Hands what the hangar has done back to the campaign's save (CampaignState.Save does it first).</summary>
+    public static void CaptureCampaign()
+    {
+        CampaignState.UnitId = MechId;
+        Swap(Loadouts, CampaignState.Loadouts, Fitted, CampaignState.Fitted, keep: true);
+    }
+
+    static void Swap(Dictionary<string, string[]> fromFits, Dictionary<string, string[]> toFits,
+                     Dictionary<string, Dictionary<string, bool>> fromKit, Dictionary<string, Dictionary<string, bool>> toKit, bool keep = false)
+    {
+        toFits.Clear();
+        foreach (var (k, v) in fromFits) toFits[k] = v;
+        toKit.Clear();
+        foreach (var (k, v) in fromKit) toKit[k] = new Dictionary<string, bool>(v);
+        if (keep) return;
+        fromFits.Clear();
+        fromKit.Clear();
     }
 
     /// <summary>Pushes the settings into the engine (audio volume, window mode, vsync).</summary>

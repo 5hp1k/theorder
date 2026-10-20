@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Campaign" format=3]
+
+[ext_resource type="Resource" path="res://campaign/pilots/hero.tres" id="1_3mbot"]
+[ext_resource type="Resource" path="res://campaign/missions/training.tres" id="2_twoj5"]
+[ext_resource type="Resource" path="res://campaign/missions/convoy.tres" id="3_bmqgl"]
+[ext_resource type="Resource" path="res://campaign/pilots/voron.tres" id="4_fqnjj"]
+[ext_resource type="Resource" path="res://campaign/pilots/lis.tres" id="5_lj2ic"]
+[ext_resource type="Script" path="res://scripts/Campaign/Campaign.cs" id="6_ud88y"]
+
+[resource]
+script = ExtResource("6_ud88y")
+Title = "Пример кампании"
+Description = "Это пример: две миссии, на которых видно всё, из чего строится сюжет — брифинг, катсцены, радио, цели, триггеры, подкрепления, звено и награды. Замените их своими."
+Hero = ExtResource("1_3mbot")
+Missions = [ExtResource("2_twoj5"), ExtResource("3_bmqgl")]
+StartUnits = PackedStringArray("hound", "cleaver")
+StartWeapons = PackedStringArray("small_laser", "medium_laser", "machine_gun", "srm")
+StartPilots = [ExtResource("4_fqnjj"), ExtResource("5_lj2ic")]

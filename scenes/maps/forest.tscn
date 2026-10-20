@@ -1,0 +1,136 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/world/forest_terrain.tscn" id="1"]
+[ext_resource type="Shader" path="res://materials/sky.gdshader" id="sky_shader"]
+[ext_resource type="Texture2D" path="res://textures/sky/kloofendal_48d_partly_cloudy_puresky_8k.jpg" id="sky_tex"]
+[ext_resource type="Texture2D" path="res://textures/sky/kloofendal_48d_partly_cloudy_puresky_1k.hdr" id="sky_hdr"]
+[ext_resource type="Script" path="res://scripts/Fx/MapLighting.cs" id="lighting"]
+
+[sub_resource type="ShaderMaterial" id="SkyMaterial_1"]
+shader = ExtResource("sky_shader")
+shader_parameter/sky_tex = ExtResource("sky_tex")
+shader_parameter/light_tex = ExtResource("sky_hdr")
+shader_parameter/background_energy = 1.0
+shader_parameter/highlight_boost = 1.6
+shader_parameter/light_energy = 1.0
+shader_parameter/light_clamp = 8.0
+shader_parameter/ground_color = Color(0.1, 0.14, 0.08, 1)
+shader_parameter/rotation = 0.0
+
+[sub_resource type="Sky" id="Sky_2"]
+sky_material = SubResource("SkyMaterial_1")
+process_mode = 3
+
+[sub_resource type="Environment" id="Environment_3"]
+background_mode = 2
+sky = SubResource("Sky_2")
+ambient_light_source = 3
+reflected_light_source = 2
+tonemap_mode = 4
+tonemap_exposure = 0.8
+tonemap_white = 6.0
+ssao_enabled = true
+ssao_radius = 2.5
+ssao_intensity = 2.2
+ssao_power = 1.6
+ssil_enabled = true
+ssil_radius = 6.0
+ssil_intensity = 0.8
+sdfgi_enabled = true
+sdfgi_use_occlusion = true
+sdfgi_cascades = 5
+sdfgi_min_cell_size = 0.6
+sdfgi_y_scale = 0
+sdfgi_energy = 0.65
+glow_enabled = true
+glow_levels/2 = 0.6
+glow_levels/3 = 1.0
+glow_levels/5 = 1.0
+glow_levels/6 = 0.6
+glow_intensity = 0.5
+glow_bloom = 0.04
+glow_blend_mode = 1
+glow_hdr_threshold = 1.4
+fog_enabled = true
+fog_light_color = Color(0.6, 0.7, 0.66, 1)
+fog_sun_scatter = 0.25
+fog_density = 0.0009
+fog_aerial_perspective = 1.0
+fog_sky_affect = 0.0
+fog_height = -2.0
+fog_height_density = 0.004
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.004
+volumetric_fog_albedo = Color(0.85, 0.9, 1, 1)
+volumetric_fog_anisotropy = 0.7
+volumetric_fog_length = 260.0
+volumetric_fog_detail_spread = 2.5
+volumetric_fog_ambient_inject = 0.4
+volumetric_fog_sky_affect = 0.0
+adjustment_enabled = true
+adjustment_contrast = 1.12
+adjustment_saturation = 1.18
+
+[node name="Forest" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_3")
+script = ExtResource("lighting")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.8265, -0.41751, 0.37759, 0, 0.67076, 0.74168, -0.56293, 0.613, -0.55438, 0, 60, 0)
+light_color = Color(1, 0.96, 0.88, 1)
+light_energy = 3.2
+light_angular_distance = 0.6
+shadow_enabled = true
+shadow_bias = 0.04
+shadow_normal_bias = 1.5
+shadow_blur = 1.2
+directional_shadow_split_1 = 0.06
+directional_shadow_split_2 = 0.16
+directional_shadow_split_3 = 0.4
+directional_shadow_blend_splits = true
+directional_shadow_fade_start = 0.9
+directional_shadow_max_distance = 420.0
+
+[node name="Terrain" parent="." instance=ExtResource("1")]
+
+[node name="PlayerSpawn" type="Marker3D" parent="."]
+
+[node name="EnemySpawns" type="Node3D" parent="."]
+
+[node name="Spawn1" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -290)
+
+[node name="Spawn2" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 240, 0, -150)
+
+[node name="Spawn3" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 310, 0, 110)
+
+[node name="Spawn4" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70, 0, 320)
+
+[node name="Spawn5" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -260, 0, 210)
+
+[node name="Spawn6" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -300, 0, -120)
+
+[node name="Spawn7" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 150, 0, -310)
+
+[node name="Spawn8" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 330, 0, -30)
+
+[node name="Spawn9" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 220, 0, 270)
+
+[node name="Spawn10" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110, 0, 330)
+
+[node name="Spawn11" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -340, 0, 40)
+
+[node name="Spawn12" type="Marker3D" parent="EnemySpawns"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -180, 0, -280)

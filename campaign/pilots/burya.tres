@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PilotProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/Campaign/PilotProfile.cs" id="1_n61ng"]
+
+[resource]
+script = ExtResource("1_n61ng")
+Id = "burya"
+Name = "Тимур Бурханов"
+Callsign = "Буря"
+Bio = "Рвётся в драку, о перегреве вспоминает последним."
+Gunnery = 62
+Piloting = 42
+Awareness = 45
+Aggression = 88

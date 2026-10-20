@@ -10,22 +10,15 @@
 [ext_resource type="PackedScene" path="res://scenes/weapons/machine_gun.tscn" id="8"]
 [ext_resource type="AudioStream" path="res://audio/reactor_loop.wav" id="9"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/Body.res" id="x3"]
-[ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/TrackL.res" id="x4"]
-[ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/TrackR.res" id="x5"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/RoadWheelL1.res" id="x6"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/RoadWheelR1.res" id="x7"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/RoadWheelL0.res" id="x8"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/RoadWheelR0.res" id="x9"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/Turret.res" id="x10"]
 [ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/Gun.res" id="x11"]
-[ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/TreadTopL.res" id="x1"]
-[ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/TreadBottomL.res" id="x2"]
-[ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/TreadTopR.res" id="x12"]
-[ext_resource type="ArrayMesh" path="res://models/vehicles/amphibian/TreadBottomR.res" id="x13"]
 [ext_resource type="Script" path="res://scripts/Combat/Hardpoint.cs" id="hardpoint"]
 [ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
 [ext_resource type="Material" path="res://materials/insignia.tres" id="insignia"]
-[ext_resource type="PackedScene" path="res://scenes/vehicles/track_belt.tscn" id="track_belt"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(3.7, 2.6, 7.6)
@@ -77,18 +70,6 @@ visible = false
 cast_shadow = 0
 mesh = SubResource("QuadMesh_insignia")
 material_override = ExtResource("insignia")
-
-[node name="TrackL" type="MeshInstance3D" parent="Hull"]
-material_override = ExtResource("2")
-
-[node name="Belt" parent="Hull/TrackL" instance=ExtResource("track_belt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.67, 0, 0)
-
-[node name="TrackR" type="MeshInstance3D" parent="Hull"]
-material_override = ExtResource("2")
-
-[node name="Belt" parent="Hull/TrackR" instance=ExtResource("track_belt")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.67, 0, 0)
 
 [node name="WheelL1" type="MeshInstance3D" parent="Hull"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.85, 0.62, -3.22)
@@ -194,8 +175,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.45, 0.375, -0.3)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.525, 0.3)
 
 [node name="HardpointCannon" type="Node3D" parent="Turret/Gun"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -3.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.59)
 script = ExtResource("hardpoint")
+Area = Vector2(0.507, 0.391)
+Spacing = Vector3(0.45, 0, 0)
 DisplayName = "Башня"
 Type = 1
 Slots = 3
@@ -207,8 +190,10 @@ Damage = 7
 Cooldown = 0.7
 
 [node name="HardpointMachineGun" type="Node3D" parent="Turret/Gun"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.15, -1.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.5, 0.15, -0.31)
 script = ExtResource("hardpoint")
+Area = Vector2(0.24, 0.24)
+Spacing = Vector3(0.45, 0, 0)
 DisplayName = "Башня"
 Type = 1
 Slots = 2

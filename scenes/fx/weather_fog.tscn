@@ -21,6 +21,7 @@ material = ExtResource("2")
 
 [node name="WeatherFog" type="Node3D"]
 script = ExtResource("1")
+Rain = 0.15
 Haze = 9.0
 SkyLight = 0.6
 SunLight = 0.25

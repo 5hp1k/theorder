@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="MissionInfo" format=3]
+
+[ext_resource type="Resource" path="res://campaign/pilots/voron.tres" id="1_41a2g"]
+[ext_resource type="Script" path="res://scripts/Campaign/LanceMember.cs" id="2_wamr2"]
+[ext_resource type="Resource" path="res://campaign/pilots/burya.tres" id="3_1gihf"]
+[ext_resource type="Script" path="res://scripts/Campaign/MissionInfo.cs" id="4_krq2n"]
+
+[sub_resource type="Resource" id="Resource_ulpau"]
+script = ExtResource("2_wamr2")
+Pilot = ExtResource("1_41a2g")
+
+[sub_resource type="Resource" id="Resource_p5g2f"]
+script = ExtResource("2_wamr2")
+Pilot = ExtResource("3_1gihf")
+UnitId = "cleaver"
+
+[resource]
+script = ExtResource("4_krq2n")
+Id = "convoy"
+Title = "Конвой"
+Location = "Пустыня, дорога на перевал, полдень"
+Briefing = "Колонна бронетранспортёров с ранеными идёт к перевалу. Налётчики не оставят её в покое. Прикройте колонну, пока не подойдёт эвакуация. Вожак налётчиков, Клык, может быть среди нападающих."
+Objectives = PackedStringArray("Продержаться до прихода эвакуации", "Сохранить колонну (можно потерять одну машину)", "Дополнительно: уничтожить всех нападающих")
+Scene = "res://campaign/missions/convoy.tscn"
+TimeOfDay = 2
+Lance = [SubResource("Resource_ulpau"), SubResource("Resource_p5g2f")]
+GrantUnits = PackedStringArray("executioner")
+GrantWeapons = PackedStringArray("ppc")
+Debriefing = "Колонна дошла до перевала. Звену передан тяжёлый «Палач» и протонная пушка."

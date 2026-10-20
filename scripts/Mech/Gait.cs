@@ -35,6 +35,12 @@ public sealed class Gait
     public float IdleCycle = 1.7f;
     /// <summary>Half the distance between the feet; turns the yaw rate into foot travel.</summary>
     public float HipWidth = 1.5f;
+    /// <summary>
+    /// How far ahead of or behind its hip a planted foot can be, metres, with the leg still reaching it
+    /// (worked out by the mech from the leg's length and its height). A step that would carry the foot
+    /// further is made quicker and shorter instead.
+    /// </summary>
+    public float Reach = 3f;
 
     /// <summary>0..1 over a full left-right cycle.</summary>
     public float Phase { get; private set; }
@@ -68,6 +74,9 @@ public sealed class Gait
         {
             // A steady, unhurried cadence at low speed, with the stride as long as that cadence allows.
             rate = Mathf.Max(travel / (2f * step), 1f / MaxCycle);
+            // While a foot is planted the body walks on from a foot's length ahead of it to as far behind
+            // it: no further than the leg reaches. (Past that the legs go quicker, not longer.)
+            rate = Mathf.Max(rate, travel * (1f - swing) / (2f * Mathf.Max(Reach, 0.5f)));
             step = Mathf.Max(travel, 0.2f) / (2f * rate);
         }
         else
@@ -104,7 +113,7 @@ public sealed class Gait
                 if (!moving && HomeError(leg, root) < 0.5f) continue;
                 // Too late in this foot's turn for a proper step: wait for the next one rather than
                 // take a hurried half-step, unless it has been left far behind.
-                if (u > 0.3f && HomeError(leg, root) < Mathf.Max(step, 2f) * 1.5f) continue;
+                if (u > 0.3f && HomeError(leg, root) < Mathf.Min(Mathf.Max(step, 2f) * 1.5f, Reach)) continue;
                 leg.BeginSwing(u);
             }
 
@@ -119,30 +128,61 @@ public sealed class Gait
                 var turn = new Basis(Vector3.Up, yawRate * left);
                 var rootAtLanding = new Transform3D(turn * root.Basis, root.Origin + (hv + vLand) * 0.5f * left);
                 // Ahead of the hip by half of what the body will cover while this foot is planted.
-                Vector3 lead = turn * vLand * ((1f - swing) * cycleTime * 0.5f);
-                Vector3 target = rootAtLanding * leg.HomeLocal + lead;
-                if (ground(target, out var pos, out var n))
-                {
-                    // No stepping up onto boulders or down into pits beyond what a leg can take:
-                    // past that the foot goes where the ground would be at the mech's own level.
-                    float rise = pos.Y - root.Origin.Y;
-                    if (rise > MaxStepUp || rise < -MaxStepDown)
-                    {
-                        pos.Y = root.Origin.Y + Mathf.Clamp(rise, -MaxStepDown, MaxStepUp);
-                        n = Vector3.Up;
-                    }
-                    _target[i] = pos;
-                    _targetN[i] = n;
-                }
-                else
-                {
-                    _target[i] = new Vector3(target.X, root.Origin.Y, target.Z);
-                    _targetN[i] = Vector3.Up;
-                }
+                Vector3 lead = (turn * vLand * ((1f - swing) * cycleTime * 0.5f)).LimitLength(Reach);
+                Vector3 home = rootAtLanding * leg.HomeLocal;
+                Place(i, home, lead, root.Origin.Y, ground);
             }
             leg.Swing(u, _target[i], _targetN[i], height);
         }
+
+        // Now and then, under each planted foot: the ground there may have gone (a crater blown in it,
+        // a wreck or a building gone from under it), and the foot goes down with it rather than stand on air.
+        if (++_settle % 16 == 0)
+        {
+            var leg = legs[(_settle / 16) % legs.Length];
+            if (leg.Planted && ground(leg.Contact, out var pos, out var n))
+            {
+                float dy = pos.Y - leg.Contact.Y;
+                if (Mathf.Abs(dy) > 0.12f && Mathf.Abs(dy) < 1.5f) leg.Settle(pos, n);
+            }
+        }
     }
+
+    int _settle;
+
+    /// <summary>
+    /// Picks where foot <paramref name="i"/> comes down: <paramref name="lead"/> ahead of its neutral spot,
+    /// unless the ground there is beyond a step up or down (a boulder, a ledge, a pit): then nearer the
+    /// hip, where it is not; and if nowhere is, at the step's limit.
+    /// </summary>
+    void Place(int i, Vector3 home, Vector3 lead, float level, GroundQuery ground)
+    {
+        Vector3 fallback = default;
+        bool any = false;
+        foreach (float share in Shares)
+        {
+            Vector3 at = home + lead * share;
+            if (!ground(at, out var pos, out var n))
+            {
+                if (!any) fallback = new Vector3(at.X, level, at.Z);
+                any = true;
+                continue;
+            }
+            float rise = pos.Y - level;
+            if (rise <= MaxStepUp && rise >= -MaxStepDown)
+            {
+                _target[i] = pos;
+                _targetN[i] = n;
+                return;
+            }
+            if (!any) fallback = new Vector3(pos.X, level + Mathf.Clamp(rise, -MaxStepDown, MaxStepUp), pos.Z);
+            any = true;
+        }
+        _target[i] = fallback;
+        _targetN[i] = Vector3.Up;
+    }
+
+    static readonly float[] Shares = { 1f, 0.5f, 0f };
 
     static float HomeError(MechLeg leg, Transform3D root)
     {

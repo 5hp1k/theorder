@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="PilotProfile" format=3]
+
+[ext_resource type="Script" path="res://scripts/Campaign/PilotProfile.cs" id="1_t1hnh"]
+
+[resource]
+script = ExtResource("1_t1hnh")
+Id = "voron"
+Name = "Олег Ворошилов"
+Callsign = "Ворон"
+Bio = "Снайпер звена: стреляет без промаха, но в ближний бой не лезет."
+Gunnery = 78
+Piloting = 55
+Awareness = 62
+Aggression = 35

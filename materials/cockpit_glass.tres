@@ -1,0 +1,35 @@
+[gd_resource type="ShaderMaterial" load_steps=4 format=3]
+
+[ext_resource type="Shader" path="res://materials/cockpit_glass.gdshader" id="1"]
+
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_1"]
+noise_type = 3
+frequency = 0.012
+fractal_octaves = 4
+
+[sub_resource type="NoiseTexture2D" id="NoiseTexture2D_1"]
+width = 256
+height = 256
+seamless = true
+generate_mipmaps = true
+noise = SubResource("FastNoiseLite_1")
+
+[resource]
+render_priority = 10
+shader = ExtResource("1")
+shader_parameter/noise = SubResource("NoiseTexture2D_1")
+shader_parameter/tint = Color(0.6, 0.72, 0.74, 1)
+shader_parameter/clear_alpha = 0.04
+shader_parameter/bottom = -0.3
+shader_parameter/top = 0.98
+shader_parameter/crack_count = 0
+shader_parameter/crack_color = Color(0.86, 0.9, 0.9, 1)
+shader_parameter/dirt = 0.0
+shader_parameter/dirt_color = Color(0.36, 0.25, 0.14, 1)
+shader_parameter/dust = 0.0
+shader_parameter/dust_color = Color(0.66, 0.55, 0.4, 1)
+shader_parameter/rain = 0.0
+shader_parameter/snow = 0.0
+shader_parameter/snow_color = Color(0.88, 0.9, 0.94, 1)
+shader_parameter/drop_scale = 13.0
+shader_parameter/run_speed = 1.0

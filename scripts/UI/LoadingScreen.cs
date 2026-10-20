@@ -49,10 +49,12 @@ public partial class LoadingScreen : CanvasLayer
         _bar = GetNode<ProgressBar>("%Bar");
         _title = GetNode<Label>("%Title");
         GameConfig.EnsureLoaded();
-        _title.Text = Loc.T(Catalog.Find(Catalog.Maps, GameConfig.MapId).Name);
+        // A campaign mission: its title, and its scene (which brings its map along).
+        var mission = CampaignRun.Mission;
+        _title.Text = Loc.T(mission != null ? mission.Title : Catalog.Find(Catalog.Maps, GameConfig.MapId).Name);
 
         _paths.Add(_game);
-        _paths.Add(Catalog.Find(Catalog.Maps, GameConfig.MapId).Path);
+        _paths.Add(mission != null ? mission.Scene : Catalog.Find(Catalog.Maps, GameConfig.MapId).Path);
         _units = new List<string>();
         foreach (var e in Catalog.Mechs) _units.Add(e.Path);
         foreach (var e in Catalog.Vehicles) _units.Add(e.Path);

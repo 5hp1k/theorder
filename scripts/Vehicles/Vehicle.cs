@@ -397,7 +397,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
     public void ApplyPaint(PaintJob paint) => ArmorMaterial = paint.Apply(this, ArmorMaterial);
 
     /// <summary>Shows a picture on the plates named "Insignia…" in the scene, or hides them.</summary>
-    public void ApplyInsignia(Texture2D picture) => Units.ApplyInsignia(this, picture);
+    public void ApplyInsignia(Texture2D picture, bool plates = true) => Units.ApplyInsignia(this, picture, plates);
 
     public void SetPreview(bool on, int layer) => Units.SetPreview(this, on, layer);
 
@@ -945,7 +945,7 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
 
     public void TakeDamage(float amount, Vector3 point)
     {
-        if (IsDestroyed) return;
+        if (IsDestroyed || Cheats.Spares(this)) return;
         Score.Hit(this);
         NetLink.I?.QueueHurt(this, -1, amount);
         Hp -= amount;

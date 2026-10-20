@@ -1,0 +1,25 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/facade.gdshader" id="shader"]
+[ext_resource type="Texture2D" path="res://textures/concrete_wall_008/concrete_wall_008_diff.jpg" id="1"]
+[ext_resource type="Texture2D" path="res://textures/concrete_wall_008/concrete_wall_008_nor.jpg" id="2"]
+[ext_resource type="Texture2D" path="res://textures/concrete_wall_008/concrete_wall_008_arm.jpg" id="3"]
+
+[resource]
+shader = ExtResource("shader")
+shader_parameter/wall_albedo = ExtResource("1")
+shader_parameter/wall_normal = ExtResource("2")
+shader_parameter/wall_arm = ExtResource("3")
+shader_parameter/wall_size = 4.0
+shader_parameter/wall_tint = Color(0.8, 0.77, 0.66, 1)
+shader_parameter/bay_width = 2.0
+shader_parameter/floor_height = 2.0
+shader_parameter/window_size = Vector2(0.55, 0.5)
+shader_parameter/sill = 0.28
+shader_parameter/frame_width = 0.06
+shader_parameter/frame_color = Color(0.2, 0.21, 0.22, 1)
+shader_parameter/panes = Vector2(2, 2)
+shader_parameter/dirt = 0.7
+shader_parameter/lit_rooms = 0.12
+shader_parameter/slab_band = 0.1
+shader_parameter/slab_color = Color(0.55, 0.55, 0.53, 1)

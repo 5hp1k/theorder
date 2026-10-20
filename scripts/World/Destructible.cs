@@ -94,7 +94,8 @@ public partial class Destructible : StaticBody3D, IDamageable
                 if (!d._destroyed && d._area.Intersects(body) && !Found.Contains(d)) Found.Add(d);
         });
         foreach (var d in Found) d.Destroy(direction);
-        return Found.Count;
+        // (and the trees of the woods, which are not props until they are touched)
+        return Found.Count + ForestField.TrampleAround(position, radius, direction);
     }
 
     public void TakeDamage(float amount, Vector3 point)

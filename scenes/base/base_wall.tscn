@@ -1,0 +1,58 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/ChunkedBuilding.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/chunk_dust.tscn" id="2"]
+[ext_resource type="Material" path="res://materials/facade_bunker.tres" id="3"]
+[ext_resource type="Material" path="res://materials/rubble.tres" id="5"]
+
+[sub_resource type="BoxMesh" id="Preview"]
+size = Vector3(12, 3, 1.5)
+
+[sub_resource type="BoxShape3D" id="Shape"]
+size = Vector3(12, 3, 1.5)
+
+[sub_resource type="BoxMesh" id="Heap"]
+size = Vector3(12.6, 0.9, 1.575)
+
+[sub_resource type="BoxMesh" id="Slab"]
+size = Vector3(4.2, 0.45, 0.45)
+
+[node name="BaseWall" type="StaticBody3D"]
+collision_layer = 32
+collision_mask = 0
+script = ExtResource("1")
+Cells = Vector3i(8, 2, 1)
+CellSize = 1.5
+CellHp = 6
+ChunkFx = ExtResource("2")
+DebrisMaterial = ExtResource("5")
+
+[node name="Chunks" type="MultiMeshInstance3D" parent="."]
+material_override = ExtResource("3")
+
+[node name="Preview" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+mesh = SubResource("Preview")
+material_override = ExtResource("3")
+
+[node name="Collision" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, 0)
+shape = SubResource("Shape")
+
+[node name="Rubble" type="Node3D" parent="."]
+visible = false
+
+[node name="Heap" type="MeshInstance3D" parent="Rubble"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
+mesh = SubResource("Heap")
+material_override = ExtResource("5")
+
+[node name="Slab1" type="MeshInstance3D" parent="Rubble"]
+transform = Transform3D(0.88526, 0.21315, 0.41338, -0.13613, 0.96863, -0.20791, -0.44473, 0.12778, 0.8865, 2.4, 0.45, -0.225)
+mesh = SubResource("Slab")
+material_override = ExtResource("5")
+
+[node name="Slab2" type="MeshInstance3D" parent="Rubble"]
+transform = Transform3D(0.76762, -0.08776, -0.63487, 0.23894, 0.95835, 0.15643, 0.5947, -0.27178, 0.75661, -3, 0.375, 0.3)
+mesh = SubResource("Slab")
+material_override = ExtResource("5")
