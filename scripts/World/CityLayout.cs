@@ -71,6 +71,12 @@ public partial class CityLayout : Node3D
     RandomNumberGenerator _rng;
     MapTerrain _terrain;
     float _pitch, _reach, _detailReach, _detailEdge;
+    // Where the streets run (X of those along Z, Z of those along X): not a ruled grid — blocks of
+    // different sizes, as a town grows street by street.
+    float[] _gx, _gz;
+    /// <summary>How much a block's size wanders from the usual, as a share of it.</summary>
+    [Export(PropertyHint.Range, "0,0.5")] public float Irregularity = 0.32f;
+    public const int MaxStreets = 24;
 
     public override void _Ready()
     {
@@ -82,36 +88,74 @@ public partial class CityLayout : Node3D
         _detailReach = Mathf.Max(1, DetailBlocks / 2) * _pitch;
         _detailEdge = (_terrain?.PlayHalf ?? _reach) + DetailMargin;
 
-        var kinds = Image.CreateEmpty(half * 2, half * 2, false, Image.Format.R8);
-        for (int bx = -half; bx < half; bx++)
-        for (int bz = -half; bz < half; bz++)
+        _gx = Lines(half * 2);
+        _gz = Lines(half * 2);
+        int n = half * 2;
+        var kinds = Image.CreateEmpty(n, n, false, Image.Format.R8);
+        for (int bx = 0; bx < n; bx++)
+        for (int bz = 0; bz < n; bz++)
         {
-            Block kind = FillBlock(new Vector3((bx + 0.5f) * _pitch, 0f, (bz + 0.5f) * _pitch));
-            kinds.SetPixel(bx + half, bz + half, new Color((int)kind * 0.5f, 0f, 0f));
+            var centre = new Vector3((_gx[bx] + _gx[bx + 1]) * 0.5f, 0f, (_gz[bz] + _gz[bz + 1]) * 0.5f);
+            Block kind = FillBlock(centre, (_gx[bx + 1] - _gx[bx] - RoadWidth) * 0.5f, (_gz[bz + 1] - _gz[bz] - RoadWidth) * 0.5f);
+            kinds.SetPixel(bx, bz, new Color((int)kind * 0.5f, 0f, 0f));
         }
 
-        for (int k = -half; k <= half; k++)
+        for (int k = 0; k <= n; k++)
         {
-            Bridges(k * _pitch, false);
-            Bridges(k * _pitch, true);
-            for (int j = -half; j < half; j++)
+            Bridges(_gx[k], false);
+            Bridges(_gz[k], true);
+            for (int j = 0; j < n; j++)
             {
-                float along = (j + 0.5f) * _pitch;
-                Street(new Vector3(k * _pitch, 0f, along), false);
-                Street(new Vector3(along, 0f, k * _pitch), true);
+                Street(new Vector3(_gx[k], 0f, (_gz[j] + _gz[j + 1]) * 0.5f), false, _gz[j + 1] - _gz[j] - RoadWidth);
+                Street(new Vector3((_gx[j] + _gx[j + 1]) * 0.5f, 0f, _gz[k]), true, _gx[j + 1] - _gx[j] - RoadWidth);
             }
-            for (int j = -half; j <= half; j++) Crossing(new Vector3(k * _pitch, 0f, j * _pitch));
+            for (int j = 0; j <= n; j++) Crossing(new Vector3(_gx[k], 0f, _gz[j]));
         }
 
         // The ground paints the streets; it has to know where they are.
         if (_terrain?.GetNodeOrNull<MeshInstance3D>("Mesh")?.MaterialOverride is ShaderMaterial ground)
         {
             ground.SetShaderParameter("street_pitch", _pitch);
+            var xs = new float[MaxStreets];
+            var zs = new float[MaxStreets];
+            for (int i = 0; i < MaxStreets; i++)
+            {
+                xs[i] = i <= n ? _gx[i] : 1e9f;
+                zs[i] = i <= n ? _gz[i] : 1e9f;
+            }
+            ground.SetShaderParameter("street_x", xs);
+            ground.SetShaderParameter("street_z", zs);
+            ground.SetShaderParameter("street_count", n + 1);
             ground.SetShaderParameter("street_width", RoadWidth);
             ground.SetShaderParameter("street_reach", _reach);
             ground.SetShaderParameter("walk_width", Pavement);
             ground.SetShaderParameter("block_map", ImageTexture.CreateFromImage(kinds));
         }
+    }
+
+    /// <summary>The streets across the town one way: blocks of different sizes, the whole as wide as a ruled grid would be.</summary>
+    float[] Lines(int blocks)
+    {
+        var widths = new float[blocks];
+        float total = 0f;
+        for (int i = 0; i < blocks; i++)
+        {
+            widths[i] = 1f + _rng.RandfRange(-Irregularity, Irregularity);
+            total += widths[i];
+        }
+        var lines = new float[blocks + 1];
+        lines[0] = -_reach;
+        for (int i = 0; i < blocks; i++) lines[i + 1] = lines[i] + widths[i] / total * _reach * 2f;
+        return lines;
+    }
+
+    /// <summary>The street line nearest to a coordinate, of those running the given way.</summary>
+    float NearestLine(float v, float[] lines)
+    {
+        float best = lines[0];
+        foreach (float l in lines)
+            if (Mathf.Abs(v - l) < Mathf.Abs(v - best)) best = l;
+        return best;
     }
 
     // ── The lie of the land ─────────────────────────────────────
@@ -137,9 +181,10 @@ public partial class CityLayout : Node3D
 
     // ── Blocks ──────────────────────────────────────────────────
 
-    Block FillBlock(Vector3 centre)
+    Block FillBlock(Vector3 centre, float halfX, float halfZ)
     {
-        float yard = BlockSize * 0.5f - Pavement;
+        float yard = Mathf.Min(halfX, halfZ) - Pavement;
+        float yardX = halfX - Pavement, yardZ = halfZ - Pavement;
         // Water in the block: it's a park round a pond, whatever else it might have been.
         if (AnyWet(centre, yard, yard))
         {
@@ -157,7 +202,7 @@ public partial class CityLayout : Node3D
         roll -= ParkShare;
         if (roll < CarParkShare)
         {
-            CarPark(centre, yard);
+            CarPark(centre, yardX, yardZ);
             return Block.CarPark;
         }
         roll -= CarParkShare;
@@ -170,30 +215,35 @@ public partial class CityLayout : Node3D
 
         if (roll < TowerChance * (1f - edge) && Towers.Length > 0)
         {
-            Building(Pick(Towers), centre, QuarterTurn());
+            Building(Pick(Towers), centre + Setback(yardX, yardZ, 0.12f), QuarterTurn() + Skew());
         }
         else if (roll < 0.45f + 0.4f * (1f - edge) && Houses.Length > 0)
         {
-            // Four mid-rise houses, one per quarter of the block.
-            float q = BlockSize * 0.25f;
-            foreach (float sx in new[] { -1f, 1f })
-            foreach (float sz in new[] { -1f, 1f })
-                Building(Pick(Houses), centre + new Vector3(sx * q, 0f, sz * q), QuarterTurn());
+            // Mid-rise houses, one per quarter of the block (two in a narrow one), each set back its own way.
+            int nx = yardX > 34f ? 2 : 1, nz = yardZ > 34f ? 2 : 1;
+            for (int i = 0; i < nx; i++)
+            for (int j = 0; j < nz; j++)
+            {
+                var at = centre + new Vector3((nx == 1 ? 0f : (i * 2 - 1) * yardX * 0.5f), 0f, (nz == 1 ? 0f : (j * 2 - 1) * yardZ * 0.5f));
+                if (_rng.Randf() < 0.12f) continue;
+                Building(Pick(Houses), at + Setback(yardX / nx, yardZ / nz, 0.15f), QuarterTurn() + Skew());
+            }
         }
         else if (SmallHouses.Length > 0)
         {
-            // A three-by-three of small houses with gaps, and a tree in some of the gaps.
-            float q = BlockSize / 3f;
-            for (int i = -1; i <= 1; i++)
-            for (int j = -1; j <= 1; j++)
+            // Small houses in rows as many as the block holds, with gaps, and a tree in some of the gaps.
+            int nx = Mathf.Max(2, Mathf.RoundToInt(yardX * 2f / 26f)), nz = Mathf.Max(2, Mathf.RoundToInt(yardZ * 2f / 26f));
+            float qx = yardX * 2f / nx, qz = yardZ * 2f / nz;
+            for (int i = 0; i < nx; i++)
+            for (int j = 0; j < nz; j++)
             {
-                Vector3 at = centre + new Vector3(i * q, 0f, j * q);
+                Vector3 at = centre + new Vector3(-yardX + (i + 0.5f) * qx, 0f, -yardZ + (j + 0.5f) * qz);
                 if (_rng.Randf() < EmptyPlots)
                 {
-                    if (Trees.Length > 0 && _rng.Randf() < 0.7f) Stand(Pick(Trees), at, _rng.Randf() * Mathf.Tau);
+                    if (Trees.Length > 0 && _rng.Randf() < 0.7f) Stand(Pick(Trees), at + Setback(qx, qz, 0.3f), _rng.Randf() * Mathf.Tau);
                     continue;
                 }
-                Building(Pick(SmallHouses), at, QuarterTurn());
+                Building(Pick(SmallHouses), at + Setback(qx * 0.5f, qz * 0.5f, 0.12f), QuarterTurn() + Skew());
             }
         }
         return Block.Yard;
@@ -261,14 +311,14 @@ public partial class CityLayout : Node3D
         }
     }
 
-    void CarPark(Vector3 centre, float yard)
+    void CarPark(Vector3 centre, float yardX, float yardZ)
     {
         if (Cars.Length == 0) return;
         // Stalls 2.7 wide in bands along X, as the ground shader draws them: two bands to every 16 m.
         const float stall = 2.7f, band = 16f;
-        float edge = yard;
-        for (float row = -edge; row + band <= edge + 0.1f; row += band)
-        for (float x = -edge + stall * 0.5f; x < edge - 1.5f; x += stall)
+        float edge = Mathf.Min(yardX, yardZ);
+        for (float row = -yardZ; row + band <= yardZ + 0.1f; row += band)
+        for (float x = -yardX + stall * 0.5f; x < yardX - 1.5f; x += stall)
         foreach (float z in new[] { row + 2.5f, row + 13.5f })
         {
             if (_rng.Randf() > 0.34f) continue;
@@ -297,7 +347,7 @@ public partial class CityLayout : Node3D
     // ── Streets ─────────────────────────────────────────────────
 
     /// <summary>One block's length of street: cars at the kerb, lamps, the odd sign and hydrant.</summary>
-    void Street(Vector3 centre, bool alongX)
+    void Street(Vector3 centre, bool alongX, float length)
     {
         Vector3 Along(float along, float across) => centre + (alongX ? new Vector3(along, 0f, across) : new Vector3(across, 0f, along));
         float yaw = alongX ? Mathf.Pi / 2f : 0f;
@@ -307,25 +357,25 @@ public partial class CityLayout : Node3D
         for (int i = 0; i < cars; i++)
         {
             float side = _rng.Randf() < 0.5f ? -1f : 1f;
-            Vector3 at = Along(_rng.RandfRange(-BlockSize * 0.42f, BlockSize * 0.42f), side * (kerb - 2.2f));
+            Vector3 at = Along(_rng.RandfRange(-length * 0.42f, length * 0.42f), side * (kerb - 2.2f));
             Stand(PickCar(), at, yaw + (_rng.Randf() < 0.5f ? Mathf.Pi : 0f), 0.06f, true);
         }
 
         // Lamps: one each side, staggered, arm over the road.
         if (LampScene != null)
         {
-            Stand(LampScene, Along(-BlockSize * 0.22f, kerb + 1f), yaw + Mathf.Pi * 0.5f * (alongX ? -1f : 1f));
-            Stand(LampScene, Along(BlockSize * 0.22f, -kerb - 1f), yaw - Mathf.Pi * 0.5f * (alongX ? -1f : 1f));
+            Stand(LampScene, Along(-length * 0.22f, kerb + 1f), yaw + Mathf.Pi * 0.5f * (alongX ? -1f : 1f));
+            Stand(LampScene, Along(length * 0.22f, -kerb - 1f), yaw - Mathf.Pi * 0.5f * (alongX ? -1f : 1f));
         }
         if (Signs.Length > 0 && _rng.Randf() < 0.45f)
         {
             float side = _rng.Randf() < 0.5f ? -1f : 1f;
-            Stand(Pick(Signs), Along(side * BlockSize * 0.36f, side * (kerb + 1.1f)), yaw + (side > 0f ? 0f : Mathf.Pi));
+            Stand(Pick(Signs), Along(side * length * 0.36f, side * (kerb + 1.1f)), yaw + (side > 0f ? 0f : Mathf.Pi));
         }
         if (Furniture.Length > 0 && _rng.Randf() < 0.6f)
         {
             float side = _rng.Randf() < 0.5f ? -1f : 1f;
-            Stand(Pick(Furniture), Along(_rng.RandfRange(-BlockSize * 0.3f, BlockSize * 0.3f), side * (kerb + 2.4f)), yaw + side * Mathf.Pi * 0.5f * (alongX ? 1f : -1f));
+            Stand(Pick(Furniture), Along(_rng.RandfRange(-length * 0.3f, length * 0.3f), side * (kerb + 2.4f)), yaw + side * Mathf.Pi * 0.5f * (alongX ? 1f : -1f));
         }
     }
 
@@ -395,7 +445,7 @@ public partial class CityLayout : Node3D
                 Vector3 c = bridge.BlockCentre(x, 0, z);
                 Vector3 edge = bridge.Transform * (c + new Vector3(side * (half + 1.5f), half, 0f));
                 float along = alongX ? edge.X : edge.Z;
-                bool sideStreet = Mathf.Abs(along - Mathf.Round(along / _pitch) * _pitch) < RoadWidth * 0.5f + Pavement;
+                bool sideStreet = Mathf.Abs(along - NearestLine(along, alongX ? _gx : _gz)) < RoadWidth * 0.5f + Pavement;
                 float drop = edge.Y - Ground(edge.X, edge.Z);
                 if (BridgeRailScene != null && !sideStreet && drop > 0.8f)
                 {
@@ -422,6 +472,10 @@ public partial class CityLayout : Node3D
     PackedScene Pick(PackedScene[] scenes) => scenes[_rng.RandiRange(0, scenes.Length - 1)];
     PackedScene PickCar() => ServiceCars.Length > 0 && _rng.Randf() < 0.08f ? Pick(ServiceCars) : Pick(Cars);
     float QuarterTurn() => _rng.RandiRange(0, 3) * Mathf.Pi / 2f;
+    /// <summary>A few degrees off square: nothing in a real town is laid quite true.</summary>
+    float Skew() => _rng.RandfRange(-0.06f, 0.06f);
+    /// <summary>Set back from the middle of its plot by up to this share of it, some way or other.</summary>
+    Vector3 Setback(float halfX, float halfZ, float share) => new(_rng.RandfRange(-halfX, halfX) * share, 0f, _rng.RandfRange(-halfZ, halfZ) * share);
 
     /// <summary>Stands a prop on the ground (not in water); with tilt, leaning with the slope like a parked car.</summary>
     void Stand(PackedScene scene, Vector3 at, float yaw, float lift = 0f, bool tilt = false)

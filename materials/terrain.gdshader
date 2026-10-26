@@ -80,6 +80,10 @@ uniform float street_pitch = 0.0;
 uniform float street_width = 16.0;
 // The streets run this far from the middle of the map, each way.
 uniform float street_reach = 360.0;
+// Where the streets run (from CityLayout: X of those along Z, Z of those along X; unused ones far away).
+uniform float street_x[24];
+uniform float street_z[24];
+uniform int street_count = 0;
 // One pixel per block: red 0 = yards, 0.5 = a car park, 1 = a paved square.
 uniform sampler2D block_map : filter_nearest, repeat_disable;
 uniform sampler2D street_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
@@ -95,6 +99,13 @@ uniform vec3 walk_tint : source_color = vec3(0.8);
 // Width of the pavement beside a street.
 uniform float walk_width = 4.0;
 uniform vec3 marking_color : source_color = vec3(0.72, 0.71, 0.66);
+
+group_uniforms tracks;
+// Dirt tracks (MapTerrain.Tracks): axis (0 along X, 1 along Z), offset, meander, width. Drawn with wheel ruts.
+uniform vec4 tracks[4];
+uniform int track_count = 0;
+uniform float track_phase = 0.0;
+uniform vec3 track_tint : source_color = vec3(0.6, 0.52, 0.42);
 
 varying vec3 world_pos;
 varying vec3 world_normal;
@@ -151,24 +162,70 @@ void fragment() {
 	float rock = smoothstep(slope_start, slope_end, slope + (fine.b - 0.5) * 0.06);
 	s = blend(s, surface(cliff_albedo, cliff_normal, cliff_arm, cliff_size, cliff_tint, far), rock);
 
+	for (int i = 0; i < 4; i++) {
+		if (i >= track_count) {
+			break;
+		}
+		vec4 t = tracks[i];
+		float along = t.x < 0.5 ? world_pos.x : world_pos.z;
+		float across = t.x < 0.5 ? world_pos.z : world_pos.x;
+		float ph = track_phase + float(i) * 1.7;
+		float centre = t.y + t.z * (0.7 * sin(along / 140.0 + ph) + 0.3 * sin(along / 57.0 + ph * 2.0));
+		float d = abs(across - centre);
+		float half_w = t.w * 0.5;
+		// a ragged verge: grass (snow, sand) creeping in at the edges
+		float on = 1.0 - smoothstep(half_w - 1.2, half_w + 0.8 + fine.r * 1.6, d + (broad.b - 0.5) * 1.5);
+		if (on <= 0.0) {
+			continue;
+		}
+		Surface dirt = surface(patch_albedo, patch_normal, patch_arm, patch_size * 0.6, track_tint, far);
+		// two lanes of wheel ruts, darker and smoother, wandering a little
+		float wob = (fine.g - 0.5) * 0.25;
+		float rut = 0.0;
+		for (int k = 0; k < 4; k++) {
+			float lane = (float(k) - 1.5) * min(1.9, half_w * 0.45);
+			rut = max(rut, 1.0 - smoothstep(0.18, 0.5, abs(across - centre - lane - wob)));
+		}
+		dirt.albedo *= 1.0 - 0.32 * rut;
+		dirt.rough = mix(dirt.rough, 0.55, rut * 0.6);
+		dirt.bump *= 0.5;
+		// (not under the water: a ford is a ford)
+		s = blend(s, dirt, on * smoothstep(water_level - 0.1, water_level + 0.3, world_pos.y));
+	}
+
 	if (street_pitch > 0.0) {
 		vec2 p = world_pos.xz;
-		vec2 street = round(p / street_pitch) * street_pitch;
-		vec2 off = abs(p - street);                // distance to the nearest street running along Z (x) and along X (y)
+		// The nearest street each way, and the block between which streets this is.
+		float nx = 1e9, nz = 1e9;
+		int ix = 0, iz = 0;
+		for (int i = 0; i < 24; i++) {
+			if (i >= street_count) {
+				break;
+			}
+			float dx = p.x - street_x[i], dz = p.y - street_z[i];
+			if (abs(dx) < abs(nx)) { nx = dx; }
+			if (abs(dz) < abs(nz)) { nz = dz; }
+			if (p.x >= street_x[i]) { ix = i; }
+			if (p.y >= street_z[i]) { iz = i; }
+		}
+		int last = max(street_count - 1, 1);
+		ix = min(ix, last - 1);
+		iz = min(iz, last - 1);
+		vec2 off = vec2(abs(nx), abs(nz));                // distance to the nearest street running along Z (x) and along X (y)
 		float half_w = street_width * 0.5;
-		float inside = step(max(abs(p.x), abs(p.y)), street_reach + half_w);
+		float inside = step(street_x[0] - half_w, p.x) * step(p.x, street_x[last] + half_w) * step(street_z[0] - half_w, p.y) * step(p.y, street_z[last] + half_w);
 		float dry = step(water_level + 0.3, world_pos.y);
 		float nearest = min(off.x, off.y);
 		float on_street = step(nearest, half_w) * inside * dry;
 		float on_walk = step(nearest, half_w + walk_width) * (1.0 - on_street) * inside * dry;
 
 		// What the block itself is.
-		float count = floor(street_reach / street_pitch + 0.5);
-		vec2 block = floor(p / street_pitch);
-		float kind = texture(block_map, (block + count + 0.5) / (count * 2.0)).r;
-		vec2 in_block = p - (block + 0.5) * street_pitch;
-		float yard_edge = street_pitch * 0.5 - half_w - walk_width;
-		float in_yard = step(max(abs(in_block.x), abs(in_block.y)), yard_edge) * inside * dry;
+		float count = float(last);
+		float kind = texture(block_map, (vec2(float(ix), float(iz)) + 0.5) / count).r;
+		vec2 lo = vec2(street_x[ix], street_z[iz]), hi = vec2(street_x[ix + 1], street_z[iz + 1]);
+		vec2 in_block = p - (lo + hi) * 0.5;
+		vec2 yard_edge = (hi - lo) * 0.5 - half_w - walk_width;
+		float in_yard = step(abs(in_block.x), yard_edge.x) * step(abs(in_block.y), yard_edge.y) * inside * dry;
 		float parking = in_yard * step(0.25, kind) * step(kind, 0.75);
 		float square = in_yard * step(0.75, kind);
 
@@ -202,7 +259,7 @@ void fragment() {
 		float row = fract(bay.y / 16.0) * 16.0;
 		float stalls = step(abs(fract(bay.x / 2.7) - 0.5), 0.02 * 2.7) * (step(row, 5.0) + step(11.0, row));
 		stalls = max(stalls, step(abs(row - 5.0), 0.06) + step(abs(row - 11.0), 0.06));
-		mark = max(mark * on_street, stalls * parking * step(max(abs(in_block.x), abs(in_block.y)), yard_edge - 1.0));
+		mark = max(mark * on_street, stalls * parking * step(abs(in_block.x), yard_edge.x - 1.0) * step(abs(in_block.y), yard_edge.y - 1.0));
 		// Wear: the paint is patchy, and gone where the asphalt is most broken.
 		mark *= smoothstep(0.25, 0.5, fine.g + road.rough * 0.3) * (1.0 - smoothstep(120.0, 260.0, dist));
 		road.albedo = mix(road.albedo, marking_color, mark * 0.85);

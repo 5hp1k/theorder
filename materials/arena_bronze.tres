@@ -1,0 +1,19 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://materials/armor.gdshader" id="shader"]
+[ext_resource type="Texture2D" path="res://textures/metal_plate_02/metal_plate_02_nor.jpg" id="nor"]
+[ext_resource type="Texture2D" path="res://textures/metal_plate_02/metal_plate_02_arm.jpg" id="arm"]
+[ext_resource type="Texture2D" path="res://textures/terrain_noise.png" id="noise"]
+
+[resource]
+shader = ExtResource("shader")
+shader_parameter/surface_normal = ExtResource("nor")
+shader_parameter/surface_arm = ExtResource("arm")
+shader_parameter/noise_tex = ExtResource("noise")
+shader_parameter/paint_color = Color(0.55, 0.33, 0.14, 1)
+shader_parameter/paint_roughness = 0.35
+shader_parameter/paint_metallic = 0.85
+shader_parameter/wear = 0.5
+shader_parameter/dirt = 0.4
+shader_parameter/surface_bump = 0.3
+shader_parameter/surface_scale = 0.8

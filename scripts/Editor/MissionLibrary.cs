@@ -115,7 +115,7 @@ public static class MissionLibrary
         {
             case "destroy":
                 doc.Briefing = "Разведка засекла группу противника к северу от вас. Найдите её и уничтожьте.";
-                Enemies(doc, "Цели", new[] { "hound", "cleaver", "ostrich" }, 0f, -260f);
+                Enemies(doc, "Цели", new[] { "hound", "mauler", "ostrich" }, 0f, -260f);
                 doc.Objectives.Add(new ObjectiveDoc { Name = "Уничтожить", Kind = "destroy", Text = "Уничтожить вражескую группу", Group = "Цели" });
                 break;
             case "defend":
@@ -161,7 +161,7 @@ public static class MissionLibrary
                 doc.Objectives.Add(new ObjectiveDoc { Name = "Выжить", Kind = "survive", Text = "Продержаться", Seconds = 300f });
                 for (int w = 0; w < 4; w++)
                 {
-                    var wave = Enemies(doc, "Волна" + (w + 1), new[] { "hound", "cleaver" }, (w % 2 == 0 ? -1f : 1f) * 200f, -260f + w * 40f, spawn: false, hunt: true);
+                    var wave = Enemies(doc, "Волна" + (w + 1), new[] { "hound", "mauler" }, (w % 2 == 0 ? -1f : 1f) * 200f, -260f + w * 40f, spawn: false, hunt: true);
                     doc.Triggers.Add(new TriggerDoc { Name = "Таймер" + (w + 1), Kind = "timer", Delay = 5f + w * 60f, Steps = new List<string>(wave) });
                 }
                 break;

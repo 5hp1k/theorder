@@ -19,7 +19,7 @@ public partial class SettingsPanel : Control
     /// <summary>The line a voice is heard saying when it is chosen or tried.</summary>
     [Export] public string PreviewLine = "Startup";
 
-    Label _sensLabel, _fovLabel, _scaleLabel, _weatherLabel, _drawLabel, _fxRangeLabel, _debrisLabel;
+    Label _sensLabel, _fovLabel, _bobLabel, _scaleLabel, _weatherLabel, _drawLabel, _fxRangeLabel, _debrisLabel;
     OptionButton _preset;
     Button[] _bindButtons = Array.Empty<Button>();
     int _rebinding = -1;
@@ -30,6 +30,7 @@ public partial class SettingsPanel : Control
         GameConfig.EnsureLoaded();
         _sensLabel = GetNode<Label>("%SensLabel");
         _fovLabel = GetNode<Label>("%FovLabel");
+        _bobLabel = GetNode<Label>("%BobLabel");
         _scaleLabel = GetNode<Label>("%RenderScaleLabel");
         _weatherLabel = GetNode<Label>("%WeatherLabel");
         _drawLabel = GetNode<Label>("%DrawDistanceLabel");
@@ -64,8 +65,20 @@ public partial class SettingsPanel : Control
         // The game.
         Slide("%SensSlider", () => GameConfig.MouseSensitivity, v => GameConfig.MouseSensitivity = v);
         Slide("%FovSlider", () => GameConfig.Fov, v => GameConfig.Fov = v);
+        Slide("%BobSlider", () => GameConfig.ViewBob, v => GameConfig.ViewBob = v);
         Check("%ShowFpsCheck", () => GameConfig.ShowFps, v => GameConfig.ShowFps = v);
         Check("%GlassFxCheck", () => GameConfig.CockpitGlassFx, v => GameConfig.CockpitGlassFx = v);
+        var mode = GetNode<OptionButton>("%ControlModeOption");
+        foreach (string name in new[] { "Классический", "Аркадный", "Симулятор" }) mode.AddItem(Loc.T(name));
+        var about = GetNode<Label>("%ControlModeAbout");
+        void Explain() => about.Text = Loc.T(GameConfig.Controls switch
+        {
+            GameConfig.ControlStyle.Arcade => "Машина идёт туда, куда указывают клавиши относительно камеры, ноги поворачивают сами, торс следит за мышью, прицел помогает навестись. Вид сзади.",
+            GameConfig.ControlStyle.Simulator => "Только из кабины. Фары, режимы, цели, приборы — тумблерами и кнопками кабины (F — курсор), их клавиши не работают.",
+            _ => "Газ и поворот ног — клавишами, торс — мышью, все функции — клавишами.",
+        });
+        Pick("%ControlModeOption", () => (int)GameConfig.Controls, i => { GameConfig.Controls = (GameConfig.ControlStyle)i; ControlModes.Apply(); Explain(); });
+        Explain();
         Pick("%SimRateOption", () => GameConfig.SimulationRate >= 120 ? 1 : 0, i => GameConfig.SimulationRate = i == 1 ? 120 : 60);
 
         // The window.
@@ -225,6 +238,7 @@ public partial class SettingsPanel : Control
     {
         _sensLabel.Text = Loc.T($"×{GameConfig.MouseSensitivity:0.00}");
         _fovLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.Fov)}°");
+        _bobLabel.Text = GameConfig.ViewBob <= 0f ? Loc.T("выкл") : $"{Mathf.RoundToInt(GameConfig.ViewBob * 100f)}%";
         _scaleLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.RenderScale * 100f)}%");
         _weatherLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.WeatherDensity * 100f)}%");
         _drawLabel.Text = Loc.T($"{Mathf.RoundToInt(GameConfig.DrawDistance * 100f)}%");

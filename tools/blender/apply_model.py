@@ -61,6 +61,7 @@ for path, props in data.get('props', {}).items():
     if n is None: continue
     for key, value in props.items():
         if isinstance(value, (list, tuple)): n.set(key, 'Vector%d(%s)' % (len(value), ', '.join('%.6g' % v for v in value)))
+        elif isinstance(value, str): n.set(key, '"%s"' % value)
         else: n.set(key, '%.6g' % value)
 root = sc.nodes()[0]
 for prop, mesh in data.get('root', {}).items():

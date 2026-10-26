@@ -20,10 +20,10 @@ public static class Catalog
         new("ballista", "Баллиста", "res://scenes/mech/ballista.tscn"),
         new("panther", "Пантера", "res://scenes/mech/panther.tscn"),
         new("hades", "Аид", "res://scenes/mech/hades.tscn"),
-        new("gladiator", "Гладиатор", "res://scenes/mech/gladiator.tscn"),
-        new("cleaver", "Секач", "res://scenes/mech/cleaver.tscn"),
         new("agni", "Агни", "res://scenes/mech/agni.tscn"),
         new("executioner", "Палач", "res://scenes/mech/executioner.tscn"),
+        new("mauler", "Громила", "res://scenes/mech/mauler.tscn"),
+        new("direwolf", "Лютоволк", "res://scenes/mech/direwolf.tscn"),
         new("mantis", "Мантис", "res://scenes/mech/mantis.tscn"),
     };
 
@@ -67,7 +67,7 @@ public static class Catalog
     /// <summary>What the mission editor can put on a map, in its groups (Id is the scene's file name).</summary>
     public static readonly (string Group, Entry[] Items)[] Props =
     {
-        ("Укрытия", Scenes("base", ("jersey_barrier", "Бетонный блок"), ("sandbags", "Мешки с песком"), ("base_wall", "Стена базы"), ("barrier_wall", "Высокая стена"), ("concrete_block", "Бетонный куб"),
+        ("Укрытия", Scenes("base", ("jersey_barrier", "Бетонный блок"), ("sandbags", "Мешки с песком"), ("base_wall", "Стена базы"), ("barrier_wall", "Бронированный бруствер"), ("concrete_block", "Бетонный пилон"),
             ("bunker", "Бетонный бункер"), ("container_green", "Контейнер (зелёный)"), ("container_blue", "Контейнер (синий)"), ("container_red", "Контейнер (красный)"))),
         ("Постройки", Scenes("base", ("barracks", "Казарма (здание)"), ("hangar", "Ангар"), ("hq", "Штаб"), ("warehouse", "Складское здание"),
             ("control_tower", "Диспетчерская вышка"), ("watchtower", "Вышка охраны"), ("radar", "Радарная станция"), ("fuel_tank", "Топливный бак"))),
@@ -79,6 +79,7 @@ public static class Catalog
         ("Природа", Scenes("props", ("rock_large", "Скала большая"), ("rock_medium", "Скала средняя"), ("rock_small", "Скала малая"),
             ("stone_large", "Камень большой"), ("stone_medium", "Камень средний"), ("stone_small", "Камень малый"), ("tree_oak", "Дерево: дуб"),
             ("tree_birch", "Дерево: берёза"), ("pine_tall", "Дерево: сосна"), ("fir_tall_green", "Дерево: ель"), ("palm_tall", "Дерево: пальма"), ("cactus_saguaro", "Кактус-сагуаро"))),
+        ("Арена", Scenes("arena", ("pylon", "Пилон-обелиск"), ("rampart", "Крепостная стена"), ("bastion", "Бастион"), ("ruins", "Руины колоннады"))),
         ("Прочее", Scenes("props", ("oil_rig", "Нефтекачалка"), ("repair_bay", "Ремонтная площадка"))),
     };
 
@@ -149,8 +150,13 @@ public static class Catalog
         return all.ToArray();
     }
 
+    /// <summary>Machines taken out of the game, and what stands in for them where an old save, mission or
+    /// setting still asks for them.</summary>
+    static readonly System.Collections.Generic.Dictionary<string, string> Retired = new() { ["cleaver"] = "mauler", ["gladiator"] = "direwolf" };
+
     public static Entry Find(Entry[] list, string id)
     {
+        if (id != null && Retired.TryGetValue(id, out string now)) id = now;
         foreach (var e in list)
             if (e.Id == id) return e;
         return list[0];
@@ -158,6 +164,7 @@ public static class Catalog
 
     public static int IndexOf(Entry[] list, string id)
     {
+        if (id != null && Retired.TryGetValue(id, out string now)) id = now;
         for (int i = 0; i < list.Length; i++)
             if (list[i].Id == id) return i;
         return 0;

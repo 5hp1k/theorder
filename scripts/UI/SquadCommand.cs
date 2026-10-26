@@ -65,6 +65,16 @@ public partial class SquadCommand : HudWidget
         _who = -2;
     }
 
+    /// <summary>An order to the whole lance from the cab's keys (the numbers as in the list of orders).</summary>
+    public static void GiveAll(int order)
+    {
+        if (_shown == null || !IsInstanceValid(_shown) || Game.Instance?.Squad is not { Count: > 0 }) return;
+        int was = _shown._who;
+        _shown._who = -1;
+        _shown.Give(order);
+        _shown._who = was == -2 ? -2 : was;
+    }
+
     void Give(int order)
     {
         var squad = Game.Instance.Squad;

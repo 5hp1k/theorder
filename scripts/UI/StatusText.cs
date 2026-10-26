@@ -30,6 +30,16 @@ public partial class StatusText : HudWidget
             Text($"{Loc.T(Seat.UnitName).ToUpper()}: УНИЧТОЖЕН", new Vector2(0f, 30f), 30, Red, HorizontalAlignment.Center, w);
             Text($"Восстановление через {Mathf.CeilToInt(Seat.RespawnLeft)} с", new Vector2(0f, 62f), 20, Amber, HorizontalAlignment.Center, w);
         }
+        else if (Seat.ReactorOff)
+        {
+            Text("РЕАКТОР ВЫКЛЮЧЕН", new Vector2(0f, 30f), 30, Amber, HorizontalAlignment.Center, w);
+            Text(ControlModes.Simulator ? "Запуск — кнопка «РЕАКТ»" : "Запуск — P", new Vector2(0f, 62f), 20, Amber, HorizontalAlignment.Center, w);
+        }
+        else if (Seat.ReactorStarting)
+        {
+            Text("ЗАПУСК РЕАКТОРА", new Vector2(0f, 30f), 30, Amber, HorizontalAlignment.Center, w);
+            Text(Seat.Heat > Seat.RestartHeat ? $"Остывание до {Mathf.RoundToInt(Seat.RestartHeat * 100f)}%" : $"{Mathf.RoundToInt(Seat.RestartProgress * 100f)}%", new Vector2(0f, 62f), 20, Amber, HorizontalAlignment.Center, w);
+        }
         else if (Seat.IsShutdown)
         {
             Text("РЕАКТОР ОТКЛЮЧЁН — ПЕРЕГРЕВ", new Vector2(0f, 30f), 30, Red, HorizontalAlignment.Center, w);
@@ -37,6 +47,16 @@ public partial class StatusText : HudWidget
                 ? $"Перезапуск… {Mathf.RoundToInt(Seat.RestartProgress * 100f)}%"
                 : $"Остывание до {Mathf.RoundToInt(Seat.RestartHeat * 100f)}%";
             Text(sub, new Vector2(0f, 62f), 20, Amber, HorizontalAlignment.Center, w);
+        }
+        else if (Seat.EngineOff)
+        {
+            Text("ДВИГАТЕЛЬ ЗАГЛУШЕН", new Vector2(0f, 30f), 26, Amber, HorizontalAlignment.Center, w);
+            Text(ControlModes.Simulator ? "Запуск — кнопка «ДВИГ»" : "Запуск — O", new Vector2(0f, 62f), 18, Amber, HorizontalAlignment.Center, w);
+        }
+        else if (Seat.EngineStarting)
+        {
+            Text("ЗАПУСК ДВИГАТЕЛЯ", new Vector2(0f, 30f), 26, Amber, HorizontalAlignment.Center, w);
+            Text($"{Mathf.RoundToInt(Seat.EngineProgress * 100f)}%", new Vector2(0f, 62f), 18, Amber, HorizontalAlignment.Center, w);
         }
         else if (Jam > 0f)
         {

@@ -853,10 +853,16 @@ public partial class Vehicle : CharacterBody3D, IDrivable, IDamageable
         if (terrain == null) return;
         // The real ground ends here: nothing gets further (and beyond the battlefield's edge, short of
         // this, a machine has only so long before it is lost, see Boundary).
-        float limit = terrain.HardHalf;
-        Vector3 p = GlobalPosition;
-        if (Mathf.Abs(p.X) <= limit && Mathf.Abs(p.Z) <= limit) return;
-        GlobalPosition = new Vector3(Mathf.Clamp(p.X, -limit, limit), p.Y, Mathf.Clamp(p.Z, -limit, limit));
+        // (Aircraft fly over an arena's wall; the rest are kept inside it.)
+        Vector3 p = GlobalPosition, kept;
+        if (Kind is MoveKind.Plane or MoveKind.Helicopter)
+        {
+            float limit = terrain.HardHalf;
+            kept = new Vector3(Mathf.Clamp(p.X, -limit, limit), p.Y, Mathf.Clamp(p.Z, -limit, limit));
+        }
+        else kept = terrain.Contain(p, out _);
+        if (kept.IsEqualApprox(p)) return;
+        GlobalPosition = kept;
         Blocked = true;
     }
 

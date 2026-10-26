@@ -34,8 +34,25 @@ public partial class MapTerrain : StaticBody3D
     {
         float limit = HardHalf;
         wasOutside = Mathf.Abs(p.X) > limit || Mathf.Abs(p.Z) > limit;
-        return wasOutside ? new Vector3(Mathf.Clamp(p.X, -limit, limit), p.Y, Mathf.Clamp(p.Z, -limit, limit)) : p;
+        if (wasOutside) p = new Vector3(Mathf.Clamp(p.X, -limit, limit), p.Y, Mathf.Clamp(p.Z, -limit, limit));
+        if (!InsideEnclosure(p))
+        {
+            wasOutside = true;
+            float k = 1f / Mathf.Sqrt(p.X * p.X / (Enclosure.X * Enclosure.X) + p.Z * p.Z / (Enclosure.Y * Enclosure.Y));
+            p = new Vector3(p.X * k, p.Y, p.Z * k);
+        }
+        return p;
     }
+
+    /// <summary>
+    /// The half-axes (x, z) of the wall round an arena, as far as the middle of a machine may go: nothing
+    /// that walks or drives gets past it, jump jets or not (on the wall, in the stands). Zero = no such wall.
+    /// </summary>
+    [Export] public Vector2 Enclosure;
+
+    /// <summary>Whether a position is inside the arena's wall (always, where there is none).</summary>
+    public bool InsideEnclosure(Vector3 p, float margin = 0f) =>
+        Enclosure.X <= 0f || p.X * p.X / Mathf.Pow(Enclosure.X - margin, 2) + p.Z * p.Z / Mathf.Pow(Enclosure.Y - margin, 2) <= 1f;
 
     [ExportGroup("Shape")]
     [Export] public int Seed = 1337;
@@ -62,6 +79,28 @@ public partial class MapTerrain : StaticBody3D
     [Export] public float DetailHeight = 1.4f;
     /// <summary>Radius of level ground around the map centre (the player's start).</summary>
     [Export] public float FlatRadius = 28f;
+    /// <summary>
+    /// How much the hills and ridges are bent out of the noise's own round shapes (a share of their
+    /// length): spurs, saddles and winding valleys instead of evenly scattered humps. 0 = not at all.
+    /// </summary>
+    [Export(PropertyHint.Range, "0,0.8")] public float Warp;
+    /// <summary>
+    /// Dry washes and gullies cut by run-off: how deep (metres; 0 = none), how wide, and how far apart they
+    /// wander. They branch and meander, with steep little banks.
+    /// </summary>
+    [Export] public float WashDepth;
+    [Export] public float WashWidth = 9f;
+    [Export] public float WashLength = 240f;
+
+    [ExportGroup("Tracks")]
+    /// <summary>
+    /// Dirt tracks across the map, worn by traffic, following the lie of the land: each is (axis — 0 along X,
+    /// 1 along Z —, offset of its middle line, how far it meanders, width). Painted by the ground's shader
+    /// with wheel ruts; the ground under them is a little worn down.
+    /// </summary>
+    [Export] public Vector4[] Tracks = System.Array.Empty<Vector4>();
+    /// <summary>What a track's surface is tinted (the ground's patch texture under it): mud, packed snow, sand.</summary>
+    [Export] public Color TrackTint = new(0.6f, 0.52f, 0.42f);
 
     [ExportGroup("Backdrop")]
     /// <summary>Side of the square of scenery around the map, metres. 0 = none.</summary>
@@ -92,8 +131,19 @@ public partial class MapTerrain : StaticBody3D
     [Export] public float RiverMeander = 70f;
     /// <summary>Basins dug for water where the map is laid out by hand: X, Z of the middle and radius (Z of the vector).</summary>
     [Export] public Vector3[] Pools = System.Array.Empty<Vector3>();
+    /// <summary>
+    /// Ramps cut down into the ground along X (an arena's ways down to its 'Mech bays): where the ramp
+    /// starts at floor level (X), where it reaches the bottom (X; on either side of the start), half its
+    /// width, and how deep it goes. Past its bottom the cut stays at that depth. Its sides are left steep,
+    /// for walls to stand on.
+    /// </summary>
+    [Export] public Vector4[] Ramps = System.Array.Empty<Vector4>();
+    /// <summary>Old craters in the ground, there from the start (X, Z of the middle and radius): a bowl with a raised lip.</summary>
+    [Export] public Vector3[] Craters = System.Array.Empty<Vector3>();
     /// <summary>Everything with Z beyond this is open sea (the ground slopes away under water). 0 = no sea.</summary>
     [Export] public float SeaStart;
+    /// <summary>How far the shore wanders in and out — bays, headlands, a spit — metres either way.</summary>
+    [Export] public float ShoreWander = 40f;
     /// <summary>Spawned where a foot comes down in water.</summary>
     [Export] public PackedScene SplashScene;
 
@@ -101,6 +151,8 @@ public partial class MapTerrain : StaticBody3D
     /// <summary>Solid obstacles: rocks, boulders.</summary>
     [Export] public PackedScene[] SolidScenes = System.Array.Empty<PackedScene>();
     [Export] public int SolidCount = 36;
+    /// <summary>Share of the rocks that lie near another one, in fields and outcrops, rather than strewn evenly.</summary>
+    [Export(PropertyHint.Range, "0,1")] public float SolidClumping;
     /// <summary>Vegetation: cacti, trees.</summary>
     [Export] public PackedScene[] PlantScenes = System.Array.Empty<PackedScene>();
     [Export] public int PlantCount = 90;
@@ -137,7 +189,7 @@ public partial class MapTerrain : StaticBody3D
     /// <summary>Top-down relief picture of the whole map for the radar (north = up).</summary>
     public ImageTexture MapTexture { get; private set; }
 
-    FastNoiseLite _ridges, _hills, _detail, _mountains;
+    FastNoiseLite _ridges, _hills, _detail, _mountains, _washes;
     // Craters: how far each grid point has been dug down (or heaped up) since the map was made.
     float[] _dig;
     int _grid;
@@ -160,19 +212,49 @@ public partial class MapTerrain : StaticBody3D
         BuildMapTexture();
         ScatterProps();
 
-        // The ground's shader needs to know where the water stands to draw the shore.
-        if (GetNode<MeshInstance3D>("Mesh").MaterialOverride is ShaderMaterial ground && HasWater)
+        // The ground's shader needs to know where the water stands to draw the shore, and where the tracks run.
+        if (GetNode<MeshInstance3D>("Mesh").MaterialOverride is ShaderMaterial ground)
         {
-            ground.SetShaderParameter("water_level", WaterLevel);
-            ground.SetShaderParameter("shore_level", WaterLevel + 0.3f);
+            if (HasWater)
+            {
+                ground.SetShaderParameter("water_level", WaterLevel);
+                ground.SetShaderParameter("shore_level", WaterLevel + 0.3f);
+            }
+            var tracks = new Vector4[4];
+            for (int i = 0; i < Mathf.Min(Tracks.Length, 4); i++) tracks[i] = Tracks[i];
+            ground.SetShaderParameter("tracks", tracks);
+            ground.SetShaderParameter("track_count", Mathf.Min(Tracks.Length, 4));
+            ground.SetShaderParameter("track_phase", Seed * 0.37f);
+            ground.SetShaderParameter("track_tint", TrackTint);
         }
 
         var water = GetNodeOrNull<MeshInstance3D>("Water");
         if (water == null) return;
         water.Visible = HasWater;
         float extent = Mathf.Max(Size, FarSize);
-        water.Mesh = new PlaneMesh { Size = new Vector2(extent, extent) };
+        water.Mesh = PoolsOnly ? PoolWater() : new PlaneMesh { Size = new Vector2(extent, extent) };
         water.Position = new Vector3(0f, WaterLevel, 0f);
+    }
+
+    /// <summary>The water of the pools alone: a disc over each, a little wider than its basin.</summary>
+    ArrayMesh PoolWater()
+    {
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        st.SetNormal(Vector3.Up);
+        foreach (var pool in Pools)
+        {
+            const int segs = 48;
+            float r = pool.Z * 1.3f;
+            for (int i = 0; i < segs; i++)
+            {
+                float a0 = i * Mathf.Tau / segs, a1 = (i + 1) * Mathf.Tau / segs;
+                st.AddVertex(new Vector3(pool.X, 0f, pool.Y));
+                st.AddVertex(new Vector3(pool.X + Mathf.Cos(a0) * r, 0f, pool.Y + Mathf.Sin(a0) * r));
+                st.AddVertex(new Vector3(pool.X + Mathf.Cos(a1) * r, 0f, pool.Y + Mathf.Sin(a1) * r));
+            }
+        }
+        return st.Commit();
     }
 
     void EnsureNoise()
@@ -184,6 +266,22 @@ public partial class MapTerrain : StaticBody3D
         {
             Seed = Seed + 2, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex, Frequency = 1f / 48f,
             FractalType = FastNoiseLite.FractalTypeEnum.Fbm, FractalOctaves = 3, FractalGain = 0.38f,
+        };
+        if (Warp > 0f)
+            foreach (var (noise, length) in new[] { (_hills, HillLength), (_ridges, RidgeLength) })
+            {
+                noise.DomainWarpEnabled = true;
+                noise.DomainWarpType = FastNoiseLite.DomainWarpTypeEnum.SimplexReduced;
+                noise.DomainWarpAmplitude = Warp * length;
+                noise.DomainWarpFrequency = 1f / Mathf.Max(length * 1.6f, 1f);
+                noise.DomainWarpFractalType = FastNoiseLite.DomainWarpFractalTypeEnum.Progressive;
+                noise.DomainWarpFractalOctaves = 2;
+            }
+        _washes = new FastNoiseLite
+        {
+            Seed = Seed + 4, NoiseType = FastNoiseLite.NoiseTypeEnum.Simplex, Frequency = 1f / Mathf.Max(WashLength, 1f),
+            FractalType = FastNoiseLite.FractalTypeEnum.Fbm, FractalOctaves = 2, FractalGain = 0.45f,
+            DomainWarpEnabled = true, DomainWarpAmplitude = WashLength * 0.35f, DomainWarpFrequency = 1f / Mathf.Max(WashLength * 0.8f, 1f),
         };
         _mountains = new FastNoiseLite
         {
@@ -292,7 +390,29 @@ public partial class MapTerrain : StaticBody3D
         // Level pad around the start so the mech doesn't spawn on a slope.
         float flat = Mathf.SmoothStep(FlatRadius, FlatRadius * 2.5f, new Vector2(x, z).Length());
         float h = (hills + ridges + _detail.GetNoise2D(x, z) * DetailHeight) * flat;
-        if (!HasWater) return h;
+        if (WashDepth > 0f)
+        {
+            // Where the slow noise crosses zero, a wash: a flat bottom between low banks. Dry: never cut
+            // down to the water (it is run-off's bed, not a stream's).
+            float n = Mathf.Abs(_washes.GetNoise2D(x, z)) * WashLength / Mathf.Max(WashWidth, 0.1f) * 0.5f;
+            float wash = 1f - Mathf.SmoothStep(0.15f, 1f, n);
+            float cut = WashDepth * wash * wash * (3f - 2f * wash) * flat;
+            h = HasWater ? Mathf.Max(h - cut, Mathf.Min(h, WaterLevel + 0.8f)) : h - cut;
+        }
+        // The tracks wear the ground a little lower than the verges.
+        for (int i = 0; i < Tracks.Length; i++)
+        {
+            float worn = 1f - Mathf.SmoothStep(Tracks[i].W * 0.35f, Tracks[i].W * 0.6f, TrackDistance(i, x, z));
+            h -= worn * 0.18f;
+        }
+        foreach (var c in Craters)
+        {
+            float d = new Vector2(x - c.X, z - c.Y).Length() / c.Z;
+            if (d >= 1.6f) continue;
+            float depth = Mathf.Min(c.Z * 0.09f, 0.9f);
+            h += d < 1f ? -depth * (1f - d * d) + depth * 0.25f * d * d : depth * 0.25f * (1f - Mathf.SmoothStep(1f, 1.6f, d));
+        }
+        if (!HasWater) return CutRamps(x, z, h);
         if (!Lakes)
         {
             // No standing water in the hollows: they bottom out, gently, a little above the water level.
@@ -314,12 +434,64 @@ public partial class MapTerrain : StaticBody3D
         }
         // The shore: land runs down a beach into the sea.
         if (SeaStart != 0f)
-            h = Mathf.Lerp(h, WaterLevel - MaxDepth, Mathf.SmoothStep(SeaStart - 70f, SeaStart + 30f, z));
-        return Mathf.Max(h, WaterLevel - MaxDepth);
+        {
+            float shore = Shore(x);
+            h = Mathf.Lerp(h, WaterLevel - MaxDepth, Mathf.SmoothStep(shore - 70f, shore + 30f, z));
+        }
+        return CutRamps(x, z, Mathf.Max(h, WaterLevel - MaxDepth));
+    }
+
+    /// <summary>How far a point is (across it) from the middle line of track <paramref name="i"/>. The same line as the ground's shader draws.</summary>
+    public float TrackDistance(int i, float x, float z)
+    {
+        Vector4 t = Tracks[i];
+        float along = t.X < 0.5f ? x : z, across = t.X < 0.5f ? z : x;
+        float phase = Seed * 0.37f + i * 1.7f;
+        float centre = t.Y + t.Z * (0.7f * Mathf.Sin(along / 140f + phase) + 0.3f * Mathf.Sin(along / 57f + phase * 2f));
+        return Mathf.Abs(across - centre);
+    }
+
+    /// <summary>Whether a point is on one of the tracks, or within <paramref name="margin"/> metres of its verge (nothing grows or lies there).</summary>
+    public bool OnTrack(float x, float z, float margin = 2f)
+    {
+        for (int i = 0; i < Tracks.Length; i++)
+            if (TrackDistance(i, x, z) < Tracks[i].W * 0.5f + margin) return true;
+        return false;
     }
 
     /// <summary>Depth of water over the ground at a position; 0 on dry land.</summary>
-    public float WaterDepthAt(float x, float z) => HasWater ? Mathf.Max(0f, WaterLevel - HeightAt(x, z)) : 0f;
+    public float WaterDepthAt(float x, float z) => HasWater && !InRamp(x, z) ? Mathf.Max(0f, WaterLevel - HeightAt(x, z)) : 0f;
+
+    /// <summary>The ramps cut into the ground (dry, however deep: see <see cref="Ramps"/>).</summary>
+    float CutRamps(float x, float z, float h)
+    {
+        foreach (var ramp in Ramps)
+        {
+            float along = (x - ramp.X) * Mathf.Sign(ramp.Y - ramp.X);
+            // (from its top to a little past its bottom, where the tunnel it leads into begins)
+            if (along <= 0f || along > Mathf.Abs(ramp.Y - ramp.X) + RampRunOut) continue;
+            float t = Mathf.Clamp((x - ramp.X) / (ramp.Y - ramp.X), 0f, 1f);
+            float side = 1f - Mathf.SmoothStep(ramp.Z, ramp.Z + 1.5f, Mathf.Abs(z));
+            if (side > 0f) h = Mathf.Lerp(h, Mathf.Min(h, -ramp.W * t), side);
+        }
+        return h;
+    }
+
+    /// <summary>How far past its bottom a ramp's cut goes on (into the tunnel at its foot), metres.</summary>
+    const float RampRunOut = 14f;
+
+    bool InRamp(float x, float z)
+    {
+        foreach (var ramp in Ramps)
+        {
+            float along = (x - ramp.X) * Mathf.Sign(ramp.Y - ramp.X);
+            if (along > 0f && along <= Mathf.Abs(ramp.Y - ramp.X) + RampRunOut && Mathf.Abs(z) < ramp.Z + 1.5f) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Water only in hand-dug pools (no lakes, river or sea): it lies in them alone, not over the whole map.</summary>
+    bool PoolsOnly => HasWater && !Lakes && !River && SeaStart == 0f && Pools.Length > 0;
 
     readonly RandomNumberGenerator _spotRng = new();
 
@@ -336,6 +508,13 @@ public partial class MapTerrain : StaticBody3D
     }
 
     public bool HasSea => HasWater && SeaStart != 0f;
+
+    /// <summary>Where the beach meets the sea at this X: never a ruled line — long bays and headlands, and smaller wiggles on them.</summary>
+    public float Shore(float x)
+    {
+        EnsureNoise();
+        return SeaStart + ShoreWander * (_hills.GetNoise2D(x * 0.35f, 9000f) * 1.4f + 0.35f * Mathf.Sin(x / 83f + Seed) + 0.2f * _detail.GetNoise2D(x * 0.6f, 4000f));
+    }
 
     /// <summary>A random place out at sea with room around it, at the water's surface; null on maps with no sea.</summary>
     public Vector3? RandomSeaSpot(float clearRadius)
@@ -758,8 +937,8 @@ public partial class MapTerrain : StaticBody3D
                         z = rng.RandfRange(-half, half);
                     } while (Mathf.Max(Mathf.Abs(x), Mathf.Abs(z)) < inner);
                 }
-                // Not on the start pad and not in the water.
-                if (new Vector2(x, z).Length() > clear && WaterDepthAt(x, z) <= 0f)
+                // Not on the start pad, not in the water, not on a track.
+                if (new Vector2(x, z).Length() > clear && WaterDepthAt(x, z) <= 0f && !OnTrack(x, z))
                     return new Vector3(x, HeightAt(x, z), z);
             }
             return new Vector3(half, HeightAt(half, half), half);
@@ -792,11 +971,24 @@ public partial class MapTerrain : StaticBody3D
             }
 
         if (SolidScenes.Length > 0)
+        {
+            Vector3 last = Vector3.Zero;
             for (int i = 0; i < Total(SolidCount); i++)
             {
                 outer = rng.Randf() > innerShare;
-                Place(SolidScenes[rng.RandiRange(0, SolidScenes.Length - 1)], RandomSpot(FlatRadius * 1.5f), 0.2f);
+                Vector3 spot = RandomSpot(FlatRadius * 1.5f);
+                // Rocks lie in fields and outcrops: most near the one before.
+                if (i > 0 && rng.Randf() < SolidClumping)
+                {
+                    float a = rng.RandfRange(0f, Mathf.Tau), r = rng.RandfRange(5f, 22f);
+                    float x = last.X + Mathf.Cos(a) * r, z = last.Z + Mathf.Sin(a) * r;
+                    if (new Vector2(x, z).Length() > FlatRadius * 1.5f && WaterDepthAt(x, z) <= 0f && !OnTrack(x, z) && Mathf.Max(Mathf.Abs(x), Mathf.Abs(z)) < half)
+                        spot = new Vector3(x, HeightAt(x, z), z);
+                }
+                last = spot;
+                Place(SolidScenes[rng.RandiRange(0, SolidScenes.Length - 1)], spot, 0.2f);
             }
+        }
 
         if (PlantScenes.Length > 0)
         {

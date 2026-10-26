@@ -1,0 +1,21 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/MeshCollision.cs" id="script"]
+[ext_resource type="Material" path="res://materials/arena_stone.tres" id="m_arena_stone"]
+[ext_resource type="Material" path="res://materials/lamp_glow.tres" id="m_lamp_glow"]
+[ext_resource type="ArrayMesh" path="res://models/kit/arena_pylon.res" id="g0"]
+[ext_resource type="ArrayMesh" path="res://models/kit/arena_pylon_glow.res" id="g1"]
+
+[node name="Pylon" type="StaticBody3D"]
+collision_layer = 33
+collision_mask = 0
+script = ExtResource("script")
+Skip = PackedStringArray("arena_pylon_glow")
+
+[node name="arena_pylon" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g0")
+surface_material_override/0 = ExtResource("m_arena_stone")
+
+[node name="arena_pylon_glow" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g1")
+surface_material_override/0 = ExtResource("m_lamp_glow")

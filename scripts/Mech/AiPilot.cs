@@ -281,6 +281,8 @@ public partial class AiPilot : MechPilot
         {
             if (other.IsDestroyed || !Units.Hostile(Unit, other)) continue;
             float d = other.GlobalPosition.DistanceSquaredTo(Here);
+            // A machine with its reactor down is cold and quiet: picked out only close by.
+            if (other is Mech { IsShutdown: true } cold && d > cold.ColdSpotRange * cold.ColdSpotRange) continue;
             // The one already being fought keeps a head start, so it doesn't dither between two.
             if (other == _target) d *= 0.6f;
             if (d < bestDist)

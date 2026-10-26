@@ -1,0 +1,140 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/MeshCollision.cs" id="script"]
+[ext_resource type="Material" path="res://materials/arena_dark.tres" id="m_arena_dark"]
+[ext_resource type="Material" path="res://materials/arena_glass.tres" id="m_arena_glass"]
+[ext_resource type="Material" path="res://materials/arena_screen.tres" id="m_arena_screen"]
+[ext_resource type="Material" path="res://materials/arena_seats.tres" id="m_arena_seats"]
+[ext_resource type="Material" path="res://materials/arena_seats_b.tres" id="m_arena_seats_b"]
+[ext_resource type="Material" path="res://materials/arena_seats_c.tres" id="m_arena_seats_c"]
+[ext_resource type="Material" path="res://materials/arena_seats_d.tres" id="m_arena_seats_d"]
+[ext_resource type="Material" path="res://materials/arena_stone.tres" id="m_arena_stone"]
+[ext_resource type="Material" path="res://materials/arena_bronze.tres" id="m_mech_bronze"]
+[ext_resource type="Material" path="res://materials/rubble.tres" id="m_rubble"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Arches.res" id="g_Arches"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Boxes.res" id="g_Boxes"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Bronze.res" id="g_Bronze"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Columns.res" id="g_Columns"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Doors.res" id="g_Doors"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Gallery.res" id="g_Gallery"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Glass.res" id="g_Glass"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Obelisks.res" id="g_Obelisks"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Outer.res" id="g_Outer"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Ramps.res" id="g_Ramps"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Rubble.res" id="g_Rubble"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Screens.res" id="g_Screens"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Seats0.res" id="g_Seats0"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Seats1.res" id="g_Seats1"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Seats2.res" id="g_Seats2"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Seats3.res" id="g_Seats3"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Seats4.res" id="g_Seats4"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Seats5.res" id="g_Seats5"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Seats6.res" id="g_Seats6"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Seats7.res" id="g_Seats7"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Stairs.res" id="g_Stairs"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Tunnel.res" id="g_Tunnel"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Walks.res" id="g_Walks"]
+[ext_resource type="ArrayMesh" path="res://models/arena/Wall.res" id="g_Wall"]
+
+[node name="Coliseum" type="StaticBody3D"]
+collision_layer = 33
+collision_mask = 0
+script = ExtResource("script")
+Skip = PackedStringArray("Columns", "Screens", "Doors", "Boxes", "Obelisks", "Bronze", "Rubble")
+
+[node name="Arches" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Arches")
+surface_material_override/0 = ExtResource("m_arena_dark")
+
+[node name="Boxes" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Boxes")
+surface_material_override/0 = ExtResource("m_arena_dark")
+
+[node name="Bronze" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Bronze")
+surface_material_override/0 = ExtResource("m_mech_bronze")
+
+[node name="Columns" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Columns")
+surface_material_override/0 = ExtResource("m_arena_stone")
+
+[node name="Doors" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Doors")
+surface_material_override/0 = ExtResource("m_arena_dark")
+
+[node name="Gallery" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Gallery")
+surface_material_override/0 = ExtResource("m_arena_stone")
+
+[node name="Glass" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Glass")
+surface_material_override/0 = ExtResource("m_arena_glass")
+
+[node name="Obelisks" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Obelisks")
+surface_material_override/0 = ExtResource("m_arena_stone")
+
+[node name="Outer" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Outer")
+surface_material_override/0 = ExtResource("m_arena_stone")
+
+[node name="Ramps" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Ramps")
+surface_material_override/0 = ExtResource("m_arena_stone")
+
+[node name="Rubble" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Rubble")
+surface_material_override/0 = ExtResource("m_rubble")
+
+[node name="Screens" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Screens")
+surface_material_override/0 = ExtResource("m_arena_screen")
+cast_shadow = 0
+
+[node name="Seats0" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Seats0")
+surface_material_override/0 = ExtResource("m_arena_seats")
+
+[node name="Seats1" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Seats1")
+surface_material_override/0 = ExtResource("m_arena_seats_b")
+
+[node name="Seats2" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Seats2")
+surface_material_override/0 = ExtResource("m_arena_seats")
+
+[node name="Seats3" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Seats3")
+surface_material_override/0 = ExtResource("m_arena_seats_c")
+
+[node name="Seats4" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Seats4")
+surface_material_override/0 = ExtResource("m_arena_seats_d")
+
+[node name="Seats5" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Seats5")
+surface_material_override/0 = ExtResource("m_arena_seats")
+
+[node name="Seats6" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Seats6")
+surface_material_override/0 = ExtResource("m_arena_seats_b")
+
+[node name="Seats7" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Seats7")
+surface_material_override/0 = ExtResource("m_arena_seats_c")
+
+[node name="Stairs" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Stairs")
+surface_material_override/0 = ExtResource("m_arena_stone")
+
+[node name="Tunnel" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Tunnel")
+surface_material_override/0 = ExtResource("m_arena_dark")
+
+[node name="Walks" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Walks")
+surface_material_override/0 = ExtResource("m_arena_stone")
+
+[node name="Wall" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g_Wall")
+surface_material_override/0 = ExtResource("m_arena_stone")

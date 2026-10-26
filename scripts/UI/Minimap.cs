@@ -115,6 +115,26 @@ public partial class Minimap : HudWidget
             return c + p * r;
         }
 
+        // The edge of the battlefield, where it comes within range.
+        if (MapTerrain.Instance is { } terrain && IsInstanceValid(terrain))
+        {
+            float h = terrain.PlayHalf;
+            Vector3[] corners = { new(-h, 0f, -h), new(h, 0f, -h), new(h, 0f, h), new(-h, 0f, h) };
+            for (int e = 0; e < 4; e++)
+            {
+                Vector3 a = corners[e], b = corners[(e + 1) % 4];
+                const int steps = 48;
+                Vector2 last = Map(a, out bool lastIn);
+                for (int i = 1; i <= steps; i++)
+                {
+                    Vector2 p = Map(a.Lerp(b, (float)i / steps), out bool inside);
+                    if (inside && lastIn) DrawLine(last, p, new Color(Amber, 0.8f), 2f);
+                    last = p;
+                    lastIn = inside;
+                }
+            }
+        }
+
         // North tick on the rim.
         Vector3 n = toLocal * Vector3.Forward;
         Text("С", c + new Vector2(n.X, n.Z).Normalized() * (r + 2f) + new Vector2(-5f, 5f), 12, Green);

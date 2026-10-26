@@ -7,18 +7,14 @@
 [ext_resource type="PackedScene" path="res://scenes/city/door.tscn" id="x1"]
 [ext_resource type="PackedScene" path="res://scenes/city/roof_mast.tscn" id="x2"]
 [ext_resource type="PackedScene" path="res://scenes/city/sat_dish.tscn" id="x3"]
+[ext_resource type="ArrayMesh" path="res://models/kit/rubble_heap.res" id="kit_rubble_heap"]
+[ext_resource type="ArrayMesh" path="res://models/kit/rubble_slab.res" id="kit_rubble_slab"]
 
 [sub_resource type="BoxMesh" id="Preview"]
 size = Vector3(7.5, 17.5, 7.5)
 
 [sub_resource type="BoxShape3D" id="Shape"]
 size = Vector3(7.5, 17.5, 7.5)
-
-[sub_resource type="BoxMesh" id="Heap"]
-size = Vector3(7.875, 0.9, 7.875)
-
-[sub_resource type="BoxMesh" id="Slab"]
-size = Vector3(2.625, 0.75, 2.25)
 
 [node name="ControlTower" type="StaticBody3D"]
 collision_layer = 32
@@ -50,16 +46,16 @@ shape = SubResource("Shape")
 visible = false
 
 [node name="Heap" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
-mesh = SubResource("Heap")
+transform = Transform3D(7.875, 0, 0, 0, 0.9, 0, 0, 0, 7.875, 0, 0.45, 0)
+mesh = ExtResource("kit_rubble_heap")
 material_override = ExtResource("5")
 
 [node name="Slab1" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.88526, 0.21315, 0.41338, -0.13613, 0.96863, -0.20791, -0.44473, 0.12778, 0.8865, 1.5, 0.75, -1.125)
-mesh = SubResource("Slab")
+transform = Transform3D(2.32381, 0.159863, 0.930105, -0.357341, 0.726472, -0.467798, -1.16742, 0.095835, 1.99462, 1.5, 0.75, -1.125)
+mesh = ExtResource("kit_rubble_slab")
 material_override = ExtResource("5")
 
 [node name="Slab2" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.76762, -0.08776, -0.63487, 0.23894, 0.95835, 0.15643, 0.5947, -0.27178, 0.75661, -1.875, 0.625, 1.5)
-mesh = SubResource("Slab")
+transform = Transform3D(2.015, -0.06582, -1.42846, 0.627217, 0.718762, 0.351968, 1.56109, -0.203835, 1.70237, -1.875, 0.625, 1.5)
+mesh = ExtResource("kit_rubble_slab")
 material_override = ExtResource("5")

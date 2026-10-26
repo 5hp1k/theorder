@@ -75,8 +75,10 @@ public partial class Mech : CharacterBody3D, IDrivable
     /// mouse sets where to aim, the arms get there first and the torso follows at its own pace. Weapons in
     /// the arms fire where the arms point (the HUD's second circle); the rest fire where the torso does.
     /// </summary>
-    [Export] public float ArmYawReach = 0.55f;
-    [Export] public float ArmPitchReach = 0.5f;
+    [Export] public float ArmYawReach = 0.85f;
+    [Export] public float ArmPitchReach = 0.7f;
+    /// <summary>How far an arm may turn in across the chest (radians from straight ahead): the far arm alone turns further.</summary>
+    [Export] public float ArmInwardReach = 0.3f;
     /// <summary>How fast the arms swing to the aim, radians per second.</summary>
     [Export] public float ArmTrackRate = 8f;
 
@@ -147,6 +149,32 @@ public partial class Mech : CharacterBody3D, IDrivable
     public float SpeedKmh => Speed * 3.6f;
     public float Heat { get; private set; }                   // 1.0 = shutdown
     public bool IsShutdown { get; private set; }
+    /// <summary>
+    /// The reactor's switch (<see cref="SetReactor"/>): off, it is down as after overheating — nothing
+    /// moves or fires, the cab goes dark — until it is switched on and has started up
+    /// (<see cref="RestartTime"/>). In the simulator a shutdown from heat throws the switch off as well.
+    /// </summary>
+    public bool ReactorOn { get; private set; } = true;
+    /// <summary>Switched on after being switched off, and not yet running.</summary>
+    public bool ReactorStarting { get; private set; }
+    /// <summary>
+    /// The engine's switch (<see cref="SetEngine"/>): the drive of the legs. Off, the machine stands —
+    /// it neither walks nor turns on its legs — but the reactor runs: the torso twists, the guns fire,
+    /// the cab is lit. Switched on, it takes <see cref="EngineStartTime"/> to spin up.
+    /// </summary>
+    public bool EngineOn { get; private set; } = true;
+    public bool EngineStarting => EngineOn && _engineSpin < EngineStartTime;
+    public float EngineProgress => Mathf.Clamp(_engineSpin / Mathf.Max(EngineStartTime, 0.01f), 0f, 1f);
+    [Export] public float EngineStartTime = 2f;
+    /// <summary>Flushes of coolant carried (each takes <see cref="CoolantFlush"/> of the heat off at once), refilled on repair and respawn.</summary>
+    [Export] public int CoolantCharges = 3;
+    [Export] public float CoolantFlush = 0.5f;
+    public int Coolant { get; private set; } = 3;
+    /// <summary>A powered-down machine is cold: hostile pilots don't pick it out further off than this, metres.</summary>
+    [Export] public float ColdSpotRange = 70f;
+    bool _cold;
+    float _engineSpin = 99f;
+    bool Driven => EngineOn && !EngineStarting;
     public float RestartProgress { get; private set; }        // 0..1 while restarting
     public float TorsoYaw => _yaw;                            // relative to legs
     public float TorsoPitch => _pitch;
@@ -163,6 +191,24 @@ public partial class Mech : CharacterBody3D, IDrivable
     /// aims; the arms reach as far as <see cref="ArmYawReach"/> allows. Zero = with the torso.
     /// </summary>
     public float ArmLookYaw { get; set; }
+    /// <summary>
+    /// Set by the pilot every tick (they go back to normal before each): the arms held with the torso;
+    /// how much quicker than its own the legs turn, the torso twists and the speed changes; and which
+    /// way (world, level) to walk when not straight ahead — the arcade controls' doing.
+    /// </summary>
+    public bool ArmsLocked { get; set; }
+    public float Agility { get; set; } = 1f;
+    /// <summary>The legs turn no more than this much quicker however agile the rest is: past it the feet can't keep up and tangle.</summary>
+    const float LegAgilityLimit = 2.5f;
+    public Vector3 DriveDirection { get; private set; }
+
+    /// <summary>Walk this way (world, level; see <see cref="DriveDirection"/>) from now on, keeping the
+    /// way it is actually moving: the speed is what of its motion lies along the new way.</summary>
+    public void DriveAlong(Vector3 direction)
+    {
+        DriveDirection = direction;
+        Speed = new Vector3(Velocity.X, 0f, Velocity.Z).Dot(direction);
+    }
     public float ArmLookPitch { get; set; }
     public DamageModel Damage { get; private set; }
     public bool IsDestroyed => Damage != null && Damage.Dead;
@@ -256,6 +302,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         _armRest = new[] { _arms[0].Position, _arms[1].Position };
         _armRestBasis = new[] { _arms[0].Basis, _arms[1].Basis };
         Legs = new[] { GetNode<MechLeg>("LegL"), GetNode<MechLeg>("LegR") };
+        Coolant = CoolantCharges;
         _ragdoll = GetNodeOrNull<MechRagdoll>("Ragdoll");
         _sFoot = GetNodeOrNull<AudioStreamPlayer3D>("Sounds/Footstep");
         _sReactor = GetNodeOrNull<AudioStreamPlayer3D>("Sounds/Reactor");
@@ -383,6 +430,9 @@ public partial class Mech : CharacterBody3D, IDrivable
         TurnInput = 0f;
         Fire = 0;
         Jump = Descend = false;
+        ArmsLocked = false;
+        Agility = 1f;
+        DriveDirection = Vector3.Zero;
         long profT = Prof.Now();
         Pilot?.Think(dt);
         Prof.Add(8, profT);
@@ -391,16 +441,20 @@ public partial class Mech : CharacterBody3D, IDrivable
 
         // Legs: steering and speed. (On its knee it stays put: a kneel stops it first.)
         float speedNorm = Mathf.Clamp(Mathf.Abs(Speed) / MaxForwardSpeed, 0f, 1f);
-        _yawRate = Offline || Posed ? 0f : Mathf.Clamp(TurnInput, -1f, 1f) * Mathf.Lerp(TurnRateStanding, TurnRateFull, speedNorm);
+        if (EngineOn && !Offline) _engineSpin += dt;
+        _yawRate = Offline || Posed || !Driven ? 0f : Mathf.Clamp(TurnInput, -1f, 1f) * Mathf.Lerp(TurnRateStanding, TurnRateFull, speedNorm) * Mathf.Min(Agility, LegAgilityLimit);
         if (_yawRate != 0f)
             Rotation = new Vector3(0, Rotation.Y + _yawRate * dt, 0);
 
         bool legged = Damage.IsDestroyed(Section.LeftLeg) || Damage.IsDestroyed(Section.RightLeg);
         // Wading slows a mech down.
         float wade = Mathf.Lerp(1f, 0.6f, Mathf.Clamp((WaterDepth - 0.8f) / 2.5f, 0f, 1f));
-        float targetSpeed = Offline || Posed || (Kneel && !Airborne) ? 0f : Throttle * MaxForwardSpeed * wade * (legged ? LeggedSpeedFactor : 1f);
+        float targetSpeed = Offline || Posed || !Driven || (Kneel && !Airborne) ? 0f : Throttle * MaxForwardSpeed * wade * (legged ? LeggedSpeedFactor : 1f);
+        // (in the simulator a hot machine is a slow one: the actuators are cut back to save the reactor)
+        if (ControlModes.Simulator) targetSpeed *= Mathf.Lerp(1f, 0.55f, Mathf.SmoothStep(0.7f, 1f, Heat));
+        if (IsShutdown != _cold) SetCold(IsShutdown);
         bool speedingUp = Mathf.Abs(targetSpeed) > Mathf.Abs(Speed) && targetSpeed * Speed >= 0f;
-        float rate = speedingUp ? Acceleration : Deceleration;
+        float rate = (speedingUp ? Acceleration : Deceleration) * Agility;
         Speed = Mathf.MoveToward(Speed, targetSpeed, rate * dt);
 
         // Jump jets: burn while held and there's fuel, refill on the ground.
@@ -417,7 +471,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         SetJetsBurning(Thrusting);
 
         Vector3 forward = -GlobalTransform.Basis.Z;
-        Vector3 v = forward * Speed;
+        Vector3 v = (DriveDirection.LengthSquared() > 0.5f ? DriveDirection : forward) * Speed;
         if (Thrusting) v.Y = Mathf.Min(Velocity.Y + (JumpThrust - Gravity) * dt, JumpClimbSpeed);
         // (On the ground the floor snap keeps it down: pressing into the ground as well would cost a collision every tick.)
         else v.Y = IsOnFloor() ? 0f : Velocity.Y - Gravity * dt;
@@ -473,7 +527,9 @@ public partial class Mech : CharacterBody3D, IDrivable
             _gait.RunSwing = RunSwing;
             _gait.HipWidth = Mathf.Abs(Legs[0].HomeLocal.X);
             long profG = Prof.Now();
-            _gait.Update(dt, GlobalTransform, hv, forward * targetSpeed, rate, _yawRate, Legs, GroundAt);
+            // (where the speed is heading: along the way it is driven, if not straight ahead)
+            Vector3 heading = DriveDirection.LengthSquared() > 0.5f ? DriveDirection : forward;
+            _gait.Update(dt, GlobalTransform, hv, heading * targetSpeed, rate, _yawRate, Legs, GroundAt);
             Prof.Add(4, profG);
         }
         if (show)
@@ -556,8 +612,9 @@ public partial class Mech : CharacterBody3D, IDrivable
 
     void OnTouchdown()
     {
-        // Feet straight back onto the ground, with the thump of the whole mech coming down.
-        _legsInitialized = false;
+        // Feet straight back onto the ground, with the thump of the whole mech coming down. (At once: left
+        // for the next tick, the walk would first set them down where they were aimed before the jump.)
+        InitLegs();
         _bobVel -= 5f;
         Shake += 0.5f;
         if (_sFoot != null)
@@ -620,21 +677,63 @@ public partial class Mech : CharacterBody3D, IDrivable
         if (!IsShutdown && Heat >= 1f)
         {
             IsShutdown = true;
+            if (ControlModes.Simulator && Pilot is PlayerPilot) ReactorOn = false;
             RestartProgress = 0f;
             _restartTimer = 0f;
             Weapons.CancelBeams();
             Shake += 0.3f;
         }
-        else if (IsShutdown && Heat <= RestartHeat)
+        else if (IsShutdown && ReactorOn && Heat <= RestartHeat)
         {
             _restartTimer += dt;
             RestartProgress = Mathf.Clamp(_restartTimer / RestartTime, 0f, 1f);
             if (_restartTimer >= RestartTime)
             {
                 IsShutdown = false;
+                ReactorStarting = false;
                 RestartProgress = 0f;
             }
         }
+    }
+
+    /// <summary>Starts with everything off (the simulator): the reactor and then the engine have to be switched on.</summary>
+    public void ColdStart()
+    {
+        ReactorOn = EngineOn = false;
+        ReactorStarting = false;
+        IsShutdown = true;
+        RestartProgress = 0f;
+        _restartTimer = _engineSpin = 0f;
+    }
+
+    /// <summary>Dumps coolant through the heat sinks: a share of the heat gone at once, while any is left.</summary>
+    public bool FlushCoolant()
+    {
+        if (Coolant <= 0 || IsDestroyed || Heat < 0.02f) return false;
+        Coolant--;
+        Heat = Mathf.Max(0f, Heat - CoolantFlush);
+        return true;
+    }
+
+    /// <summary>The engine switched off (the legs stop) or on (they are driven again once it has spun up).</summary>
+    public void SetEngine(bool on)
+    {
+        if (on == EngineOn || IsDestroyed) return;
+        EngineOn = on;
+        _engineSpin = 0f;
+    }
+
+    /// <summary>The reactor switched off (it goes down at once) or on (it starts up, once cool enough).</summary>
+    public void SetReactor(bool on)
+    {
+        if (on == ReactorOn || IsDestroyed) return;
+        ReactorOn = on;
+        ReactorStarting = on && IsShutdown;
+        if (on) return;
+        IsShutdown = true;
+        RestartProgress = 0f;
+        _restartTimer = 0f;
+        Weapons.CancelBeams();
     }
 
     /// <summary>Heat put into the machine from outside (a flamethrower playing on it).</summary>
@@ -645,12 +744,21 @@ public partial class Mech : CharacterBody3D, IDrivable
         Heat = Mathf.Min(Heat + amount, 1.25f);
     }
 
+    /// <summary>Powered down, the armour cools: under a thermal sight the machine no longer glows.</summary>
+    void SetCold(bool cold)
+    {
+        _cold = cold;
+        foreach (var mesh in Geo.Collect<MeshInstance3D>(this))
+            if (mesh.MaterialOverride is ShaderMaterial { Shader: { } shader } && (shader == ArmorShader || shader == CabShader))
+                mesh.SetInstanceShaderParameter("cold", cold ? 1f : 0f);
+    }
+
     void UpdateTorso(float dt)
     {
         if (!Offline)
         {
-            _yaw = Mathf.MoveToward(_yaw, Mathf.Clamp(TargetYaw, -MaxTwist, MaxTwist), TwistRate * dt);
-            _pitch = Mathf.MoveToward(_pitch, Mathf.Clamp(TargetPitch, MinPitch, MaxPitch), PitchRate * dt);
+            _yaw = Mathf.MoveToward(_yaw, Mathf.Clamp(TargetYaw, -MaxTwist, MaxTwist), TwistRate * Agility * dt);
+            _pitch = Mathf.MoveToward(_pitch, Mathf.Clamp(TargetPitch, MinPitch, MaxPitch), PitchRate * Agility * dt);
         }
         else
         {
@@ -882,7 +990,7 @@ public partial class Mech : CharacterBody3D, IDrivable
         // (and the torso is still turning to catch up). Their own ray finds what they are on.
         float wantYaw = Mathf.Clamp(Mathf.AngleDifference(_yaw, Mathf.Clamp(TargetYaw, -MaxTwist, MaxTwist)) + ArmLookYaw, -ArmYawReach, ArmYawReach);
         float wantPitch = Mathf.Clamp(Mathf.Clamp(TargetPitch, MinPitch - ArmPitchReach, MaxPitch + ArmPitchReach) - _pitch + ArmLookPitch, -ArmPitchReach, ArmPitchReach);
-        if (!ArmsAim) wantYaw = wantPitch = 0f;
+        if (!ArmsAim || ArmsLocked) wantYaw = wantPitch = 0f;
         _armYaw = Mathf.MoveToward(_armYaw, wantYaw, ArmTrackRate * step);
         _armPitch = Mathf.MoveToward(_armPitch, wantPitch, ArmTrackRate * step);
         if (Mathf.Abs(_armYaw) < 1e-3f && Mathf.Abs(_armPitch) < 1e-3f) ArmAimPoint = AimPoint;
@@ -903,13 +1011,30 @@ public partial class Mech : CharacterBody3D, IDrivable
             if (_tornArms[i] != null) continue;
             if (!ArmsAim) arm.Basis = _armRestBasis[i];
             else if (arm.GlobalPosition.DistanceSquaredTo(ArmAimPoint) > 4f)
-                arm.LookAt(ArmAimPoint, Vector3.Up);
+                arm.LookAt(arm.GlobalPosition + InReach(i, ArmAimPoint - arm.GlobalPosition), Vector3.Up);
             // Driven back along itself by the last shot, and running out again.
             arm.Position = _armRest[i] + arm.Basis.Z * _armRecoil[i];
             // The striking arm goes up and back, then comes down through the target.
             if (i == _swingArm)
                 arm.RotateObjectLocal(Vector3.Right, _swing < 0f ? -_swing * SwingRaise : -_swing * SwingFollow);
         }
+    }
+
+    /// <summary>
+    /// The way an arm may point, short of swinging in across the chest: an arm turns out as far as the aim
+    /// goes, but in towards the other side no further than <see cref="ArmInwardReach"/> — past that the
+    /// other arm does the aiming and this one stays clear of the torso.
+    /// </summary>
+    Vector3 InReach(int arm, Vector3 to)
+    {
+        Basis torso = Torso.GlobalBasis.Orthonormalized();
+        Vector3 local = torso.Inverse() * to;
+        float yaw = Mathf.Atan2(-local.X, -local.Z);           // + to the left
+        float inward = arm == 0 ? -yaw : yaw;                    // (the left arm's inward is to the right)
+        if (inward <= ArmInwardReach) return to;
+        float flat = new Vector2(local.X, local.Z).Length();
+        float kept = (arm == 0 ? -1f : 1f) * ArmInwardReach;
+        return torso * new Vector3(-Mathf.Sin(kept) * flat, local.Y, -Mathf.Cos(kept) * flat);
     }
 
     void UpdateWeapons(float dt, PhysicsDirectSpaceState3D space)
@@ -1062,12 +1187,73 @@ public partial class Mech : CharacterBody3D, IDrivable
         if (GetNodeOrNull("Hips/Torso") is { } torso) SetInFront(torso, on);
         for (int i = 0; i < _tornArms.Length; i++)
             if (_tornArms[i] != null) SetInFront(_arms[i], false);
+        CutCab(on);
     }
 
-    static void SetInFront(Node root, bool on)
+    void SetInFront(Node root, bool on)
     {
+        var cab = CockpitInterior;
         foreach (var part in Geo.Collect<GeometryInstance3D>(root))
-            if (part is MeshInstance3D) part.SetInstanceShaderParameter("in_front", on ? 1f : 0f);
+            if (part is MeshInstance3D)
+                // (the cab's own parts are told apart: they are not cut away, see armor_cab.gdshader)
+                part.SetInstanceShaderParameter("in_front", !on ? 0f : cab != null && cab.IsAncestorOf(part) ? 2f : 1f);
+    }
+
+    // ── The machine cut away inside its own cab ─────────────────
+
+    static readonly Shader CabShader = GD.Load<Shader>("res://materials/armor_cab.gdshader");
+    static readonly Shader ArmorShader = GD.Load<Shader>("res://materials/armor.gdshader");
+    static readonly System.Collections.Generic.Dictionary<Material, ShaderMaterial> CabMaterials = new();
+    readonly System.Collections.Generic.List<(MeshInstance3D part, Material was)> _cabSwapped = new();
+    readonly System.Collections.Generic.List<GeometryInstance3D> _cabHidden = new();
+    Aabb _cabBox;
+
+    /// <summary>
+    /// From the cockpit, whatever of the machine pokes into the cab — armour, a gun's breech, a lamp — is
+    /// not drawn: the armour is drawn with armor_cab.gdshader, which leaves out what is inside the cab's
+    /// box, and anything else whose box reaches into it is hidden. So only the windows look out.
+    /// </summary>
+    void CutCab(bool on)
+    {
+        foreach (var (part, was) in _cabSwapped)
+            if (IsInstanceValid(part)) part.MaterialOverride = was;
+        _cabSwapped.Clear();
+        foreach (var part in _cabHidden)
+            if (IsInstanceValid(part)) part.Visible = true;
+        _cabHidden.Clear();
+        var cab = CockpitInterior;
+        if (!on || cab?.GetNodeOrNull<MeshInstance3D>("Frame") is not { Mesh: { } shell } frame) return;
+        _cabBox = frame.Transform * shell.GetAabb();
+        UpdateCabCut();
+        var box = cab.GlobalTransform * _cabBox;
+        foreach (var part in Geo.Collect<MeshInstance3D>(GetNode("Hips/Torso")))
+        {
+            if (cab.IsAncestorOf(part) || !part.Visible) continue;
+            if (part.MaterialOverride is ShaderMaterial { } armour && armour.Shader == ArmorShader)
+            {
+                if (!CabMaterials.TryGetValue(armour, out var cut))
+                {
+                    cut = (ShaderMaterial)armour.Duplicate();
+                    cut.Shader = CabShader;
+                    CabMaterials[armour] = cut;
+                }
+                _cabSwapped.Add((part, armour));
+                part.MaterialOverride = cut;
+            }
+            else if ((part.GlobalTransform * part.GetAabb()).Intersects(box))
+            {
+                part.Visible = false;
+                _cabHidden.Add(part);
+            }
+        }
+    }
+
+    /// <summary>Where the cab is now, for armor_cab.gdshader (every frame while the pilot looks out of it).</summary>
+    public void UpdateCabCut()
+    {
+        if (!_drawOver || CockpitInterior is not { } cab) return;
+        var box = cab.GlobalTransform * new Transform3D(Basis.FromScale(_cabBox.Size * 0.5f), _cabBox.GetCenter());
+        RenderingServer.GlobalShaderParameterSet("cab_box", new Projection(box.AffineInverse()));
     }
 
     /// <summary>Puts back everything that was shot off, mends every section and refills the magazines.</summary>
@@ -1147,6 +1333,11 @@ public partial class Mech : CharacterBody3D, IDrivable
         Throttle = 0f;
         Heat = 0f;
         IsShutdown = false;
+        ReactorOn = true;
+        ReactorStarting = false;
+        EngineOn = true;
+        _engineSpin = 99f;
+        Coolant = CoolantCharges;
         RestartProgress = 0f;
         _yaw = _pitch = TargetYaw = TargetPitch = 0f;
         _hipY = HipHeight;

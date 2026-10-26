@@ -106,6 +106,17 @@ public interface ICockpit
     bool HasHeat { get; }
     float Heat { get; }
     bool IsShutdown { get; }
+    /// <summary>The pilot has switched the reactor off (or, in the simulator, has yet to start it again after a shutdown).</summary>
+    bool ReactorOff => false;
+    /// <summary>The reactor has been switched on again and is starting up.</summary>
+    bool ReactorStarting => false;
+    /// <summary>The engine (the drive of the legs) is switched off, or spinning up again (and how far it is).</summary>
+    bool EngineOff => false;
+    bool EngineStarting => false;
+    float EngineProgress => 1f;
+    /// <summary>Coolant flushes left and carried (0 carried: the machine has none).</summary>
+    int Coolant => 0;
+    int CoolantMax => 0;
     float RestartHeat { get; }
     float RestartProgress { get; }
     float Twist { get; }

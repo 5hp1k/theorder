@@ -17,6 +17,7 @@ public static class GameConfig
         "fire_group_1", "fire_group_2", "fire_group_3", "fire_group_4", "fire_group_5", "fire_group_6",
         "target_nearest", "target_next", "target_reticle", "target_friendly", "center_torso", "arm_look", "counter_rotate", "free_look", "zoom",
         "toggle_view", "toggle_lights", "radar_mode", "scoreboard", "toggle_help", "toggle_hud", "toggle_fps", "toggle_console",
+        "night_vision", "thermal_vision", "cab_light", "glass_heat", "engine", "reactor", "coolant", "interact",
     };
     /// <summary>What the actions above are called on the controls page, in the same order.</summary>
     public static readonly string[] ActionNames =
@@ -25,6 +26,7 @@ public static class GameConfig
         "Огонь: группа 1", "Огонь: группа 2", "Огонь: группа 3", "Огонь: группа 4", "Огонь: группа 5", "Огонь: группа 6",
         "Цель: ближайшая", "Цель: следующая", "Цель: под прицелом", "Цель: свой (следующий)", "Торс по ногам", "Руки отдельно от торса (держать)", "Контрвращение торса", "Свободный обзор (держать)", "Приближение",
         "Кабина / внешний вид", "Фары", "Режим радара", "Таблица боя (держать)", "Справка", "Интерфейс вкл/выкл", "Счётчик кадров", "Консоль",
+        "Прибор ночного видения", "Тепловизор", "Свет в кабине", "Обогрев стёкол", "Двигатель вкл/выкл", "Реактор вкл/выкл", "Сброс охладителя", "Курсор в кабине",
     };
 
     // ── Battle ──────────────────────────────────────────────────
@@ -156,6 +158,8 @@ public static class GameConfig
     };
     public static float MouseSensitivity = 1f;
     public static float Fov = 75f;
+    /// <summary>How much of the machine's rocking, bouncing and shaking reaches the view (0 = none: a steady camera).</summary>
+    public static float ViewBob = 1f;
     public static bool VSync = true;
     /// <summary>0 = a window, 1 = full screen without borders, 2 = exclusive full screen.</summary>
     public static int WindowMode;
@@ -198,6 +202,14 @@ public static class GameConfig
     public static bool ShowFps;
     /// <summary>What the cockpit's glass picks up (rain, snow, dust, dirt) and its cracks from hits; off — always clean glass.</summary>
     public static bool CockpitGlassFx = true;
+    /// <summary>
+    /// How the machine is driven: Classic — as it always was; Arcade — moving where the keys point
+    /// relative to the camera, the legs turning by themselves, the torso following the mouse, help with
+    /// aiming (as in MechAssault); Simulator — from the cockpit only, every switch and button of the cab
+    /// worked by hand (their keys do nothing).
+    /// </summary>
+    public enum ControlStyle { Classic, Arcade, Simulator }
+    public static ControlStyle Controls = ControlStyle.Classic;
     /// <summary>The preset the detailed settings were last filled from: 0 = low, 1 = medium, 2 = high, 3 = the player's own mix.</summary>
     public static int EffectsQuality = 2;
 
@@ -299,12 +311,14 @@ public static class GameConfig
             if (VoicePicked) Voice = (string)cfg.GetValue("sound", "voice", Voice);
             MouseSensitivity = (float)cfg.GetValue("settings", "sensitivity", MouseSensitivity);
             Fov = (float)cfg.GetValue("settings", "fov", Fov);
+            ViewBob = Mathf.Clamp((float)cfg.GetValue("settings", "view_bob", ViewBob), 0f, 1f);
             WindowMode = cfg.HasSectionKey("settings", "window_mode") ? (int)cfg.GetValue("settings", "window_mode", 0)
                        : (bool)cfg.GetValue("settings", "fullscreen", false) ? 1 : 0;
             WindowSize = (Vector2I)cfg.GetValue("settings", "window_size", WindowSize);
             MaxFps = (int)cfg.GetValue("settings", "max_fps", MaxFps);
             ShowFps = (bool)cfg.GetValue("settings", "show_fps", ShowFps);
             CockpitGlassFx = (bool)cfg.GetValue("settings", "cockpit_glass_fx", CockpitGlassFx);
+            Controls = (ControlStyle)(int)cfg.GetValue("settings", "control_mode", (int)Controls);
             VSync = (bool)cfg.GetValue("settings", "vsync", VSync);
             EffectsQuality = (int)cfg.GetValue("settings", "effects", EffectsQuality);
             // Settings saved before the detailed ones existed carry only the preset.
@@ -460,11 +474,13 @@ public static class GameConfig
         cfg.SetValue("sound", "voice_picked", VoicePicked);
         cfg.SetValue("settings", "sensitivity", MouseSensitivity);
         cfg.SetValue("settings", "fov", Fov);
+        cfg.SetValue("settings", "view_bob", ViewBob);
         cfg.SetValue("settings", "window_mode", WindowMode);
         cfg.SetValue("settings", "window_size", WindowSize);
         cfg.SetValue("settings", "max_fps", MaxFps);
         cfg.SetValue("settings", "show_fps", ShowFps);
         cfg.SetValue("settings", "cockpit_glass_fx", CockpitGlassFx);
+        cfg.SetValue("settings", "control_mode", (int)Controls);
         cfg.SetValue("graphics", "render_scale", RenderScale);
         cfg.SetValue("graphics", "msaa", Msaa);
         cfg.SetValue("graphics", "fxaa", Fxaa);

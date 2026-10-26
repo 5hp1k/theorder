@@ -44,8 +44,8 @@ public partial class TargetPanel : HudWidget
         _view.Visible = has;
         _doll.Visible = has;
         // A second 3D view is costly: refresh it only every few frames, and only where it is seen (the
-        // HUD's own while the interface is up, the cockpit's head-up display's while that is on).
-        bool seen = OnScreen ? CockpitDisplays.HeadUpOn : IsVisibleInTree();
+        // HUD's own while the interface is up, the cockpit's pod screen's while the cockpit is in view).
+        bool seen = OnScreen ? CockpitDisplays.Active : IsVisibleInTree();
         bool render = has && seen && _frame++ % UpdateEvery == 0;
         _viewport.RenderTargetUpdateMode = render ? SubViewport.UpdateMode.Once : SubViewport.UpdateMode.Disabled;
         if (!has) return;

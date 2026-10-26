@@ -104,7 +104,7 @@ public partial class ForestField : Node3D
             // Thick inside a wood, thinning towards its edge; a lone tree now and then in the open.
             float thick = Mathf.SmoothStep(threshold, threshold + 0.18f, wood);
             if (rng.Randf() > Mathf.Max(thick, 0.025f)) return;
-            if (new Vector2(x, z).Length() < ClearRadius || _terrain.WaterDepthAt(x, z) > 0f) return;
+            if (new Vector2(x, z).Length() < ClearRadius || _terrain.WaterDepthAt(x, z) > 0f || _terrain.OnTrack(x, z, 3f)) return;
             // Too steep, or right at the water's edge: nothing grows.
             float y = _terrain.HeightAt(x, z);
             if (_terrain.HasWater && y < _terrain.WaterLevel + 0.6f) return;

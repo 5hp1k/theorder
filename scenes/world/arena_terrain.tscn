@@ -12,10 +12,9 @@
 [ext_resource type="PackedScene" path="res://scenes/props/fir_small_green.tscn" id="p11"]
 [ext_resource type="PackedScene" path="res://scenes/fx/footprint_dirt.tscn" id="9"]
 [ext_resource type="PackedScene" path="res://scenes/fx/splash.tscn" id="10"]
-[ext_resource type="Material" path="res://materials/terrain_base.tres" id="11"]
+[ext_resource type="Material" path="res://materials/terrain_desert.tres" id="11"]
 [ext_resource type="Material" path="res://materials/water.tres" id="12"]
 [ext_resource type="Script" path="res://scripts/World/WaterSurface.cs" id="13"]
-[ext_resource type="PackedScene" path="res://scenes/props/repair_bay.tscn" id="repair_bay"]
 
 [node name="Arena_Terrain" type="StaticBody3D"]
 collision_layer = 1
@@ -24,16 +23,15 @@ script = ExtResource("1")
 Seed = 4242
 Size = 1100
 Border = 230
-RepairBayScene = ExtResource("repair_bay")
-RepairBaySpots = PackedVector2Array(-255, 255, 255, -255)
 CellSize = 4
-RidgeHeight = 0.8
+RidgeHeight = 0.9
 RidgeLength = 70
-HillHeight = 4
+DetailHeight = 1.1
+HillHeight = 2.2
 HillLength = 180
 FlatRadius = 0
-SolidCount = 14
-PlantCount = 160
+SolidCount = 8
+PlantCount = 0
 DrifterCount = 0
 HasWater = true
 WaterLevel = -1.6
@@ -52,7 +50,10 @@ PlantClumping = 0.7
 PlantClear = 330.0
 Lakes = false
 River = false
-Pools = PackedVector3Array(0, 0, 40, -170, 70, 32, 170, -70, 32, 110, 120, 18, -110, -120, 18)
+Ramps = PackedVector4Array(210, 280, 16, 8)
+Enclosure = Vector2(268, 208)
+Craters = PackedVector3Array(197.5, 72.4, 10.4, 135.7, 123.6, 8.7, 148.9, 23.5, 6.3, 51.2, -137.8, 7.1, 24.8, 64.2, 7.7, 72.8, 33.2, 10.6, -77.3, 65.6, 5.9, -204.1, -62.6, 5, -123, 114.1, 7.1, 165.1, 114.6, 6.8, 156.1, -94.5, 10.7, 89.9, -118.9, 8.8, -129.5, -51, 6.2, 123.2, 54.4, 10.5, -112.5, -146.6, 8.4)
+Pools = PackedVector3Array(14, -9, 27, -151, 47, 21, 127, -36, 15, 74, 106, 12, -42, 44, 8)
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 material_override = ExtResource("11")

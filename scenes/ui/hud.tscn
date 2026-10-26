@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/UI/JumpGauge.cs" id="6"]
 [ext_resource type="Script" path="res://scripts/UI/ThrottleGauge.cs" id="7"]
 [ext_resource type="Script" path="res://scripts/UI/HeatGauge.cs" id="8"]
+[ext_resource type="Script" path="res://scripts/UI/CoolantGauge.cs" id="coolant"]
 [ext_resource type="Script" path="res://scripts/UI/WeaponList.cs" id="9"]
 [ext_resource type="Script" path="res://scripts/UI/Minimap.cs" id="10"]
 [ext_resource type="Script" path="res://scripts/UI/StatusText.cs" id="11"]
@@ -140,6 +141,20 @@ anchor_bottom = 1
 offset_left = 108
 offset_top = -215
 offset_right = 196
+offset_bottom = -20
+mouse_filter = 2
+
+[node name="CoolantGauge" type="Control" parent="."]
+script = ExtResource("coolant")
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.5
+anchor_top = 1
+anchor_right = 0.5
+anchor_bottom = 1
+offset_left = 202
+offset_top = -215
+offset_right = 236
 offset_bottom = -20
 mouse_filter = 2
 
@@ -561,7 +576,10 @@ V — кабина / внешний вид
 Y — цель из своих,  Tab (держать) — таблица боя
 Enter — чат (в сетевой игре)
 Звено: F1–F8 кому приказ, затем цифра приказа
-I — интерфейс вкл/выкл
+I — интерфейс: в кабине / на экране / выкл
+F — курсор в кабине: щёлкать тумблеры и кнопки (ПКМ — осмотреться)
+N — прибор ночного видения,  B — тепловизор
+K — свет в кабине,  G — обогрев стёкол,  P — реактор,  O — двигатель,  J — охладитель
 F11 — счётчик кадров
 Esc — пауза, настройки и управление,  H — скрыть справку
 Клавиши настраиваются в «Настройки → Управление»."

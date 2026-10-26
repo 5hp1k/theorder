@@ -119,8 +119,17 @@ class Part:
             sections.append([{"z": (cu + u, cv + v, t), "y": (cu + u, t, cv + v), "x": (t, cv + v, cu + u)}[axis] for u, v in pts])
         return self.loft(sections, kind, bevel, seams, cuts)
 
-    def box(self, centre, size, kind=PAINT, bevel=0.02, seams=None, rot=None):
+    def box(self, centre, size, kind=PAINT, bevel=0.02, seams=None, rot=None, plain=False):
+        """A block. Never a bare box: its edges are chamfered in proportion to its size, and a big one
+        gets panel seams sunk into its faces (plain=True: just the given bevel, for slats and inlays)."""
         x, y, z = (s / 2 for s in size)
+        if not plain:
+            small = min(size)
+            if bevel and bevel > 0:
+                bevel = min(max(bevel, small * 0.07), 0.06, small * 0.3)
+            dims = sorted(size)
+            if seams is None and kind in (PAINT, FRAME) and dims[1] >= 0.5 and dims[2] >= 0.6:
+                seams = dict(margin=0.061, width=0.012, depth=0.0137, min_area=0.25)
         corners = [(-x, -y), (x, -y), (x, y), (-x, y)]
         s0 = [Vector((u, v, -z)) for u, v in corners]
         s1 = [Vector((u, v, z)) for u, v in corners]
@@ -128,8 +137,12 @@ class Part:
         c = Vector(centre)
         return self.loft([[tuple(c + m @ p) for p in s0], [tuple(c + m @ p) for p in s1]], kind, bevel, seams)
 
-    def cyl(self, a, b, r, r2=None, segs=16, kind=PAINT, bevel=0.015, caps=True, squash=1.0):
-        """Cylinder (or cone) from point a to point b."""
+    def cyl(self, a, b, r, r2=None, segs=16, kind=PAINT, bevel=0.015, caps=True, squash=1.0, plain=False, hub=True):
+        """A round part from point a to point b (a cone if r2 is given) — turned, never a bare cylinder:
+        its rims are chamfered, and a long one has a pair of grooves turned into it near its ends. Bolt
+        heads, rods and other small stuff (six sides or fewer, or plain=True) stay as they are. A short
+        drum (a joint, a hub) gets a stepped boss and a ring of bolts on its ends, unless hub=False (an
+        axle buried at both ends in what it joins)."""
         a, b = Vector(a), Vector(b)
         axis = (b - a).normalized()
         side = axis.cross(Vector((0, 1, 0)))
@@ -138,9 +151,38 @@ class Part:
         side.normalize()
         up = side.cross(axis)
         r2 = r if r2 is None else r2
-        s0 = [tuple(a + side * u + up * v * squash) for u, v in ring(segs, r)]
-        s1 = [tuple(b + side * u + up * v * squash) for u, v in ring(segs, r2)]
-        return self.loft([s0, s1], kind, bevel if segs <= 24 else 0, None, (), caps)
+        length = (b - a).length
+        if plain or segs <= 6 or min(r, r2) < 0.025 or length < 0.01:
+            s0 = [tuple(a + side * u + up * v * squash) for u, v in ring(segs, r)]
+            s1 = [tuple(b + side * u + up * v * squash) for u, v in ring(segs, r2)]
+            return self.loft([s0, s1], kind, bevel if segs <= 24 else 0, None, (), caps)
+        rmin = min(r, r2)
+        ch = min(rmin * 0.12, length * 0.2, 0.05)
+        tc = ch / length
+        prof = [(0.0, 1.0 - ch / rmin), (tc, 1.0)]
+        if length > 4 * rmin and rmin > 0.05:
+            # two shallow grooves near the ends, as a turned shaft or a sleeve has
+            g = min(0.06, 0.25 * rmin / length * 4)
+            depth = 1.0 - min(0.05, 0.012 / rmin + 0.02)
+            for t0 in (0.1, 0.9 - g):
+                prof += [(t0, 1.0), (t0 + 0.002, depth), (t0 + g - 0.002, depth), (t0 + g, 1.0)]
+        prof += [(1.0 - tc, 1.0), (1.0, 1.0 - ch / rmin)]
+        secs = []
+        for t, k in prof:
+            c = a + (b - a) * t
+            rr = (r + (r2 - r) * t) * k
+            secs.append([tuple(c + side * u + up * v * squash) for u, v in ring(segs, rr)])
+        faces = self.loft(secs, kind, 0, None, (), caps)
+        # (not a ring turning about the vertical — a waist, a turret race: those sit flat against what they carry)
+        if caps and squash == 1.0 and rmin >= 0.25 and length <= 2.2 * rmin and abs(r - r2) < 0.01 and abs(axis.y) < 0.7 and length > rmin * 0.35 and hub:
+            # A drum (a joint, a hub, a turret ring): a stepped boss and a ring of bolts on either end.
+            for end, out in ((a, -axis), (b, axis)):
+                # (domed to a point: no flat face of it can lie in one plane with whatever it stands against)
+                self.lathe(tuple(end - out * 0.01), tuple(end + out * 0.061), [(0, rmin * 0.62), (0.4, rmin * 0.62), (0.52, rmin * 0.5), (0.8, rmin * 0.3), (1, rmin * 0.002)], segs=max(10, segs), kind=SOFT)
+                n = 8 if rmin > 0.4 else 6
+                c = end + out * 0.004
+                self.bolts([tuple(c + side * math.cos(i * math.tau / n) * rmin * 0.78 + up * math.sin(i * math.tau / n) * rmin * 0.78) for i in range(n)], tuple(out), r=max(0.025, rmin * 0.05), h=0.03)
+        return faces
 
     def band(self, path, x0, x1, thick, kind=FRAME, bevel=0.012):
         """A belt (a tank track): a strip from x0 to x1 wide and 'thick' deep, running round a closed
@@ -428,7 +470,7 @@ class Part:
         s = n.cross(a)
         m = Matrix((s, n, a)).transposed()
         c = Vector(centre) + n * height / 2
-        return self.box(tuple(c), (size[0], height, size[1]), kind, bevel, None, m)
+        return self.box(tuple(c), (size[0], height, size[1]), kind, bevel, None, m, plain=True)
 
     def bolts(self, centres, normal, r=0.035, h=0.03):
         n = Vector(normal).normalized()
@@ -447,7 +489,7 @@ class Part:
         with self.detail(centre, n):
             for i in range(count):
                 c = Vector(centre) + run * ((i + 0.5) * pitch - size[1] / 2) + n * depth / 2
-                self.box(tuple(c), (size[0], depth, pitch * 0.5), RECESS, 0, None, m)
+                self.box(tuple(c), (size[0], depth, pitch * 0.5), RECESS, 0, None, m, plain=True)
 
     def sole(self, name, lift=0.03):
         """The part's underside as a flat shape lying just above the ground: the print it leaves."""
@@ -533,6 +575,142 @@ class Part:
         mod.keep_sharp = True
         mod.weight = 60
         return obj
+
+
+# ── Mechanical fittings built from proper profiles (never bare cylinders or boxes) ──────────────
+
+def _frame_of(d):
+    """Two directions square to d and to each other."""
+    d = Vector(d).normalized()
+    side = d.cross(Vector((0, 1, 0)))
+    if side.length < 1e-3:
+        side = d.cross(Vector((1, 0, 0)))
+    side.normalize()
+    return side, side.cross(d)
+
+
+def mt_pipe(part, pts, r, kind=FRAME, segs=10):
+    """A hose or pipe along a polyline: its section carried round each bend without twisting."""
+    pts = [Vector(p) for p in pts]
+    tangents = []
+    for i in range(len(pts)):
+        a, b = pts[max(i - 1, 0)], pts[min(i + 1, len(pts) - 1)]
+        tangents.append((b - a).normalized())
+    side, up = _frame_of(tangents[0])
+    secs = []
+    for p, t in zip(pts, tangents):
+        side = (side - t * side.dot(t)).normalized()
+        up = t.cross(side)
+        secs.append([tuple(p + side * u + up * v) for u, v in ring(segs, r)])
+    part.loft(secs, kind, 0)
+
+
+def mt_eye(part, centre, along, pin, r, width, length, kind=FRAME):
+    """The eye end of a ram or link: a tab rounded about its pin, running back along 'along', with the
+    pin's boss through it and a castle nut on either side."""
+    c, d, x = Vector(centre), Vector(along).normalized(), Vector(pin).normalized()
+    n = x.cross(d)
+    outline = []
+    for i in range(9):
+        ang = math.pi / 2 + i * math.pi / 8
+        outline.append((math.cos(ang) * r, math.sin(ang) * r))
+    outline += [(length, -r * 0.78), (length, r * 0.78)]
+    secs = [[tuple(c + d * u + n * v + x * (k * width / 2)) for u, v in outline] for k in (-1, 1)]
+    part.loft(secs, kind, 0.012)
+    w = width / 2
+    part.lathe(tuple(c - x * (w + 0.05)), tuple(c + x * (w + 0.05)),
+               [(0, r * 0.38), (0.06, r * 0.52), (0.14, r * 0.52), (0.18, r * 0.62), (0.82, r * 0.62), (0.86, r * 0.52), (0.94, r * 0.52), (1, r * 0.38)], segs=12, kind=SOFT)
+
+
+def mt_ram(part, a, b, r, pin=(1, 0, 0), kind=FRAME):
+    """A hydraulic ram from a (the barrel's end) to b (the rod's): barrel with its end cap, collars and
+    gland, a chromed rod with its wiper and thread collar, an eye at either end."""
+    a, b = Vector(a), Vector(b)
+    d = (b - a).normalized()
+    length = (b - a).length
+    p0, p1 = a + d * r * 0.95, b - d * r * 0.8
+    mid = p0 + (p1 - p0) * 0.6
+    part.lathe(tuple(p0), tuple(mid), [(0, r * 0.6), (0.03, r * 0.86), (0.06, r * 1.0), (0.12, r * 1.0), (0.135, r * 0.9), (0.84, r * 0.9),
+                                       (0.855, r * 1.06), (0.93, r * 1.06), (0.96, r * 0.8), (1, r * 0.62)], segs=14, kind=kind)
+    part.lathe(tuple(mid - d * 0.03), tuple(p1), [(0, r * 0.46), (0.06, r * 0.46), (0.07, r * 0.52), (0.1, r * 0.52), (0.11, r * 0.42), (0.9, r * 0.42),
+                                                 (0.91, r * 0.56), (1, r * 0.56)], segs=12, kind=SOFT)
+    mt_eye(part, a, d, pin, r * 0.9, r * 1.3, r * 1.1, kind)
+    mt_eye(part, b, -d, pin, r * 0.8, r * 1.1, r * 1.0, kind)
+
+
+def mt_hub(part, half, r, kind=FRAME, bolts=8):
+    """A heavy joint about the X axis: a drum with chamfered rims and two grooves, a bolted flange and a
+    stepped cap with a hex nut on either end."""
+    part.lathe((-half, 0, 0), (half, 0, 0), [(0, r * 0.88), (0.035, r), (0.3, r), (0.315, r * 0.93), (0.375, r * 0.93), (0.39, r), (0.61, r),
+                                              (0.625, r * 0.93), (0.685, r * 0.93), (0.7, r), (0.965, r), (1, r * 0.88)], segs=24, kind=kind)
+    for sx in (-1, 1):
+        x0 = sx * half
+        part.lathe((x0 - sx * 0.02, 0, 0), (x0 + sx * 0.07, 0, 0), [(0, r * 0.8), (0.75, r * 0.8), (1, r * 0.72)], segs=20, kind=SOFT)
+        part.lathe((x0 + sx * 0.06, 0, 0), (x0 + sx * 0.15, 0, 0), [(0, r * 0.46), (0.5, r * 0.46), (0.55, r * 0.4), (1, r * 0.34)], segs=16, kind=FRAME)
+        part.prism([(math.cos(i * math.pi / 3) * r * 0.2, math.sin(i * math.pi / 3) * r * 0.2) for i in range(6)], "x", x0 + sx * 0.14, x0 + sx * 0.2, SOFT, 0.006)
+        part.bolts([(x0 + sx * 0.07, math.cos(i * math.tau / bolts) * r * 0.64, math.sin(i * math.tau / bolts) * r * 0.64) for i in range(bolts)], (sx, 0, 0), r=r * 0.06, h=0.035)
+
+
+def mt_cowl(part, x0, x1, r0, r1, a0, a1, kind=PAINT, steps=8):
+    """An armoured hood over a joint: a thick arc about X between angles a0 and a1 (0 = front, up positive),
+    from x0 to x1 across."""
+    arc = [(math.cos(a0 + (a1 - a0) * i / steps), math.sin(a0 + (a1 - a0) * i / steps)) for i in range(steps + 1)]
+    outline = [(c * r1, s * r1) for c, s in arc] + [(c * r0, s * r0) for c, s in reversed(arc)]
+    secs = [[(x, -s, c) for c, s in outline] for x in (x0, x1)]
+    part.loft(secs, kind, 0.02)
+
+
+def mt_shell(part, rows, kind=PAINT, seams=None):
+    """A faceted armour shell lofted down Y: rows of (y, width, depth, z of its back, chamfer)."""
+    secs = []
+    for y, w, dep, zb, ch in rows:
+        secs.append([(u, y, zb + dep / 2 + v) for u, v in octagon(w, dep, ch)])
+    part.loft(secs, kind, 0.02, seams)
+
+
+def frame_at(normal, up):
+    """Right, up and out directions of a surface facing 'normal' with 'up' along it."""
+    n = Vector(normal).normalized()
+    u = Vector(up)
+    u = (u - n * u.dot(n)).normalized()
+    return u.cross(n), u, n
+
+
+def keycap(part, centre, normal, up, w, h, depth=0.018, kind=SOFT):
+    """A push button or key: a chamfered block standing out of a panel, its top a little smaller."""
+    s, u, n = frame_at(normal, up)
+    c = Vector(centre)
+    ch = min(w, h) * 0.2
+    secs = [[tuple(c + n * t + s * a * k + u * b * k) for a, b in octagon(w, h, ch)] for t, k in ((-0.004, 1.0), (depth * 0.7, 1.0), (depth, 0.8))]
+    part.loft(secs, kind, 0.002)
+
+
+def bezel(part, centre, normal, up, w, h, rim=0.035, depth=0.03, kind=FRAME):
+    """The frame round a screen: four chamfered bars mitred at the corners, standing out of the panel."""
+    s, u, n = frame_at(normal, up)
+    c = Vector(centre)
+    inner = [(w / 2, h / 2), (-w / 2, h / 2), (-w / 2, -h / 2), (w / 2, -h / 2)]
+    outer = [(x + math.copysign(rim, x), y + math.copysign(rim, y)) for x, y in inner]
+    for i in range(4):
+        j = (i + 1) % 4
+        quad = [inner[i], outer[i], outer[j], inner[j]]
+        secs = [[tuple(c + n * t + s * a + u * b) for a, b in quad] for t in (-0.004, depth)]
+        part.loft(secs, kind, 0.004)
+
+
+def lever_switch(part, normal, up, length=0.045, kind=EDGE):
+    """The lever of a toggle switch about its own origin: a bat handle with a knob, standing up the normal."""
+    s, u, n = frame_at(normal, up)
+    part.lathe((0, 0, 0), tuple(n * length), [(0, 0.0045), (0.15, 0.0045), (0.2, 0.0035), (0.78, 0.003), (0.84, 0.0058), (0.96, 0.0058), (1, 0.004)], segs=10, kind=kind)
+
+
+def switch_nut(part, centre, normal, up, r=0.011):
+    """The hex nut a toggle switch is held in, on its panel."""
+    s, u, n = frame_at(normal, up)
+    c = Vector(centre)
+    hexa = [(math.cos(i * math.pi / 3) * r, math.sin(i * math.pi / 3) * r) for i in range(6)]
+    secs = [[tuple(c + n * t + s * a + u * b) for a, b in hexa] for t in (-0.004, 0.007)]
+    part.loft(secs, SOFT, 0.0015)
 
 
 def reset_scene():
@@ -770,6 +948,10 @@ class Model:
         centre = (lo + hi) / 2
         c = (centre.x, centre.z, -centre.y)  # back to game axes
         r = (hi - lo).length * 0.95
+        if os.environ.get("PREVIEW_AT"):
+            # (a close look at one place: PREVIEW_AT="x,y,z,distance" in game axes)
+            *c, r = (float(v) for v in os.environ["PREVIEW_AT"].split(","))
+            c = tuple(c)
         views = [(c[0] + r * 0.55, c[1] + r * 0.3, c[2] - r * 0.8), (c[0] - r * 0.8, c[1] + r * 0.12, c[2] - r * 0.55),
                  (c[0] + r * 0.6, c[1] + r * 0.25, c[2] + r * 0.75), (c[0] + r, c[1] + r * 0.05, c[2])]
         render_views(os.path.join(out, self.name), views, c)

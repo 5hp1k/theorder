@@ -1,58 +1,45 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://scripts/World/ChunkedBuilding.cs" id="1"]
-[ext_resource type="PackedScene" path="res://scenes/fx/chunk_dust.tscn" id="2"]
-[ext_resource type="Material" path="res://materials/facade_arena.tres" id="3"]
-[ext_resource type="Material" path="res://materials/rubble.tres" id="5"]
+[ext_resource type="Script" path="res://scripts/World/Destructible.cs" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/fx/dust_burst.tscn" id="2"]
+[ext_resource type="ArrayMesh" path="res://models/kit/arena_bulwark.res" id="3"]
+[ext_resource type="Material" path="res://materials/arena_concrete.tres" id="4"]
+[ext_resource type="ArrayMesh" path="res://models/kit/rubble_heap.res" id="5"]
+[ext_resource type="Material" path="res://materials/rubble.tres" id="6"]
+[ext_resource type="Material" path="res://materials/street_steel.tres" id="7"]
+[ext_resource type="ArrayMesh" path="res://models/kit/arena_bulwark_ends.res" id="8"]
+[ext_resource type="Material" path="res://materials/arena_hazard.tres" id="9"]
 
-[sub_resource type="BoxMesh" id="Preview"]
-size = Vector3(12, 8, 2)
-
-[sub_resource type="BoxShape3D" id="Shape"]
-size = Vector3(12, 8, 2)
-
-[sub_resource type="BoxMesh" id="Heap"]
-size = Vector3(12.6, 1.2, 2.8)
-
-[sub_resource type="BoxMesh" id="Slab"]
-size = Vector3(4.2, 0.8, 1.6)
+[sub_resource type="BoxShape3D" id="shape"]
+size = Vector3(12, 8.4, 2.4)
 
 [node name="BarrierWall" type="StaticBody3D"]
 collision_layer = 32
 collision_mask = 0
 script = ExtResource("1")
-Cells = Vector3i(6, 4, 1)
-CellSize = 2
-CellHp = 22
-ChunkFx = ExtResource("2")
-DebrisMaterial = ExtResource("5")
+Hp = 320
+How = 1
+Footprint = Vector2(2, 12)
+Height = 8
+DestroyFx = ExtResource("2")
+Trample = false
 
-[node name="Chunks" type="MultiMeshInstance3D" parent="."]
-material_override = ExtResource("3")
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = ExtResource("3")
+material_override = ExtResource("4")
 
-[node name="Preview" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
-mesh = SubResource("Preview")
-material_override = ExtResource("3")
+[node name="Ends" type="MeshInstance3D" parent="."]
+mesh = ExtResource("8")
+material_override = ExtResource("9")
 
 [node name="Collision" type="CollisionShape3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, 0)
-shape = SubResource("Shape")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4.2, 0)
+shape = SubResource("shape")
 
 [node name="Rubble" type="Node3D" parent="."]
 visible = false
 
 [node name="Heap" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
-mesh = SubResource("Heap")
-material_override = ExtResource("5")
-
-[node name="Slab1" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.88526, 0.21315, 0.41338, -0.13613, 0.96863, -0.20791, -0.44473, 0.12778, 0.8865, 2.4, 0.45, -0.225)
-mesh = SubResource("Slab")
-material_override = ExtResource("5")
-
-[node name="Slab2" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.76762, -0.08776, -0.63487, 0.23894, 0.95835, 0.15643, 0.5947, -0.27178, 0.75661, -3, 0.375, 0.3)
-mesh = SubResource("Slab")
-material_override = ExtResource("5")
+transform = Transform3D(13.200000000000001, 0, 0, 0, 1.6, 0, 0, 0, 3.36, 0, 0.3, 0)
+mesh = ExtResource("5")
+material_override = ExtResource("6")

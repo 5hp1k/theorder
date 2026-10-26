@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/World/MeshCollision.cs" id="script"]
+[ext_resource type="Material" path="res://materials/arena_stone.tres" id="m_arena_stone"]
+[ext_resource type="ArrayMesh" path="res://models/kit/arena_ruins.res" id="g0"]
+
+[node name="Ruins" type="StaticBody3D"]
+collision_layer = 33
+collision_mask = 0
+script = ExtResource("script")
+
+[node name="arena_ruins" type="MeshInstance3D" parent="."]
+mesh = ExtResource("g0")
+surface_material_override/0 = ExtResource("m_arena_stone")

@@ -19,7 +19,11 @@ public partial class PlayerPilot : MechPilot, ICockpit
     /// <summary>Chase camera offset from the pivot, in the camera's own space (scaled to the machine).</summary>
     [Export] public Vector3 ChaseOffset = new(0f, 2.5f, 16f);
     /// <summary>How much of a mech's rocking and bouncing the first-person view cancels out (0 = none, 1 = all).</summary>
-    [Export(PropertyHint.Range, "0,1")] public float HeadSteadiness = 0.8f;
+    [Export(PropertyHint.Range, "0,1")] public float HeadSteadiness = 0.95f;
+    /// <summary>The mouse on the arms alone (held Alt), as a share of its speed on the torso.</summary>
+    [Export(PropertyHint.Range, "0.1,1")] public float ArmSensitivity = 0.45f;
+    /// <summary>How much the cab itself keeps to the steadied view rather than to the rocking torso (0 = rides the torso, 1 = fixed to the eye).</summary>
+    [Export(PropertyHint.Range, "0,1")] public float CabSteadiness = 0.75f;
     /// <summary>How much of the jolts from footfalls and hits reaches the first-person view.</summary>
     [Export(PropertyHint.Range, "0,1")] public float CockpitShake = 0.2f;
     /// <summary>How far the pilot's head may move from the seat, metres: keeps the eye inside the cab.</summary>
@@ -70,6 +74,13 @@ public partial class PlayerPilot : MechPilot, ICockpit
     public bool HasHeat => Unit.HasHeat;
     public float Heat => Unit.Heat;
     public bool IsShutdown => Unit.IsShutdown;
+    public bool ReactorOff => Unit is Mech { ReactorOn: false };
+    public bool ReactorStarting => Unit is Mech { ReactorStarting: true };
+    public bool EngineOff => Unit is Mech { EngineOn: false };
+    public bool EngineStarting => Unit is Mech { EngineStarting: true };
+    public float EngineProgress => Unit is Mech m ? m.EngineProgress : 1f;
+    public int Coolant => Unit is Mech m ? m.Coolant : 0;
+    public int CoolantMax => Unit is Mech m ? m.CoolantCharges : 0;
     public float RestartHeat => Unit.RestartHeat;
     public float RestartProgress => Unit.RestartProgress;
     public float Twist => Unit.TorsoYaw;
@@ -119,6 +130,10 @@ public partial class PlayerPilot : MechPilot, ICockpit
     float BaseFov => GameConfig.Fov;
 
     Node3D _cockpit;
+    Transform3D _cockpitRest;
+    float _chaseY;
+    bool _chaseSet;
+    bool _cockpitRestSet;
     AudioStreamPlayer _lockSound, _acquireSound;
     Transform3D _aimView = Transform3D.Identity;
     float _lookYaw, _lookPitch;
@@ -171,14 +186,34 @@ public partial class PlayerPilot : MechPilot, ICockpit
         _friendlyFire = GetNodeOrNull<AudioStreamPlayer>("FriendlyFireSound");
         Score.FriendlyFire += OnFriendlyFire;
         _cockpit = unit.CockpitInterior;
+        // The simulator is flown from the cockpit only; arcade play starts from behind.
+        if (ControlModes.Simulator && _cockpit != null) CockpitView = true;
+        else if (ControlModes.Arcade) CockpitView = false;
         if (_cockpit != null) _cockpit.Visible = CockpitView;
         _aimView = unit.AimAnchor.GlobalTransform.Orthonormalized();
+        _arcYaw = unit.HullYaw;
+        // The simulator starts cold: the reactor, then the engine, are switched on from the cab.
+        if (ControlModes.Simulator && unit is Mech cold) cold.ColdStart();
+    }
+
+    public override void OnRespawn()
+    {
+        if (ControlModes.Simulator && Unit is Mech cold) cold.ColdStart();
     }
 
     public override bool TryGetAimView(out Transform3D view)
     {
         view = _aimView;
         return true;
+    }
+
+    /// <summary>Turns the head by a mouse movement (the cab's free cursor, see CockpitControls).</summary>
+    public void LookBy(Vector2 relative)
+    {
+        float sens = MouseSensitivity * GameConfig.MouseSensitivity * Camera.Fov / BaseFov;
+        float limit = Mathf.Min(Unit.MaxTwist, 1.75f);
+        _lookYaw = Mathf.Clamp(_lookYaw - relative.X * sens, -limit, limit);
+        _lookPitch = Mathf.Clamp(_lookPitch - relative.Y * sens, -MaxLookPitch, MaxLookPitch);
     }
 
     // ── Input ───────────────────────────────────────────────────
@@ -190,11 +225,12 @@ public partial class PlayerPilot : MechPilot, ICockpit
         {
             // Finer control when zoomed in.
             float sens = MouseSensitivity * GameConfig.MouseSensitivity * Camera.Fov / BaseFov;
-            if (Unit is Mech { ArmsAim: true } armed && Input.IsActionPressed("arm_look"))
+            if (Unit is Mech { ArmsAim: true } armed && Input.IsActionPressed("arm_look") && !ArcadeDriving)
             {
-                // The arms alone: the torso stays where it is.
-                armed.ArmLookYaw = Mathf.Clamp(armed.ArmLookYaw - motion.Relative.X * sens, -armed.ArmYawReach * 2f, armed.ArmYawReach * 2f);
-                armed.ArmLookPitch = Mathf.Clamp(armed.ArmLookPitch - motion.Relative.Y * sens, -armed.ArmPitchReach * 2f, armed.ArmPitchReach * 2f);
+                // The arms alone: the torso stays where it is (and the hand on them is finer than on the torso).
+                float arms = sens * ArmSensitivity;
+                armed.ArmLookYaw = Mathf.Clamp(armed.ArmLookYaw - motion.Relative.X * arms, -armed.ArmYawReach * 2f, armed.ArmYawReach * 2f);
+                armed.ArmLookPitch = Mathf.Clamp(armed.ArmLookPitch - motion.Relative.Y * arms, -armed.ArmPitchReach * 2f, armed.ArmPitchReach * 2f);
             }
             else if (Input.IsActionPressed(LookAction))
             {
@@ -210,13 +246,19 @@ public partial class PlayerPilot : MechPilot, ICockpit
                 Unit.TargetPitch = Mathf.Clamp(Unit.TargetPitch - motion.Relative.Y * sens, Unit.MinPitch, Unit.MaxPitch);
                 if (motion.Relative.Y != 0f) _keyPitch = false;
             }
+            else if (ArcadeDriving)
+            {
+                // Arcade: the mouse swings the camera round; the torso follows it as far as it can.
+                _arcYaw = Mathf.Wrap(_arcYaw - motion.Relative.X * sens, -Mathf.Pi, Mathf.Pi);
+                _arcPitch = Mathf.Clamp(_arcPitch - motion.Relative.Y * sens, Unit.MinPitch, Unit.MaxPitch);
+            }
             else
             {
                 SetTwist(Unit.TargetYaw - motion.Relative.X * sens);
                 Unit.TargetPitch = Mathf.Clamp(Unit.TargetPitch - motion.Relative.Y * sens, Unit.MinPitch, Unit.MaxPitch);
             }
         }
-        else if (@event.IsActionPressed("toggle_view"))
+        else if (@event.IsActionPressed("toggle_view") && !(ControlModes.Simulator && _cockpit != null))
         {
             CockpitView = !CockpitView;
             if (_cockpit != null) _cockpit.Visible = CockpitView;
@@ -224,6 +266,9 @@ public partial class PlayerPilot : MechPilot, ICockpit
         else if (@event.IsActionPressed("center_torso")) Unit.TargetYaw = 0f;
         else if (@event.IsActionPressed("counter_rotate")) CounterRotate = !CounterRotate;
         else if (@event.IsActionPressed("toggle_lights")) Headlight.Toggle(Unit.Body);
+        else if (@event.IsActionPressed("engine") && Unit is Mech engined) engined.SetEngine(!engined.EngineOn);
+        else if (@event.IsActionPressed("reactor") && Unit is Mech powered) powered.SetReactor(!powered.ReactorOn);
+        else if (@event.IsActionPressed("coolant") && Unit is Mech cooled && cooled.FlushCoolant()) Unit.Shake += 0.15f;
         else if (@event.IsActionPressed("zoom")) Zoomed = !Zoomed;
         else if (@event.IsActionPressed("zoom_in")) Zoomed = true;
         else if (@event.IsActionPressed("zoom_out")) Zoomed = false;
@@ -290,6 +335,8 @@ public partial class PlayerPilot : MechPilot, ICockpit
         if (SquadCommand.Listening) _holdNumberGroups = true;
         else if ((fire & numbered) == 0) _holdNumberGroups = false;
         if (_holdNumberGroups) fire &= ~numbered;
+        // (the mouse works the cab's switches while the cursor is free in it, not the guns)
+        if (CockpitControls.CursorMode) fire = 0;
         if (_suppressFire && fire == 0) _suppressFire = false;
         Unit.Fire = fire;
         Unit.Jump = Input.IsActionPressed("jump");
@@ -299,6 +346,11 @@ public partial class PlayerPilot : MechPilot, ICockpit
         UpdateLock(dt);
         CounterTurn();
         if (Unit.Offline) return;
+        if (ArcadeDriving)
+        {
+            ArcadeDrive(dt);
+            return;
+        }
         Unit.TurnInput = Input.GetAxis("turn_right", "turn_left");
         if (IsPlane)
         {
@@ -306,6 +358,94 @@ public partial class PlayerPilot : MechPilot, ICockpit
             return;
         }
         UpdateThrottle(dt);
+    }
+
+    // ── Arcade driving ──────────────────────────────────────────
+
+    float _arcYaw, _arcPitch;
+    Vector3 _arcDrive;
+    /// <summary>Arcade: how far off the sight a hostile machine is taken as the missiles' target (radians), and how much quicker they lock on.</summary>
+    [Export] public float ArcadeLockCone = 0.3f;
+    [Export] public float ArcadeLockSpeed = 4f;
+    /// <summary>How much quicker an arcade mech turns its legs, twists its torso and gets up to speed.</summary>
+    [Export] public float ArcadeAgility = 4f;
+
+    /// <summary>Arcade controls, for anything that walks or drives (aircraft keep their own).</summary>
+    bool ArcadeDriving => ControlModes.Arcade && !IsPlane && Unit != null;
+
+    /// <summary>
+    /// Arcade (in the manner of MechAssault): the keys say which way to go, relative to where the camera
+    /// looks — the legs turn there by themselves and the throttle opens as far as the keys are held;
+    /// the torso turns after the camera; a hostile machine near the sight pulls the sight onto it.
+    /// </summary>
+    void ArcadeDrive(float dt)
+    {
+        float right = Input.GetAxis("turn_left", "turn_right"), forward = Input.GetAxis("throttle_down", "throttle_up");
+        var stick = new Vector2(right, forward);
+        var mech = Unit as Mech;
+        if (mech != null)
+        {
+            // No tank driving: the arms stay with the torso, the torso swings round fast, and the machine
+            // walks straight off the way the keys say while its legs whip round to face it.
+            mech.ArmsLocked = true;
+            mech.Agility = ArcadeAgility;
+        }
+        if (stick.LengthSquared() > 0.01f)
+        {
+            float heading = _arcYaw + Mathf.Atan2(-stick.X, stick.Y);
+            // Away from where the camera looks — further than the torso could twist back — a mech backs
+            // off facing it instead of turning its back.
+            bool back = mech != null && Mathf.Abs(Mathf.AngleDifference(_arcYaw, heading)) > Mathf.Min(Unit.MaxTwist, 1.9f);
+            float face = back ? heading + Mathf.Pi : heading;
+            float off = Mathf.AngleDifference(Unit.HullYaw, face);
+            Unit.TurnInput = Mathf.Clamp(off * 3f, -1f, 1f);
+            if (mech != null)
+            {
+                // (the way to walk, in the sense of the legs' forward: backing off, the speed is negative)
+                mech.DriveAlong(_arcDrive = new Vector3(-Mathf.Sin(face), 0f, -Mathf.Cos(face)));
+                Unit.Throttle = Mathf.Min(stick.Length(), 1f) * (back ? -1f : 1f);
+            }
+            // (vehicles: slower while still swinging round, full ahead once facing the way)
+            else Unit.Throttle = Mathf.MoveToward(Unit.Throttle, Mathf.Min(stick.Length(), 1f) * Mathf.Clamp(Mathf.Cos(off), 0.15f, 1f), Unit.ThrottleRate * 2f * dt);
+        }
+        else
+        {
+            Unit.TurnInput = 0f;
+            if (mech != null)
+            {
+                Unit.Throttle = 0f;
+                // (still the way it was going while it pulls up)
+                if (Mathf.Abs(mech.Speed) > 0.3f) mech.DriveAlong(_arcDrive);
+            }
+            else Unit.Throttle = Mathf.MoveToward(Unit.Throttle, 0f, Unit.ThrottleRate * 2f * dt);
+        }
+        if (Input.IsActionJustPressed("full_stop")) Unit.Throttle = 0f;
+
+        // No aim help — but the missiles' target is taken by itself: whichever hostile machine is nearest
+        // the sight, within a wide cone, unless the one already taken is still in it.
+        Vector3 eye = Camera.GlobalPosition, look = -Camera.GlobalBasis.Z;
+        bool keep = Target != null && !Target.IsDestroyed && Units.Hostile(Unit, Target) && InCone(Target, eye, look, ArcadeLockCone);
+        if (!keep)
+        {
+            ITarget best = null;
+            float bestAngle = ArcadeLockCone;
+            foreach (var u in Units.All)
+            {
+                if (u.IsDestroyed || u == Unit as ITarget || !Units.Hostile(Unit, u)) continue;
+                Vector3 to = u.AimCenter - eye;
+                if (to.LengthSquared() > LockRange * LockRange) continue;
+                float angle = look.AngleTo(to);
+                if (angle < bestAngle)
+                {
+                    bestAngle = angle;
+                    best = u;
+                }
+            }
+            if (best != null) SetTarget(best);
+        }
+        // The torso after the camera.
+        SetTwist(Mathf.AngleDifference(Unit.HullYaw, _arcYaw));
+        Unit.TargetPitch = Mathf.Clamp(_arcPitch, Unit.MinPitch, Unit.MaxPitch);
     }
 
     bool _kneel;
@@ -413,14 +553,18 @@ public partial class PlayerPilot : MechPilot, ICockpit
         {
             Vector3 to = Target.AimCenter - _aimView.Origin;
             // (No missile lock on one's own side.)
-            onTarget = Target.Team != Unit.Team && to.Length() < LockRange && (-_aimView.Basis.Z).AngleTo(to) < LockCone;
+            // (arcade: a wide cone, and quick)
+            onTarget = Target.Team != Unit.Team && to.Length() < LockRange && (-_aimView.Basis.Z).AngleTo(to) < (ArcadeDriving ? ArcadeLockCone : LockCone);
         }
         bool was = LockProgress >= 1f;
-        LockProgress = Mathf.Clamp(LockProgress + (onTarget ? dt / LockTime : -dt * 1.5f), 0f, 1f);
+        float lockTime = ArcadeDriving ? LockTime / ArcadeLockSpeed : LockTime;
+        LockProgress = Mathf.Clamp(LockProgress + (onTarget ? dt / lockTime : -dt * 1.5f), 0f, 1f);
         bool locked = LockProgress >= 1f;
         Unit.LockTarget = locked ? Target : null;
         if (locked && !was) _lockSound?.Play();
     }
+
+    static bool InCone(ITarget t, Vector3 eye, Vector3 look, float cone) => look.AngleTo(t.AimCenter - eye) < cone;
 
     void SetTarget(ITarget target)
     {
@@ -471,6 +615,12 @@ public partial class PlayerPilot : MechPilot, ICockpit
 
     public override void UpdateView(float dt)
     {
+        // The simulator is flown from the cockpit only — also when it is chosen in the middle of a battle.
+        if (ControlModes.Simulator && _cockpit != null && !CockpitView)
+        {
+            CockpitView = true;
+            _cockpit.Visible = !Spectating;
+        }
         if (Spectating)
         {
             if (_cockpit != null) _cockpit.Visible = false;
@@ -485,7 +635,8 @@ public partial class PlayerPilot : MechPilot, ICockpit
             mech.ArmLookYaw *= back;
             mech.ArmLookPitch *= back;
         }
-        if (!Input.IsActionPressed(LookAction) || Input.MouseMode != Input.MouseModeEnum.Captured)
+        // (while the cursor is free in the cab the view stays where the right mouse button turned it)
+        if (!CockpitControls.CursorMode && (!Input.IsActionPressed(LookAction) || Input.MouseMode != Input.MouseModeEnum.Captured))
         {
             float k = Mathf.Exp(-12f * dt);
             _lookYaw *= k;
@@ -495,21 +646,24 @@ public partial class PlayerPilot : MechPilot, ICockpit
         Camera.Fov = Mathf.Lerp(Camera.Fov, Zoomed ? ZoomFov : BaseFov, 1f - Mathf.Exp(-14f * dt));
 
         // _aimView is where the weapons look; the camera may be turned away from it by free look.
+        Transform3D anchor = Unit.AimAnchor.GlobalTransform.Orthonormalized();
         if (CockpitView)
         {
-            _aimView = Unit.AimAnchor.GlobalTransform.Orthonormalized();
+            _aimView = anchor;
             if (Unit is Mech)
             {
                 // The pilot's head doesn't ride every lurch of a walking mech: the view keeps to where the
                 // torso is turned, taking only a share of the body's rocking and of its bounce. The cockpit
                 // around it still moves with the machine.
                 Basis level = new Basis(Vector3.Up, Unit.HullYaw + Unit.TorsoYaw) * new Basis(Vector3.Right, Unit.TorsoPitch);
-                Basis steady = level.Slerp(_aimView.Basis, 1f - HeadSteadiness).Orthonormalized();
+                // (the player's own setting scales what is left of the rocking: none of it at 0)
+                float headSteady = 1f - (1f - HeadSteadiness) * GameConfig.ViewBob;
+                Basis steady = level.Slerp(_aimView.Basis, 1f - headSteady).Orthonormalized();
                 Vector3 seat = _aimView.Origin;
-                _eyeHeight = _eyeSet ? Mathf.Lerp(_eyeHeight, seat.Y, 1f - Mathf.Exp(-5f * dt)) : seat.Y;
+                _eyeHeight = _eyeSet ? Mathf.Lerp(_eyeHeight, seat.Y, 1f - Mathf.Exp(-8f * dt)) : seat.Y;
                 _eyeSet = true;
                 // …but the head stays inside the cab: never more than a hand's breadth from the seat.
-                seat.Y = Mathf.Clamp(Mathf.Lerp(seat.Y, _eyeHeight, HeadSteadiness), seat.Y - HeadTravel, seat.Y + HeadTravel);
+                seat.Y = Mathf.Clamp(Mathf.Lerp(seat.Y, _eyeHeight, headSteady), seat.Y - HeadTravel, seat.Y + HeadTravel);
                 _aimView = new Transform3D(steady, seat);
             }
             Basis look = new Basis(Vector3.Up, _lookYaw) * new Basis(Vector3.Right, _lookPitch);
@@ -517,9 +671,14 @@ public partial class PlayerPilot : MechPilot, ICockpit
         }
         else
         {
-            float worldYaw = Unit.HullYaw + Unit.TorsoYaw;
-            float pitch = Unit.TorsoPitch * 0.7f - 0.1f;
+            // (arcade: the camera goes where the mouse swings it, the torso catching up)
+            float worldYaw = ArcadeDriving ? _arcYaw : Unit.HullYaw + Unit.TorsoYaw;
+            float pitch = (ArcadeDriving ? _arcPitch : Unit.TorsoPitch) * 0.7f - 0.1f;
             Vector3 pivot = Unit.ViewPivot + Vector3.Up * 1.5f * Unit.ChaseScale;
+            // (the body's bounce, smoothed out as far as the player's setting asks)
+            _chaseY = _chaseSet ? Mathf.Lerp(_chaseY, pivot.Y, 1f - Mathf.Exp(-5f * dt)) : pivot.Y;
+            _chaseSet = true;
+            pivot.Y = Mathf.Lerp(_chaseY, pivot.Y, GameConfig.ViewBob);
             _aimView = ChaseView(pivot, worldYaw, pitch);
             // Upper limit keeps the orbiting camera above the ground.
             Camera.GlobalTransform = ChaseView(pivot, worldYaw + _lookYaw, Mathf.Clamp(pitch + _lookPitch, -1.2f, 0.4f));
@@ -528,15 +687,28 @@ public partial class PlayerPilot : MechPilot, ICockpit
 
         Unit.Shake = Mathf.Min(Unit.Shake, 0.6f) * Mathf.Exp(-5f * dt);
         // Less shake when zoomed, or aimed shots would be impossible on the move.
-        float s = Unit.Shake * (CockpitView ? CockpitShake : 0.5f) * Camera.Fov / BaseFov;
+        float s = Unit.Shake * (CockpitView ? CockpitShake : 0.5f) * Camera.Fov / BaseFov * GameConfig.ViewBob;
         Vector3 offset = new Vector3(Mathf.Sin(Unit.Time * 41f), Mathf.Sin(Unit.Time * 33f + 1.7f), 0f) * s;
         if (CockpitView)
         {
-            // In the cab the jolt mostly rocks the view; the eye itself barely leaves its place, so it
-            // can't end up outside the canopy.
-            Camera.GlobalPosition += Camera.GlobalTransform.Basis * offset.LimitLength(HeadTravel * 0.5f);
-            Camera.RotateObjectLocal(Vector3.Forward, offset.X * 0.12f);
-            Camera.RotateObjectLocal(Vector3.Right, offset.Y * 0.08f);
+            // In the cab the jolt shakes the cab round the pilot, not the pilot's eye: the sight stays on
+            // what it is laid on, and the hits and the footfalls are still felt.
+            if (_cockpit != null)
+            {
+                if (!_cockpitRestSet)
+                {
+                    _cockpitRest = _cockpit.Transform;
+                    _cockpitRestSet = true;
+                }
+                Vector3 jolt = offset.LimitLength(HeadTravel * 0.5f);
+                var shaken = _cockpitRest * new Transform3D(new Basis(Vector3.Forward, -offset.X * 0.05f) * new Basis(Vector3.Right, -offset.Y * 0.035f), -jolt);
+                // The cab is carried mostly by the steadied view too, so it does not swing about the eye with
+                // every stride (the steadied eye is _aimView; where the torso really is, anchor).
+                var parent = ((Node3D)_cockpit.GetParent()).GlobalTransform;
+                var riding = parent * shaken;
+                var steady = Unit is Mech ? _aimView * (anchor.AffineInverse() * riding) : riding;
+                _cockpit.Transform = parent.AffineInverse() * riding.InterpolateWith(steady, 1f - (1f - CabSteadiness) * GameConfig.ViewBob);
+            }
         }
         else Camera.GlobalPosition += Camera.GlobalTransform.Basis * offset;
 
@@ -547,6 +719,7 @@ public partial class PlayerPilot : MechPilot, ICockpit
             own.DrawOver(over);
             _drawnOver = over;
         }
+        if (_drawnOver && Unit is Mech inside) inside.UpdateCabCut();
 
         // Shots are drawn from beyond the cab while looking out of it.
         Unit.Weapons.CabClip = CockpitView ? (Camera.GlobalPosition, -_aimView.Basis.Z, CabDepth * Unit.ChaseScale) : null;

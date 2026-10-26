@@ -14,6 +14,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/stat_row.tscn" id="stat_row"]
 [ext_resource type="PackedScene" path="res://scenes/ui/unit_check.tscn" id="unit_check"]
 [ext_resource type="Script" uid="uid://8gj1p1rrtssi" path="res://scripts/UI/UnitStats.cs" id="unit_stats"]
+[ext_resource type="ArrayMesh" path="res://models/kit/menu_pedestal.res" id="kit_menu_pedestal"]
 
 [sub_resource type="ShaderMaterial" id="SkyMaterial_1"]
 shader = ExtResource("sky_shader")
@@ -52,12 +53,6 @@ adjustment_contrast = 1.1
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3"]
 albedo_color = Color(0.13, 0.14, 0.16, 1)
 roughness = 0.9
-
-[sub_resource type="CylinderMesh" id="CylinderMesh_2"]
-top_radius = 7.0
-bottom_radius = 7.5
-height = 0.3
-radial_segments = 48
 
 [node name="MainMenu" type="Control" unique_id=726802262]
 layout_mode = 3
@@ -130,10 +125,20 @@ theme_override_constants/separation = 12
 
 [node name="BtnCampaign" type="Button" parent="Layout/Rows/Body/Nav" unique_id=359111078]
 unique_name_in_owner = true
+visible = false
 custom_minimum_size = Vector2(260, 60)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "Кампания"
+
+[node name="BtnInsurgency" type="Button" parent="Layout/Rows/Body/Nav"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(260, 60)
+layout_mode = 2
+tooltip_text = "Новый режим — в разработке"
+theme_override_font_sizes/font_size = 24
+disabled = true
+text = "Insurgency"
 
 [node name="BtnMissions" type="Button" parent="Layout/Rows/Body/Nav"]
 unique_name_in_owner = true
@@ -1329,7 +1334,7 @@ directional_shadow_max_distance = 60.0
 [node name="Floor" type="MeshInstance3D" parent="Layout/Rows/Body/Preview/Viewport" unique_id=845276122]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.15, 0)
 material_override = SubResource("StandardMaterial3D_3")
-mesh = SubResource("CylinderMesh_2")
+mesh = ExtResource("kit_menu_pedestal")
 
 [node name="PreviewPivot" type="Node3D" parent="Layout/Rows/Body/Preview/Viewport" unique_id=537245249]
 unique_name_in_owner = true

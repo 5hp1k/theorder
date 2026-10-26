@@ -71,6 +71,7 @@ public partial class Game : Node3D
     public override void _Ready()
     {
         GameConfig.EnsureLoaded();
+        ControlModes.Apply();
         PlayerUnit = null;
         Cockpit = null;
         Units.All.Clear();
@@ -97,6 +98,9 @@ public partial class Game : Node3D
             SetWeather(_map, GameConfig.WeatherId);
             GetNode("Map").AddChild(_map);
         }
+        // The edge of the battlefield, seen only from the console's free camera.
+        _map.AddChild(new BoundsWall { Name = "BoundsWall", OnlyFreeCamera = true });
+        AddChild(new VisionFx { Name = "VisionFx" });
         _units = GetNode<Node3D>("Units");
 
         // Enemy spawn markers, in random order.
@@ -337,7 +341,7 @@ public partial class Game : Node3D
             pilot.Leader = leader;
             pilot.FormationSlot = slot;
             mech.AddChild(pilot);
-            mech.Transform = new Transform3D(spawn.Basis, spawn.Origin + spawn.Basis * slot);
+            mech.Transform = new Transform3D(spawn.Basis, ClearNear(spawn.Origin + spawn.Basis * slot, Vector3.Zero));
             _units.AddChild(mech);
             NetLink.I.Track(mech, 0, null, null);
             Squad.Add(pilot);
@@ -382,7 +386,7 @@ public partial class Game : Node3D
             pilot.Leader = leader;
             pilot.FormationSlot = slot;
             node.AddChild(pilot);
-            node.Transform = new Transform3D(spawn.Basis, spawn.Origin + spawn.Basis * slot);
+            node.Transform = new Transform3D(spawn.Basis, ClearNear(spawn.Origin + spawn.Basis * slot, Vector3.Zero));
             _units.AddChild(node);
             NetLink.I.Track(node, 0, null, null);
             Squad.Add(pilot);
@@ -480,11 +484,69 @@ public partial class Game : Node3D
     }
 
     /// <summary>The next unused spawn marker; when they run out, somewhere on a ring around the middle.</summary>
+    readonly List<Vector3> _placed = new();
+
+    /// <summary>Nothing built stands there (a machine put inside a wall or a pylon would be thrown out of it, often down through the ground).</summary>
+    bool Clear(Vector3 at)
+    {
+        if (MapTerrain.Instance is { } terrain && !terrain.InsideEnclosure(at, 8f)) return false;
+        float ground = MapTerrain.Instance?.HeightAt(at.X, at.Z) ?? at.Y;
+        var query = new PhysicsShapeQueryParameters3D
+        {
+            Shape = new SphereShape3D { Radius = 9f },
+            Transform = new Transform3D(Basis.Identity, new Vector3(at.X, ground + 7f, at.Z)),
+            CollisionMask = 32,
+        };
+        return GetWorld3D().DirectSpaceState.IntersectShape(query, 1).Count == 0;
+    }
+
+    /// <summary>The spot, or the nearest clear one on the way from it to <paramref name="toward"/> (a formation
+    /// slot that falls in a wall or outside an arena's is drawn in).</summary>
+    Vector3 ClearNear(Vector3 at, Vector3 toward)
+    {
+        Vector3 p = at;
+        for (int i = 0; i < 12 && !Clear(p); i++)
+            p = p.MoveToward(new Vector3(toward.X, p.Y, toward.Z), 6f) + new Vector3((float)GD.RandRange(-3.0, 3.0), 0f, (float)GD.RandRange(-3.0, 3.0));
+        return p;
+    }
+
     Vector3 NextSpawn()
     {
-        if (_nextSpawn < _spawns.Count) return _spawns[_nextSpawn++].Position;
-        float angle = GD.Randf() * Mathf.Tau;
-        return new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * (float)GD.RandRange(220.0, 340.0);
+        if (_nextSpawn < _spawns.Count && Clear(_spawns[_nextSpawn].Position))
+        {
+            _placed.Add(_spawns[_nextSpawn].Position);
+            return _spawns[_nextSpawn++].Position;
+        }
+        // More machines than markers: beside one of the markers, a little way in towards the middle — never
+        // somewhere the map does not mean anyone to stand (under a colosseum's stands, in the sea).
+        if (_spawns.Count > 0)
+        {
+            Vector3 mark = _spawns[_nextSpawn++ % _spawns.Count].Position;
+            Vector3 best = mark;
+            float bestRoom = -1f;
+            // (a few tries: the one farthest from every machine already put down, so no two stand in each other)
+            for (int i = 0; i < 12; i++)
+            {
+                float angle = GD.Randf() * Mathf.Tau;
+                Vector3 p = mark.Lerp(new Vector3(0f, mark.Y, 0f), (float)GD.RandRange(0.06, 0.26)) + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * (float)GD.RandRange(10.0, 30.0);
+                if (!Clear(p)) continue;
+                float room = float.MaxValue;
+                foreach (var u in Units.All)
+                    if (u is Node3D n && IsInstanceValid(n)) room = Mathf.Min(room, new Vector2(n.GlobalPosition.X - p.X, n.GlobalPosition.Z - p.Z).Length());
+                foreach (var q in _placed) room = Mathf.Min(room, new Vector2(q.X - p.X, q.Z - p.Z).Length());
+                if (room > bestRoom)
+                {
+                    bestRoom = room;
+                    best = p;
+                }
+                if (room > 18f) break;
+            }
+            _placed.Add(best);
+            return best;
+        }
+        float a = GD.Randf() * Mathf.Tau;
+        float reach = Mathf.Min(MapTerrain.Instance?.PlayHalf ?? 300f, 340f) * 0.8f;
+        return new Vector3(Mathf.Cos(a), 0f, Mathf.Sin(a)) * (float)GD.RandRange(reach * 0.6, reach);
     }
 
     void Place(Node3D unit, Vector3 position)

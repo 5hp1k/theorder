@@ -7,18 +7,14 @@
 [ext_resource type="PackedScene" path="res://scenes/city/door.tscn" id="x1"]
 [ext_resource type="PackedScene" path="res://scenes/city/roof_vent.tscn" id="x2"]
 [ext_resource type="Material" path="res://materials/facade_hangar.tres" id="4"]
+[ext_resource type="ArrayMesh" path="res://models/kit/rubble_heap.res" id="kit_rubble_heap"]
+[ext_resource type="ArrayMesh" path="res://models/kit/rubble_slab.res" id="kit_rubble_slab"]
 
 [sub_resource type="BoxMesh" id="Preview"]
 size = Vector3(24, 6, 15)
 
 [sub_resource type="BoxShape3D" id="Shape"]
 size = Vector3(24, 6, 15)
-
-[sub_resource type="BoxMesh" id="Heap"]
-size = Vector3(25.2, 0.9, 15.75)
-
-[sub_resource type="BoxMesh" id="Slab"]
-size = Vector3(8.4, 0.9, 4.5)
 
 [sub_resource type="PrismMesh" id="RoofMesh"]
 size = Vector3(15.6, 1.8, 24.6)
@@ -58,16 +54,16 @@ shape = SubResource("Shape")
 visible = false
 
 [node name="Heap" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.45, 0)
-mesh = SubResource("Heap")
+transform = Transform3D(25.2, 0, 0, 0, 0.9, 0, 0, 0, 15.75, 0, 0.45, 0)
+mesh = ExtResource("kit_rubble_heap")
 material_override = ExtResource("5")
 
 [node name="Slab1" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.88526, 0.21315, 0.41338, -0.13613, 0.96863, -0.20791, -0.44473, 0.12778, 0.8865, 4.8, 0.9, -2.25)
-mesh = SubResource("Slab")
+transform = Transform3D(7.43618, 0.191835, 1.86021, -1.14349, 0.871767, -0.935595, -3.73573, 0.115002, 3.98925, 4.8, 0.9, -2.25)
+mesh = ExtResource("kit_rubble_slab")
 material_override = ExtResource("5")
 
 [node name="Slab2" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.76762, -0.08776, -0.63487, 0.23894, 0.95835, 0.15643, 0.5947, -0.27178, 0.75661, -6, 0.75, 3)
-mesh = SubResource("Slab")
+transform = Transform3D(6.44801, -0.078984, -2.85692, 2.0071, 0.862515, 0.703935, 4.99548, -0.244602, 3.40475, -6, 0.75, 3)
+mesh = ExtResource("kit_rubble_slab")
 material_override = ExtResource("5")

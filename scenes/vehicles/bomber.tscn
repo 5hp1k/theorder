@@ -19,6 +19,7 @@
 [ext_resource type="PackedScene" path="res://scenes/weapons/emp_rack.tscn" id="emp"]
 [ext_resource type="PackedScene" path="res://scenes/fx/headlight.tscn" id="headlight"]
 [ext_resource type="Material" path="res://materials/insignia.tres" id="insignia"]
+[ext_resource type="ArrayMesh" path="res://models/vehicles/bomber/Surfaces.res" id="x2"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_1"]
 size = Vector3(3, 2, 12)
@@ -73,6 +74,10 @@ material_override = ExtResource("x1")
 
 [node name="EngineR" type="MeshInstance3D" parent="Hull"]
 mesh = ExtResource("x7")
+material_override = ExtResource("x1")
+
+[node name="Surfaces" type="MeshInstance3D" parent="Hull"]
+mesh = ExtResource("x2")
 material_override = ExtResource("x1")
 
 [node name="HeadlightL" parent="Hull" instance=ExtResource("headlight")]

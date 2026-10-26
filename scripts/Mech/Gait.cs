@@ -103,10 +103,24 @@ public sealed class Gait
             if (p >= swing)
             {
                 if (!leg.Planted) leg.Land(_target[i], _targetN[i]);
+                else if (Lost(leg, root))
+                {
+                    if (ground(root * leg.HomeLocal, out var pos, out var n)) leg.Teleport(pos, n);
+                    else leg.Teleport(root * leg.HomeLocal, Vector3.Up);
+                }
                 continue;
             }
 
             float u = p / swing;
+            if (leg.Planted && Lost(leg, root))
+            {
+                // Left far behind, high above or below where it belongs (the body slid off a ledge, was
+                // thrown, came down off a height): put back under the hip now — a stumble — rather than
+                // the leg stretched out after it like a spider's.
+                if (ground(root * leg.HomeLocal, out var pos, out var n)) leg.Teleport(pos, n);
+                else leg.Teleport(root * leg.HomeLocal, Vector3.Up);
+                continue;
+            }
             if (leg.Planted)
             {
                 // Standing with this foot near enough: leave it.
@@ -129,6 +143,12 @@ public sealed class Gait
                 var rootAtLanding = new Transform3D(turn * root.Basis, root.Origin + (hv + vLand) * 0.5f * left);
                 // Ahead of the hip by half of what the body will cover while this foot is planted.
                 Vector3 lead = (turn * vLand * ((1f - swing) * cycleTime * 0.5f)).LimitLength(Reach);
+                // Walking sideways (the arcade controls, a hard turn): a foot steps out its own way, but
+                // never in across the other one — at most to half way to the middle line.
+                Vector3 side = rootAtLanding.Basis.X.Normalized();
+                float homeX = leg.HomeLocal.X, across = lead.Dot(side);
+                if (homeX * across < 0f && Mathf.Abs(across) > Mathf.Abs(homeX) * 0.5f)
+                    lead -= side * (across - Mathf.Sign(across) * Mathf.Abs(homeX) * 0.5f);
                 Vector3 home = rootAtLanding * leg.HomeLocal;
                 Place(i, home, lead, root.Origin.Y, ground);
             }
@@ -157,17 +177,11 @@ public sealed class Gait
     /// </summary>
     void Place(int i, Vector3 home, Vector3 lead, float level, GroundQuery ground)
     {
-        Vector3 fallback = default;
-        bool any = false;
+        Vector3 fallback = new Vector3(home.X, level, home.Z), fallbackN = Vector3.Up;
         foreach (float share in Shares)
         {
             Vector3 at = home + lead * share;
-            if (!ground(at, out var pos, out var n))
-            {
-                if (!any) fallback = new Vector3(at.X, level, at.Z);
-                any = true;
-                continue;
-            }
+            if (!ground(at, out var pos, out var n)) continue;
             float rise = pos.Y - level;
             if (rise <= MaxStepUp && rise >= -MaxStepDown)
             {
@@ -175,14 +189,24 @@ public sealed class Gait
                 _targetN[i] = n;
                 return;
             }
-            if (!any) fallback = new Vector3(pos.X, level + Mathf.Clamp(rise, -MaxStepDown, MaxStepUp), pos.Z);
-            any = true;
+            // (The last tried is under the hip itself: there, on the ground as it really is — the body is
+            // going up or down it all the same — rather than a foot set down on the air.)
+            fallback = pos;
+            fallbackN = n;
         }
         _target[i] = fallback;
-        _targetN[i] = Vector3.Up;
+        _targetN[i] = fallbackN;
     }
 
     static readonly float[] Shares = { 1f, 0.5f, 0f };
+
+    /// <summary>A planted foot the leg can no longer be standing on: far out of reach across, or well
+    /// above or below the body's own level.</summary>
+    bool Lost(MechLeg leg, Transform3D root)
+    {
+        float dy = leg.Contact.Y - root.Origin.Y;
+        return HomeError(leg, root) > Reach * 1.6f || dy > MaxStepUp * 1.5f || dy < -MaxStepDown * 1.3f;
+    }
 
     static float HomeError(MechLeg leg, Transform3D root)
     {

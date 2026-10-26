@@ -14,7 +14,7 @@ units=()
 for a in "$@"; do
   case $a in walk|default) flags+=("$a");; *) units+=("$a");; esac
 done
-[ ${#units[@]} -eq 0 ] && units=(agni ballista cleaver executioner gladiator hades hound ostrich panther amphibian apc bomber helicopter laser_tank mlrs ship spg tank)
+[ ${#units[@]} -eq 0 ] && units=(agni ballista executioner hades hound ostrich panther mantis mauler direwolf amphibian apc bomber helicopter laser_tank mlrs ship spg tank)
 mkdir -p "$OUT"
 for u in "${units[@]}"; do
   timeout 120 "$GODOT" --headless --path . tools/export_unit.tscn -- "$u" "$OUT" "${flags[@]}" > "$OUT/$u.log" 2>&1

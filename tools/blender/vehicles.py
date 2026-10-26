@@ -24,7 +24,7 @@ def road_wheel(name, r, w, axle=0.36):
     h.bolts([(-w / 2 - 0.02, math.cos(i * math.tau / 5) * r * 0.56, math.sin(i * math.tau / 5) * r * 0.56) for i in range(5)], (-1, 0, 0), r=r * 0.07, h=0.03)
     # the axle, running in into the side of the hull (round about itself, so it turns with the wheel
     # and rides up and down with it on the springs)
-    h.cyl((w / 2 - 0.01, 0, 0), (w / 2 + axle, 0, 0), r * 0.22, segs=10, kind=FRAME, bevel=0)
+    h.cyl((w / 2 - 0.01, 0, 0), (w / 2 + axle + 0.03, 0, 0), r * 0.22, segs=10, kind=FRAME, bevel=0, plain=True)
     return h
 
 
@@ -69,6 +69,21 @@ def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), 
     for i in range(2):
         body.cyl((-W * 0.9 + i * 0.45, deck + 0.2, L - 0.5), (W * 0.1 - W + i * 0.45 + 0.9, deck + 0.2, L - 0.5), 0.2, segs=12, kind=PAINT) if False else None
     body.cyl((-W * 0.75, deck + 0.2, L - 0.25), (W * 0.75, deck + 0.2, L - 0.25), 0.22, segs=12, kind=PAINT)  # fuel drum, sitting on the deck
+    # the driver's hatch and periscopes on the front of the deck, tow eyes at either end, spare track links
+    # on the glacis
+    if not boat:
+        hz = -L + 1.75
+        body.lathe((-W * 0.45, deck - 0.02, hz), (-W * 0.45, deck + 0.07, hz), [(0, 0.42), (0.4, 0.42), (0.5, 0.36), (1, 0.33)], segs=20, kind=FRAME)
+        body.lathe((-W * 0.45, deck + 0.06, hz), (-W * 0.45, deck + 0.13, hz), [(0, 0.32), (0.6, 0.31), (1, 0.24)], segs=20, kind=PAINT)
+        for i in (-1, 0, 1):
+            body.stations("y", [(deck - 0.06, 0.16, 0.12, -W * 0.45 + i * 0.2, hz + 0.56, 0.03), (deck + 0.1, 0.13, 0.09, -W * 0.45 + i * 0.2, hz + 0.54, 0.025)], kind=SOFT)
+        for k in range(3):
+            z = -L + 0.5 + k * 0.26
+            y = deck - hull_h + 0.18 + (z + L + 0.15) / 1.55 * (hull_h - 0.2)
+            body.stations("x", [(-W * 0.62, 0.22, 0.09, z, y + 0.0, 0.015), (-W * 0.02, 0.22, 0.09, z, y + 0.0, 0.015)], kind=FRAME)
+    for zz, dz in ((-L + 0.1, -1), (L - 0.05, 1)):
+        for sx in (-1, 1):
+            mt_eye(body, (sx * W * 0.55, floor + 0.32, zz + dz * 0.1), (0, 0, -dz), (1, 0, 0), 0.08, 0.1, 0.3)
     if extra:
         extra(body, L, W, deck)
     m.add(body, "Hull", "Body", CAMO)
@@ -114,11 +129,16 @@ def tracked(m, length, width, deck, hull_h, turret_at, turret=(2.3, 0.85, 2.7), 
     t.box((0, th * 0.55, tl * 0.71), (tw * 0.75, th * 0.5, tl * 0.2), PAINT, 0.02, SMALL_PANELS)  # stowage bin, against the back
     for s in (-1, 1):
         for i in range(3):  # smoke dischargers
-            a = (s * tw * 0.5, th * 0.62, -tl * 0.05 + i * 0.16)
+            a = (s * tw * 0.46, th * 0.62, -tl * 0.05 + i * 0.16)   # (from a little inside the turret's flank)
             t.cyl(a, (a[0] + s * 0.16, a[1] + 0.12, a[2] - 0.1), 0.05, segs=8, kind=FRAME, bevel=0)
     t.cyl((-tw * 0.36, th * 0.85, tl * 0.5), (-tw * 0.36, th + 1.6, tl * 0.5), 0.02, 0.008, segs=6, kind=FRAME, bevel=0)  # (from inside the sloping roof)
     t.box((tw * 0.22, th + 0.3, -tl * 0.05), (0.14, 0.14, 0.4), FRAME, 0.01)  # machine gun on the cupola
     t.cyl((tw * 0.22, th + 0.3, -tl * 0.05 - 0.18), (tw * 0.22, th + 0.3, -tl * 0.05 - 0.88), 0.025, segs=6, kind=FRAME, bevel=0)
+    # the loader's hatch, and grab rails round the turret's sides
+    t.lathe((-tw * 0.22, th - 0.02, tl * 0.15), (-tw * 0.22, th + 0.06, tl * 0.15), [(0, 0.36), (0.5, 0.36), (1, 0.3)], segs=18, kind=FRAME)
+    t.lathe((-tw * 0.22, th + 0.05, tl * 0.15), (-tw * 0.22, th + 0.11, tl * 0.15), [(0, 0.29), (1, 0.22)], segs=18, kind=PAINT)
+    for s_ in (-1, 1):
+        mt_pipe(t, [(s_ * tw * 0.42, th * 0.78, -tl * 0.2), (s_ * tw * 0.53, th * 0.8, -tl * 0.15), (s_ * tw * 0.53, th * 0.8, tl * 0.25), (s_ * tw * 0.42, th * 0.78, tl * 0.3)], 0.022, EDGE, 6)
     m.add(t, "Turret", "Body", CAMO)
 
     g = Part("Gun")
@@ -582,6 +602,22 @@ def bomber():
     e.box((-3.3, 1.28, -3.62), (1.5, 0.42, 0.5), RECESS, 0)  # the intake (running forward out of the scoop's slope)
     e.box((-3.3, 0.5, 3.4), (1.5, 0.12, 1.2), RECESS, 0)
     m.both(e, "Hull", "EngineL", "stealth_grey")
+
+    # The elevons along the saw-toothed trailing edge: their hinge lines sunk into the upper skin, and
+    # the gear doors' outlines under the centre.
+    d = Part("Surfaces")
+    for x0, x1 in ((3.6, 5.4), (5.8, 8.4), (8.8, 12.4)):
+        for sx in (-1, 1):
+            secs = []
+            for k in range(7):
+                x = sx * (x0 + (x1 - x0) * k / 6)
+                z = trail(x) - 1.5
+                y = top(x, z)
+                secs.append([(x, y - 0.14, z - 0.03), (x, y + 0.006, z - 0.03), (x, y + 0.006, z + 0.03), (x, y - 0.14, z + 0.03)])
+            if sx < 0:
+                secs.reverse()
+            d.loft(secs, RECESS, 0.0)
+    m.add(d, "Hull", "Surfaces", "stealth_grey")
     m.removes += ["Hull/Nose", "Hull/Wings", "Hull/Tailplane", "Hull/Fin"]
     return m
 

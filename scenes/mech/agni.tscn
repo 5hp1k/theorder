@@ -68,6 +68,42 @@
 [ext_resource type="ArrayMesh" path="res://models/mechs/agni/CockpitGlass.res" id="x6"]
 [ext_resource type="Material" path="res://materials/cockpit_glass.tres" id="x7"]
 [ext_resource type="Script" path="res://scripts/Fx/CockpitGlass.cs" id="x8"]
+[ext_resource type="Material" path="res://materials/cockpit_grip.tres" id="x11"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_target_nearest.res" id="x15"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_target_next.res" id="x16"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_target_friendly.res" id="x17"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_radar_mode.res" id="x19"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_PodL.res" id="x21"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_PodR.res" id="x22"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/CockpitSeat.res" id="x23"]
+[ext_resource type="Material" path="res://materials/cockpit_seat.tres" id="x24"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/CockpitSeatFrame.res" id="x25"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/CockpitStick.res" id="x26"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/CockpitThrottle.res" id="x27"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_PedalL.res" id="x28"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_PedalR.res" id="x29"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/CockpitCombiner.res" id="x30"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_full_stop.res" id="x31"]
+[ext_resource type="Material" path="res://materials/cockpit_red.tres" id="x32"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_toggle_lights.res" id="x80"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_night_vision.res" id="x83"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_thermal_vision.res" id="x84"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_counter_rotate.res" id="x85"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_kneel.res" id="x86"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_engine.res" id="x10"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_reactor.res" id="x12"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_coolant.res" id="x13"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_squad_attack.res" id="x14"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_squad_follow.res" id="x18"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_squad_goto.res" id="x20"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_squad_hold.res" id="x33"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Btn_squad_fire.res" id="x34"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Sw_cab_light.res" id="x35"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Led_cab_light.res" id="x36"]
+[ext_resource type="Material" path="res://materials/cockpit_led.tres" id="x37"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Sw_glass_heat.res" id="x71"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_Led_glass_heat.res" id="x72"]
+[ext_resource type="ArrayMesh" path="res://models/mechs/agni/Cab_CompassMount.res" id="x73"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 1.805
@@ -478,13 +514,160 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.2, 2.2, -1.25)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -1.95)
 
 [node name="Cockpit" type="Node3D" parent="Hips/Torso/CockpitCam"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.36, -0.55)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
 visible = false
 script = ExtResource("x38")
+
+[node name="Btn_target_nearest" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.75006, -0.341468, -0.552994)
+mesh = ExtResource("x15")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0.736036, 0.173786, 0.654254)
+metadata/softkey = 1
+metadata/screen = "PodL"
+metadata/at = 0.216667
+
+[node name="Btn_target_next" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.693589, -0.341468, -0.616524)
+mesh = ExtResource("x16")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0.736036, 0.173786, 0.654254)
+metadata/softkey = 1
+metadata/screen = "PodL"
+metadata/at = 0.5
+
+[node name="Btn_target_friendly" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.637118, -0.341468, -0.680053)
+mesh = ExtResource("x17")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0.736036, 0.173786, 0.654254)
+metadata/softkey = 1
+metadata/screen = "PodL"
+metadata/at = 0.783333
+
+[node name="Btn_squad_attack" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.621838, -0.341468, -0.697244)
+mesh = ExtResource("x14")
+material_override = ExtResource("x11")
+metadata/push = Vector3(-0.736036, 0.173786, 0.654254)
+metadata/softkey = 1
+metadata/screen = "PodR"
+metadata/at = 0.14
+
+[node name="Btn_squad_follow" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.657714, -0.341468, -0.656884)
+mesh = ExtResource("x18")
+material_override = ExtResource("x11")
+metadata/push = Vector3(-0.736036, 0.173786, 0.654254)
+metadata/softkey = 1
+metadata/screen = "PodR"
+metadata/at = 0.32
+
+[node name="Btn_squad_goto" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.693589, -0.341468, -0.616524)
+mesh = ExtResource("x20")
+material_override = ExtResource("x11")
+metadata/push = Vector3(-0.736036, 0.173786, 0.654254)
+metadata/softkey = 1
+metadata/screen = "PodR"
+metadata/at = 0.5
+
+[node name="Btn_squad_hold" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.729465, -0.341468, -0.576164)
+mesh = ExtResource("x33")
+material_override = ExtResource("x11")
+metadata/push = Vector3(-0.736036, 0.173786, 0.654254)
+metadata/softkey = 1
+metadata/screen = "PodR"
+metadata/at = 0.68
+
+[node name="Btn_squad_fire" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.765341, -0.341468, -0.535803)
+mesh = ExtResource("x34")
+material_override = ExtResource("x11")
+metadata/push = Vector3(-0.736036, 0.173786, 0.654254)
+metadata/softkey = 1
+metadata/screen = "PodR"
+metadata/at = 0.86
+
+[node name="Sw_cab_light" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.68, -0.104, -1.04)
+mesh = ExtResource("x35")
+material_override = ExtResource("x11")
+metadata/axis = Vector3(1, 0, 0)
+metadata/placard = "front"
+
+[node name="Led_cab_light" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.63, -0.103, -1.04)
+mesh = ExtResource("x36")
+material_override = ExtResource("x37")
+
+[node name="Sw_glass_heat" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.68, -0.104, -1.04)
+mesh = ExtResource("x71")
+material_override = ExtResource("x11")
+metadata/axis = Vector3(1, 0, 0)
+metadata/placard = "front"
+
+[node name="Led_glass_heat" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.63, -0.103, -1.04)
+mesh = ExtResource("x72")
+material_override = ExtResource("x37")
 
 [node name="Frame" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
 mesh = ExtResource("x69")
 material_override = ExtResource("17")
+
+[node name="PodL" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.72, -0.17, -0.64)
+mesh = ExtResource("x21")
+material_override = ExtResource("17")
+metadata/face = Vector3(0.72, 0.17, 0.64)
+
+[node name="PodR" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.72, -0.17, -0.64)
+mesh = ExtResource("x22")
+material_override = ExtResource("17")
+metadata/face = Vector3(-0.72, 0.17, 0.64)
+
+[node name="CompassMount" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.32, -0.61)
+mesh = ExtResource("x73")
+material_override = ExtResource("17")
+metadata/face = Vector3(0, -0.45, 0.89)
+
+[node name="Seat" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+mesh = ExtResource("x23")
+material_override = ExtResource("x24")
+
+[node name="SeatFrame" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+mesh = ExtResource("x25")
+material_override = ExtResource("17")
+
+[node name="Stick" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.72, -0.49, -0.16)
+mesh = ExtResource("x26")
+material_override = ExtResource("x11")
+
+[node name="Throttle" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.7, -0.49, -0.22)
+mesh = ExtResource("x27")
+material_override = ExtResource("x11")
+
+[node name="PedalL" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.22, -0.9, -0.92)
+mesh = ExtResource("x28")
+material_override = ExtResource("17")
+
+[node name="PedalR" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.22, -0.9, -0.92)
+mesh = ExtResource("x29")
+material_override = ExtResource("17")
+
+[node name="HeadUp" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
+mesh = ExtResource("x30")
+material_override = ExtResource("x7")
+cast_shadow = 0
 
 [node name="Glass" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit"]
 mesh = ExtResource("x6")
@@ -499,6 +682,96 @@ transform = Transform3D(1, 0, 0, 0, 0.882948, 0.469472, 0, -0.469472, 0.882948, 
 mesh = ExtResource("x70")
 material_override = ExtResource("17")
 cast_shadow = 0
+
+[node name="Btn_toggle_lights" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.05, -0.268, -0.006)
+mesh = ExtResource("x80")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenC"
+metadata/at = 0.391304
+
+[node name="Btn_night_vision" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.05, -0.268, -0.006)
+mesh = ExtResource("x83")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenC"
+metadata/at = 0.608696
+
+[node name="Btn_thermal_vision" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, -0.268, -0.006)
+mesh = ExtResource("x84")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenC"
+metadata/at = 0.826087
+
+[node name="Btn_radar_mode" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, -0.268, -0.006)
+mesh = ExtResource("x19")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenC"
+metadata/at = 0.173913
+
+[node name="Btn_coolant" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.51, -0.268, -0.006)
+mesh = ExtResource("x13")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenL"
+metadata/at = 0.608696
+
+[node name="Btn_counter_rotate" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.475, -0.268, -0.006)
+mesh = ExtResource("x85")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenR"
+metadata/at = 0.315217
+
+[node name="Btn_kneel" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.645, -0.268, -0.006)
+mesh = ExtResource("x86")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenR"
+metadata/at = 0.684783
+
+[node name="Btn_full_stop" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.41, -0.268, -0.006)
+mesh = ExtResource("x31")
+material_override = ExtResource("x32")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenL"
+metadata/at = 0.826087
+
+[node name="Btn_engine" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.61, -0.268, -0.006)
+mesh = ExtResource("x10")
+material_override = ExtResource("x11")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenL"
+metadata/at = 0.391304
+
+[node name="Btn_reactor" type="MeshInstance3D" parent="Hips/Torso/CockpitCam/Cockpit/Dash"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.71, -0.268, -0.006)
+mesh = ExtResource("x12")
+material_override = ExtResource("x32")
+metadata/push = Vector3(0, 0, 1)
+metadata/softkey = 1
+metadata/screen = "ScreenL"
+metadata/at = 0.173913
 
 [node name="HomeL" type="Marker3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.52, 0, 0.05)

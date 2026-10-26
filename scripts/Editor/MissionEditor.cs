@@ -189,6 +189,7 @@ public partial class MissionEditor : Node3D
         CampaignRun.Mission = new MissionInfo { TimeOfDay = _doc.TimeOfDay };
         var map = GD.Load<PackedScene>(Catalog.Find(Catalog.Maps, _doc.Map).Path).Instantiate<Node3D>();
         Game.SetWeather(map, _doc.Weather);
+        map.AddChild(new BoundsWall { Name = "BoundsWall" });
         _world.AddChild(map);
         CampaignRun.Mission = was;
         _mapLoaded = _doc.Map;
@@ -761,7 +762,9 @@ public partial class MissionEditor : Node3D
                 return;
         }
         // Not tied to a place: in front of the camera, where it can be found again.
-        GroundUnder(GetViewport().GetVisibleRect().Size * 0.5f, out var at);
+        if (!GroundUnder(GetViewport().GetVisibleRect().Size * 0.5f, out var at))
+            at = _camera.GlobalPosition - _camera.GlobalBasis.Z * 60f;
+        _placing = what;
         PlaceNew(at);
     }
 
@@ -822,7 +825,8 @@ public partial class MissionEditor : Node3D
             }
             case "cutscene":
             {
-                var c = new CutsceneDoc { Name = _doc.FreeName(Loc.T("Катсцена")) };
+                // (the first one opens the mission; later ones play when a step names them)
+                var c = new CutsceneDoc { Name = _doc.FreeName(Loc.T("Катсцена")), AtStart = _doc.Cutscenes.Count == 0 };
                 c.Shots.Add(ShotFromCamera(0f));
                 _doc.Cutscenes.Add(c);
                 made = c;

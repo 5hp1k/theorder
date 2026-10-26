@@ -11,6 +11,8 @@
 [ext_resource type="PackedScene" path="res://scenes/city/roof_vent.tscn" id="x4"]
 [ext_resource type="PackedScene" path="res://scenes/city/roof_tank.tscn" id="x5"]
 [ext_resource type="PackedScene" path="res://scenes/city/roof_mast.tscn" id="x6"]
+[ext_resource type="ArrayMesh" path="res://models/kit/rubble_heap.res" id="kit_rubble_heap"]
+[ext_resource type="ArrayMesh" path="res://models/kit/rubble_slab.res" id="kit_rubble_slab"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_1"]
 size = Vector3(28, 80, 28)
@@ -20,15 +22,6 @@ size = Vector3(28.6, 0.4, 28.6)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_3"]
 size = Vector3(28, 80, 28)
-
-[sub_resource type="BoxMesh" id="BoxMesh_4"]
-size = Vector3(29.4, 3.2, 29.4)
-
-[sub_resource type="BoxMesh" id="BoxMesh_5"]
-size = Vector3(16.8, 2.56, 14)
-
-[sub_resource type="BoxMesh" id="BoxMesh_6"]
-size = Vector3(11.2, 2.24, 16.8)
 
 [node name="Tower_A" type="StaticBody3D"]
 collision_layer = 32
@@ -68,16 +61,16 @@ shape = SubResource("BoxShape3D_3")
 visible = false
 
 [node name="Heap" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
-mesh = SubResource("BoxMesh_4")
+transform = Transform3D(29.4, 0, 0, 0, 3.2, 0, 0, 0, 29.4, 0, 1.6, 0)
+mesh = ExtResource("kit_rubble_heap")
 material_override = ExtResource("5")
 
 [node name="Slab1" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.88526, 0.21315, 0.41338, -0.13613, 0.96863, -0.20791, -0.44473, 0.12778, 0.8865, 4.2, 3.2, -2.8)
-mesh = SubResource("BoxMesh_5")
+transform = Transform3D(14.8724, 0.545664, 5.78732, -2.28698, 2.47969, -2.91074, -7.47146, 0.327117, 12.411, 4.2, 3.2, -2.8)
+mesh = ExtResource("kit_rubble_slab")
 material_override = ExtResource("5")
 
 [node name="Slab2" type="MeshInstance3D" parent="Rubble"]
-transform = Transform3D(0.76762, -0.08776, -0.63487, 0.23894, 0.95835, 0.15643, 0.5947, -0.27178, 0.75661, -5.6, 2.88, 4.2)
-mesh = SubResource("BoxMesh_6")
+transform = Transform3D(8.59734, -0.196582, -10.6658, 2.67613, 2.1467, 2.62802, 6.66064, -0.608787, 12.711, -5.6, 2.88, 4.2)
+mesh = ExtResource("kit_rubble_slab")
 material_override = ExtResource("5")

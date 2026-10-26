@@ -133,8 +133,11 @@ public partial class MainMenu : Control
         SetupMechPage();
         SetupCustomPage();
         SetupBattlePage();
-        // Back from a mission: the campaign's page.
-        ShowPage(CampaignRun.BackToCampaign ? 5 : CampaignRun.BackToMissions ? 6 : 0);
+        // The campaign is put away for now (its button hidden; the Insurgency mode takes its place, still to
+        // come): the hangar is a battle of one's own's.
+        if (GameConfig.CampaignMode) SwitchMode(false);
+        // Back from a mission of one's own: that page.
+        ShowPage(CampaignRun.BackToMissions ? 6 : 0);
         CampaignRun.BackToCampaign = false;
         CampaignRun.BackToMissions = false;
         RebuildPreview();

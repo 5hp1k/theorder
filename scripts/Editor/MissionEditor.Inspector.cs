@@ -130,16 +130,35 @@ public partial class MissionEditor
         StepsPick(Loc.T("Тогда"), t.Steps, t);
     }
 
+    /// <summary>Whether any step of the mission sets this element going.</summary>
+    bool Called(string name)
+    {
+        foreach (var o in _doc.Objectives) if (o.OnDone.Contains(name) || o.OnFailed.Contains(name)) return true;
+        foreach (var t in _doc.Triggers) if (t.Steps.Contains(name)) return true;
+        foreach (var c in _doc.Cutscenes) if (c.OnFinished.Contains(name)) return true;
+        return _doc.OnWon.Contains(name);
+    }
+
+    /// <summary>A warning, in amber, for something that will never happen as the mission stands.</summary>
+    void Warn(string text)
+    {
+        var label = new Label { Text = text, AutowrapMode = TextServer.AutowrapMode.WordSmart, CustomMinimumSize = new Vector2(200, 0) };
+        label.AddThemeColorOverride("font_color", new Color(1f, 0.72f, 0.25f));
+        _form.AddChild(label);
+    }
+
     void RadioForm(RadioDoc r)
     {
         NameField(r.Name, n => r.Name = n, r);
+        if (!Called(r.Name)) Warn(Loc.T("Эту рацию ничто не запускает: добавьте её в шаги триггера, цели или катсцены (например, «Триггер: таймер» с задержкой 0 — сразу в начале)."));
         LinesEditor(r.Lines);
     }
 
     void CutsceneForm(CutsceneDoc c)
     {
         NameField(c.Name, n => c.Name = n, c);
-        Check(Loc.T("В начале миссии"), c.AtStart, v => c.AtStart = v);
+        Check(Loc.T("В начале миссии"), c.AtStart, v => { c.AtStart = v; ShowInspector(); });
+        if (!c.AtStart && !Called(c.Name)) Warn(Loc.T("Эту катсцену ничто не запускает: отметьте «В начале миссии» или добавьте её в шаги триггера, цели или другой катсцены."));
         Check(Loc.T("Можно пропустить (Esc)"), c.Skippable, v => c.Skippable = v);
         Check(Loc.T("Бой замирает"), c.HoldBattle, v => c.HoldBattle = v);
         Header(Loc.T("Кадры (камера летит от кадра к кадру)"));
@@ -168,6 +187,7 @@ public partial class MissionEditor
     void EndingForm(EndingDoc e)
     {
         NameField(e.Name, n => e.Name = n, e);
+        if (!Called(e.Name)) Warn(Loc.T("Эту концовку ничто не запускает: добавьте её в шаги триггера, цели или катсцены."));
         Option(Loc.T("Исход"), new List<string> { Loc.T("Победа"), Loc.T("Поражение") }, e.Success ? 0 : 1, i => { e.Success = i == 0; Changed(true); });
         if (!e.Success) Line(Loc.T("Причина"), e.Reason, v => e.Reason = v);
         Note(Loc.T("Концовку запускает шаг (цель, триггер, катсцена). Миссия и так выиграна, когда выполнены все обязательные цели."));

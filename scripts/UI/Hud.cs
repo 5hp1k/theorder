@@ -18,17 +18,18 @@ public partial class Hud : Control
 
     public ICockpit Seat => Game.Cockpit;
     /// <summary>
-    /// How much of the interface is up, switched round with key I: all of it; in a cockpit, only what its
-    /// own screens don't show (outside, the same as all of it); nothing. Stays so for the rest of the session.
+    /// How much of the interface is up, switched round with key I: in a cockpit, nothing over the picture —
+    /// everything is on the cab's own screens and its head-up glass (outside, all of it); all of it, over
+    /// the picture too; nothing but the cab's screens. Stays so for the rest of the session.
     /// </summary>
     public enum Mode { Full, Cockpit, Off }
-    public static Mode Shown;
+    public static Mode Shown = Mode.Cockpit;
     public static bool Off => Shown == Mode.Off;
     public float Time { get; private set; }
 
     Label _view, _timer, _unit;
     // Instruments that a cockpit shows on its own screens; hidden here while it does, if so switched.
-    static readonly string[] PanelInstruments = { "Minimap", "HeatGauge", "ThrottleGauge", "JumpGauge", "WeaponList", "PlayerDoll", "ArmorLabel" };
+    static readonly string[] PanelInstruments = { "Minimap", "HeatGauge", "CoolantGauge", "ThrottleGauge", "JumpGauge", "WeaponList", "PlayerDoll", "ArmorLabel" };
     readonly System.Collections.Generic.List<Control> _panel = new();
     Control _help, _helpHint;
 
@@ -44,7 +45,7 @@ public partial class Hud : Control
     /// <summary>Shown unless switched off, in a cutscene or while the console's free camera flies.</summary>
     public void RefreshShown()
     {
-        bool shown = !Off && !StoryOverlay.InCutscene && FreeCamera.Current == null;
+        bool shown = !Off && !StoryOverlay.InCutscene && FreeCamera.Current == null && !(Shown == Mode.Cockpit && CockpitDisplays.Active);
         if (Visible != shown) Visible = shown;
     }
 
@@ -66,7 +67,7 @@ public partial class Hud : Control
             water.Reparent(layer, false);
             layer.MoveChild(water, GetIndex());
         }).CallDeferred();
-        Visible = !Off;
+        RefreshShown();
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -75,11 +76,11 @@ public partial class Hud : Control
         {
             Shown = Shown switch
             {
-                Mode.Full => CockpitDisplays.Active ? Mode.Cockpit : Mode.Off,
-                Mode.Cockpit => Mode.Off,
-                _ => Mode.Full,
+                Mode.Cockpit => Mode.Full,
+                Mode.Full => Mode.Off,
+                _ => Mode.Cockpit,
             };
-            Visible = !Off;
+            RefreshShown();
             return;
         }
         if (!@event.IsActionPressed("toggle_help")) return;

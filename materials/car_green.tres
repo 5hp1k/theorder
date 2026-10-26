@@ -7,6 +7,7 @@
 
 [resource]
 shader = ExtResource("shader")
+shader_parameter/body_heat = 0.35
 shader_parameter/surface_normal = ExtResource("nor")
 shader_parameter/surface_arm = ExtResource("arm")
 shader_parameter/noise_tex = ExtResource("noise")

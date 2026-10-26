@@ -108,6 +108,31 @@ horizontal_alignment = 2
 theme_override_font_sizes/font_size = 17
 unique_name_in_owner = true
 
+[node name="BobRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Game/Rows/BobRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Покачивание камеры"
+theme_override_font_sizes/font_size = 17
+
+[node name="BobSlider" type="HSlider" parent="Tabs/Game/Rows/BobRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+max_value = 1.0
+step = 0.05
+unique_name_in_owner = true
+
+[node name="BobLabel" type="Label" parent="Tabs/Game/Rows/BobRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(64, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 17
+unique_name_in_owner = true
+
 [node name="ShowFpsRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
 layout_mode = 2
 theme_override_constants/separation = 12
@@ -121,6 +146,29 @@ theme_override_font_sizes/font_size = 17
 [node name="ShowFpsCheck" type="CheckButton" parent="Tabs/Game/Rows/ShowFpsRow"]
 layout_mode = 2
 unique_name_in_owner = true
+
+[node name="ControlModeRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Caption" type="Label" parent="Tabs/Game/Rows/ControlModeRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(250, 0)
+text = "Режим управления"
+theme_override_font_sizes/font_size = 17
+
+[node name="ControlModeOption" type="OptionButton" parent="Tabs/Game/Rows/ControlModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+unique_name_in_owner = true
+
+[node name="ControlModeAbout" type="Label" parent="Tabs/Game/Rows"]
+layout_mode = 2
+unique_name_in_owner = true
+custom_minimum_size = Vector2(300, 0)
+autowrap_mode = 3
+theme_override_colors/font_color = Color(0.7, 0.74, 0.78, 1)
+theme_override_font_sizes/font_size = 14
 
 [node name="GlassFxRow" type="HBoxContainer" parent="Tabs/Game/Rows"]
 layout_mode = 2
